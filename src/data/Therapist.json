@@ -1,0 +1,19 @@
+[
+    {
+      "id": 1,
+      "name": "Dr. Nguyễn Văn A",
+      "specialty": "Tâm lý học",
+      "avatar": "https://via.placeholder.com/150",
+      "description": "Chuyên gia tâm lý với hơn 10 năm kinh nghiệm.",
+      "status": "available"
+    },
+    {
+      "id": 2,
+      "name": "Dr. Trần Thị B",
+      "specialty": "Trị liệu tâm lý",
+      "avatar": "https://via.placeholder.com/150",
+      "description": "Hỗ trợ tư vấn tâm lý cho mọi lứa tuổi.",
+      "status": "available"
+    }
+  ]
+  
