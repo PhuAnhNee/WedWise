@@ -26,21 +26,37 @@ const AdminLogin: React.FC = () => {
             );
 
             const data = await response.json();
+            console.log("📌 API Response:", data); // Kiểm tra response
 
             if (response.ok) {
-                localStorage.setItem("token", data.token);
+                const accessToken = data.accessToken; // Lấy token từ key "accessToken"
+                // const refreshToken = data.refreshToken; // Lấy refresh token (nếu cần)
+
+                if (!accessToken) {
+                    console.error("❌ Không tìm thấy accessToken trong response!");
+                    setMessage({ type: "error", text: "Lỗi hệ thống, vui lòng thử lại!" });
+                    return;
+                }
+
+                localStorage.setItem("accessToken", accessToken); // Lưu vào localStorage
+                sessionStorage.setItem("accessToken", accessToken); // Lưu vào sessionStorage
+
+                console.log("✅ Access Token đã lưu:", localStorage.getItem("accessToken")); // Kiểm tra xem đã lưu chưa
+
                 setMessage({ type: "success", text: "Đăng nhập thành công!" });
 
                 setTimeout(() => navigate("/admin/dashboard"), 2000);
             } else {
-                setMessage({ type: "error", text: "Email hoặc mật khẩu không đúng!" });
+                setMessage({ type: "error", text: data.message || "Email hoặc mật khẩu không đúng!" });
             }
-            // } catch (error) {
-            //     setMessage({ type: "error", text: "Lỗi kết nối, vui lòng thử lại!" });
+        } catch (error) {
+            console.error("❌ Lỗi đăng nhập:", error);
+            setMessage({ type: "error", text: "Lỗi kết nối, vui lòng thử lại!" });
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-purple-500">
