@@ -94,7 +94,6 @@ const Login: React.FC = () => {
                     {/* Login form */}
                     <div className="w-full md:w-1/2 p-10 flex flex-col justify-center">
                         <div className="text-center">
-                            <img src="/logo.png" alt="Logo" className="mx-auto w-16" />
                             <h2 className="text-3xl font-bold mt-4 text-gray-700">Welcome Back!</h2>
                         </div>
 
