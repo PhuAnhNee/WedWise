@@ -19,6 +19,8 @@ import HomePage from "./pages/member/Home";
 import Profile from "./pages/member/Profile";
 import Settings from "./pages/member/Setting";
 import Register from "./pages/register/Register";
+import QuizPage from "./pages/member/QuizPage";
+import QuizDetail from "./pages/member/QuizDetail";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import TherapistProfile from "./pages/therapist/TherapistProfile";
 import TherapistAppointments from "./pages/therapist/TherapistAppointment";
@@ -43,6 +45,8 @@ const App: React.FC = () => {
           <Route path="therapist" element={<TherapistPage/>} />
           <Route path="therapist/:id" element={<TherapistDetail />} /> {/* Sửa lỗi nested route */}
           <Route path="my-booking" element={<MyBooking />} />
+          <Route path="quizzes" element={<QuizPage />} />
+          <Route path="quiz/:quizId" element={<QuizDetail />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
         </Route>

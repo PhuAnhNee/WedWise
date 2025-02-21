@@ -18,6 +18,7 @@
     "AsyncStorage": "^0.1.5",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
+    "jwt-decode": "^4.0.0",
     "date-fns": "^4.1.0",
     "from": "^0.1.7",
     "import": "^0.0.6",
