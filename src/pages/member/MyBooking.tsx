@@ -1,32 +1,49 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Modal, Button } from "antd";
+import { Modal, Button, message } from "antd";
+import axios from "axios";
+
+const API_URL = "https://67b72bdb2bddacfb270df514.mockapi.io/Therapist";
+
+// Định nghĩa interface cho Therapist
+interface Therapist {
+  id: string;
+  name: string;
+  status: boolean;
+}
 
 const MyBooking: React.FC = () => {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [bookings, setBookings] = useState<Therapist[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [selectedBooking, setSelectedBooking] = useState<Therapist | null>(null);
 
-  // 🗂 Lấy dữ liệu từ localStorage
+  // Fetch danh sách lịch hẹn từ API
   useEffect(() => {
-    const storedBookings = JSON.parse(localStorage.getItem("bookings") || "[]");
-    setBookings(storedBookings);
+    fetchBookings();
   }, []);
 
-  // 🛑 Hiển thị Modal xác nhận hủy
-  const showCancelModal = (id: number) => {
-    setSelectedBookingId(id);
-    setIsModalVisible(true);
+  const fetchBookings = async () => {
+    try {
+      const response = await axios.get<Therapist[]>(API_URL);
+      setBookings(response.data.filter((t: Therapist) => t.status === true)); // Lọc lịch hẹn đang chờ xác nhận
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách lịch hẹn:", error);
+    }
   };
 
-  // ✅ Xác nhận hủy lịch hẹn
-  const handleConfirmCancel = () => {
-    if (selectedBookingId !== null) {
-      const updatedBookings = bookings.filter((therapist) => therapist.id !== selectedBookingId);
-      localStorage.setItem("bookings", JSON.stringify(updatedBookings));
-      setBookings(updatedBookings);
+  // Xử lý hủy lịch hẹn
+  const handleCancelBooking = async () => {
+    if (!selectedBooking) return;
+
+    try {
+      await axios.put(`${API_URL}/${selectedBooking.id}`, { status: false });
+      message.success("Lịch hẹn đã được hủy!");
+      fetchBookings(); // Cập nhật danh sách sau khi hủy
+    } catch (error) {
+      message.error("Hủy lịch hẹn thất bại, vui lòng thử lại!");
+    } finally {
+      setIsModalVisible(false);
+      setSelectedBooking(null);
     }
-    setIsModalVisible(false);
   };
 
   return (
@@ -37,16 +54,15 @@ const MyBooking: React.FC = () => {
         <div className="grid grid-cols-2 gap-6">
           {bookings.map((therapist) => (
             <div key={therapist.id} className="p-4 border rounded-lg shadow-lg bg-gray-100">
-              <img src={therapist.avatar} alt={therapist.name} className="w-20 h-20 rounded-full mx-auto" />
               <h3 className="text-lg font-semibold text-center">{therapist.name}</h3>
-              <p className="text-center text-gray-600">{therapist.specialty}</p>
               <p className="text-center text-yellow-500 font-semibold">Đang chờ xác nhận</p>
-
-              {/* 🛑 Nút HỦY LỊCH - mở Modal */}
               <Button
                 danger
                 className="mt-4 w-full"
-                onClick={() => showCancelModal(therapist.id)}
+                onClick={() => {
+                  setSelectedBooking(therapist);
+                  setIsModalVisible(true);
+                }}
               >
                 Hủy lịch hẹn
               </Button>
@@ -54,23 +70,19 @@ const MyBooking: React.FC = () => {
           ))}
         </div>
       ) : (
-        <p className="text-center text-gray-500">Bạn chưa đặt lịch hẹn nào.</p>
+        <p className="text-center text-gray-500">Bạn chưa có lịch hẹn nào.</p>
       )}
 
-      <div className="text-center mt-6">
-        <Link to="/home/therapist" className="text-blue-500">← Quay lại danh sách chuyên gia</Link>
-      </div>
-
-      {/* 🚀 Modal xác nhận hủy lịch */}
+      {/* Modal xác nhận hủy lịch */}
       <Modal
-        title="Xác nhận hủy lịch"
+        title="Xác nhận hủy lịch hẹn"
         open={isModalVisible}
-        onOk={handleConfirmCancel}
+        onOk={handleCancelBooking}
         onCancel={() => setIsModalVisible(false)}
-        okText="Đồng ý"
+        okText="Xác nhận"
         cancelText="Hủy bỏ"
       >
-        <p>Bạn có chắc chắn muốn hủy lịch hẹn này không?</p>
+        <p>Bạn có chắc chắn muốn hủy lịch hẹn với <strong>{selectedBooking?.name}</strong> không?</p>
       </Modal>
     </div>
   );

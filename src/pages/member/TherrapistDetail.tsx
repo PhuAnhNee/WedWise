@@ -1,12 +1,27 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import therapistsData from "../../data/Therapist.json";
 import { Button } from "antd";
+import axios from "axios";
+
+const API_URL = "https://67b72bdb2bddacfb270df514.mockapi.io/Therapist";
 
 const TherapistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const therapist = therapistsData.find((t) => t.id.toString() === id);
   const navigate = useNavigate();
+  const [therapist, setTherapist] = useState<any>(null);
+
+  useEffect(() => {
+    fetchTherapist();
+  }, []);
+
+  const fetchTherapist = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/${id}`);
+      setTherapist(response.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy thông tin chuyên gia:", error);
+    }
+  };
 
   if (!therapist) {
     return <p className="text-center text-red-500">Không tìm thấy chuyên gia!</p>;
@@ -24,11 +39,7 @@ const TherapistDetail: React.FC = () => {
         <p className="text-center text-gray-600">{therapist.specialty}</p>
         <p className="text-center mt-2">{therapist.description}</p>
 
-        <Button
-          type="primary"
-          className="mt-4 w-full"
-          onClick={() => navigate(-1)}
-        >
+        <Button type="primary" className="mt-4 w-full" onClick={() => navigate(-1)}>
           Quay lại
         </Button>
       </div>
