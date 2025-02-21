@@ -4,24 +4,33 @@ import axios from "axios";
 
 const API_URL = "https://67b72bdb2bddacfb270df514.mockapi.io/Therapist";
 
-const MyBooking: React.FC = () => {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
+// Định nghĩa interface cho Therapist
+interface Therapist {
+  id: string;
+  name: string;
+  status: boolean;
+}
 
+const MyBooking: React.FC = () => {
+  const [bookings, setBookings] = useState<Therapist[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [selectedBooking, setSelectedBooking] = useState<Therapist | null>(null);
+
+  // Fetch danh sách lịch hẹn từ API
   useEffect(() => {
     fetchBookings();
   }, []);
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get(API_URL);
-      setBookings(response.data.filter((t) => t.status === true)); // Chỉ lấy therapist đã đặt lịch
+      const response = await axios.get<Therapist[]>(API_URL);
+      setBookings(response.data.filter((t: Therapist) => t.status === true)); // Lọc lịch hẹn đang chờ xác nhận
     } catch (error) {
       console.error("Lỗi khi lấy danh sách lịch hẹn:", error);
     }
   };
 
+  // Xử lý hủy lịch hẹn
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
 
