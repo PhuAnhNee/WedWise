@@ -19,7 +19,11 @@ import HomePage from "./pages/member/Home";
 import Profile from "./pages/member/Profile";
 import Settings from "./pages/member/Setting";
 import Register from "./pages/register/Register";
-
+import TherapistDashboard from "./pages/therapist/TherapistDashboard";
+import TherapistProfile from "./pages/therapist/TherapistProfile";
+import TherapistAppointments from "./pages/therapist/TherapistAppointment";
+import TherapistCalendar from "./pages/therapist/TherapistCalendar";
+import TherapistLayout from "./therapistLayout/TherapistLayout";
 const App: React.FC = () => {
   return (
     <Router>
@@ -41,6 +45,12 @@ const App: React.FC = () => {
           <Route path="my-booking" element={<MyBooking />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="/therapist" element={<TherapistLayout />}>
+          <Route index element={<TherapistDashboard />} />
+          <Route path="profile" element={<TherapistProfile />} />
+          <Route path="appointments" element={<TherapistAppointments />} />
+          <Route path="calendar" element={<TherapistCalendar />} />
         </Route>
       </Routes>
     </Router>
