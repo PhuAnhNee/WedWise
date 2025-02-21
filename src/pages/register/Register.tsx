@@ -26,7 +26,7 @@ const Register = () => {
         email,
         password,
         avatarUrl,
-        role: 1, // Role mặc định là 1 (user)
+        role: 2, // Role mặc định là 1 (user)
       };
 
       const response = await AuthService.register(user);

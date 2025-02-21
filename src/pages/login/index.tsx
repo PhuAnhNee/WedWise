@@ -45,7 +45,14 @@ const Login: React.FC = () => {
     const onFinish = async (values: { email: string; password: string }) => {
         try {
             setLoading(true);
-            await AuthService.login(values);
+            const response = await AuthService.login(values);
+        
+        // Add these debug logs
+        console.log("Login Response:", response);
+        console.log("Access Token:", response.accessToken); // Updated this line
+        console.log("Stored token:", AuthService.getToken());
+        const decodedToken = AuthService.getDecodedToken();
+        console.log("Decoded Token:", decodedToken);
             showSuccessNotification();
 
             // Đợi 1 giây trước khi chuyển trang để người dùng có thể thấy thông báo

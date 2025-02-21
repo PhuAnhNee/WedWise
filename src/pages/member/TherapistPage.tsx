@@ -1,36 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button, message } from "antd";
-import therapistsData from "../../data/Therapist.json";
+import axios from "axios";
+
+const API_URL = "https://67b72bdb2bddacfb270df514.mockapi.io/Therapist";
 
 const TherapistPage: React.FC = () => {
-  const [therapists, setTherapists] = useState(therapistsData);
+  const [therapists, setTherapists] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState("");
 
   useEffect(() => {
-    const bookedTherapists = JSON.parse(localStorage.getItem("bookings") || "[]");
-    const updatedTherapists = therapists.map((t) => ({
-      ...t,
-      status: bookedTherapists.some((b: any) => b.id === t.id) ? "pending" : "available",
-    }));
-    setTherapists(updatedTherapists);
+    fetchTherapists();
   }, []);
 
-  const handleBookAppointment = (therapistId: number) => {
-    const updatedTherapists = therapists.map((t) =>
-      t.id === therapistId ? { ...t, status: "pending" } : t
-    );
-    setTherapists(updatedTherapists);
-
-    const selectedTherapist = therapists.find((t) => t.id === therapistId);
-    if (selectedTherapist) {
-      const bookedTherapists = JSON.parse(localStorage.getItem("bookings") || "[]");
-      bookedTherapists.push(selectedTherapist);
-      localStorage.setItem("bookings", JSON.stringify(bookedTherapists));
+  const fetchTherapists = async () => {
+    try {
+      const response = await axios.get(API_URL);
+      setTherapists(response.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách chuyên gia:", error);
     }
+  };
 
-    message.success("Bạn đã đặt lịch thành công!");
+  const handleBookAppointment = async (therapistId: number) => {
+    try {
+      await axios.put(`${API_URL}/${therapistId}`, { status: true });
+      fetchTherapists();
+      message.success("Bạn đã đặt lịch thành công!");
+    } catch (error) {
+      message.error("Đặt lịch thất bại. Vui lòng thử lại!");
+    }
   };
 
   return (
@@ -66,7 +66,6 @@ const TherapistPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-center">{therapist.name}</h3>
             <p className="text-center text-gray-600">{therapist.specialty}</p>
 
-            {/* 🔗 Nút Xem chi tiết */}
             <Link
               to={`/home/therapist/${therapist.id}`}
               className="block mt-2 text-blue-500 text-center hover:underline"
@@ -74,8 +73,7 @@ const TherapistPage: React.FC = () => {
               Xem chi tiết
             </Link>
 
-            {/* 📌 Nút Đặt lịch */}
-            {therapist.status === "pending" ? (
+            {therapist.status ? (
               <p className="text-yellow-500 text-center font-semibold">Đang chờ xác nhận</p>
             ) : (
               <Button
