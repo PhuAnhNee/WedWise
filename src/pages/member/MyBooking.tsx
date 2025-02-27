@@ -69,12 +69,12 @@ const MyBooking: React.FC = () => {
       // Get the current user from AuthService
       const currentUser = AuthService.getCurrentUser();
       
-      if (!currentUser || !currentUser.id) {
+      if (!currentUser || !currentUser.UserId) {
         showErrorNotification("Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại!");
         return;
       }
 
-      const userId = currentUser.id;
+      const userId = currentUser.UserId;
       console.log("Fetching bookings for user ID:", userId);
       
       // Fetch bookings using the API endpoint with the user's ID

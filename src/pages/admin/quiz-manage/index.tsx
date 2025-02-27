@@ -1,123 +1,193 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Table, Modal, Input, Button, Form, Select, message, Popconfirm, List } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import axios, { AxiosError } from "axios";
+
+const API_BASE_URL =
+    "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Quiz";
 
 interface Category {
-    id: number;
+    categoryId: string; // Đổi từ id thành categoryId
     name: string;
 }
 
 interface Quiz {
-    id: number;
-    categoryId: number;
-    title: string;
-    questions: string[];
+    quizId: string;
+    categoryId: string;
+    name: string;
+    description?: string;
+    status: number;
+    questions?: string[];
 }
-
-const categories: Category[] = [
-    { id: 1, name: "Technology" },
-    { id: 2, name: "Business" },
-    { id: 3, name: "Health" },
-];
 
 const AdminQuiz: React.FC = () => {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
     const [form] = Form.useForm();
     const [questionForm] = Form.useForm();
 
-    // Open Add Quiz Modal
+    const fetchQuizzes = async () => {
+        try {
+            const response = await axios.get<Quiz[]>(`${API_BASE_URL}/Get_All_Quiz`);
+            console.log("Quizzes from API:", response.data);
+            const validQuizzes = response.data.filter((quiz) => quiz.quizId && typeof quiz.quizId === "string");
+            setQuizzes(validQuizzes);
+        } catch (error) {
+            console.error("Error fetching quizzes:", error);
+            message.error("Failed to load quizzes!");
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const response = await axios.get<Category[]>(
+                "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Category/Get_All_Categories"
+            );
+            const rawData = response.data;
+            console.log("Raw Categories from API (Full):", JSON.stringify(rawData, null, 2));
+
+            const validCategories = rawData
+                .filter((cat) => cat.categoryId && typeof cat.categoryId === "string" && /^[0-9a-fA-F-]{36}$/.test(cat.categoryId))
+                .map((cat) => ({
+                    categoryId: cat.categoryId,
+                    name: cat.name || "Unnamed Category",
+                }));
+
+            if (validCategories.length === 0) {
+                console.error("Không có category hợp lệ từ API!", rawData);
+                message.error("Không tải được danh sách category!");
+            } else {
+                setCategories(validCategories);
+            }
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+            message.error("Lỗi khi tải danh sách category!");
+        }
+    };
+
+    useEffect(() => {
+        fetchQuizzes();
+        fetchCategories();
+    }, []);
+
     const handleAddQuiz = () => {
+        if (categories.length === 0) {
+            message.error("Danh sách category chưa tải. Vui lòng thử lại!");
+            fetchCategories();
+            return;
+        }
         setSelectedQuiz(null);
         setIsModalOpen(true);
         form.resetFields();
     };
 
-    // Save Quiz
-    const handleSubmit = () => {
-        form.validateFields().then((values) => {
-            if (selectedQuiz) {
-                // Edit existing quiz
-                setQuizzes(
-                    quizzes.map((quiz) =>
-                        quiz.id === selectedQuiz.id ? { ...quiz, title: values.title } : quiz
-                    )
-                );
-                message.success("Quiz updated successfully!");
-            } else {
-                // Add new quiz
-                const newQuiz: Quiz = {
-                    id: Date.now(),
-                    categoryId: values.category,
-                    title: values.title,
-                    questions: [],
-                };
-                setQuizzes([...quizzes, newQuiz]);
-                message.success("New quiz added successfully!");
-            }
-            setIsModalOpen(false);
-            form.resetFields();
-        });
-    };
-
-    // Delete quiz
-    const handleDeleteQuiz = (id: number) => {
-        setQuizzes(quizzes.filter((quiz) => quiz.id !== id));
-        message.success("Quiz deleted successfully!");
-    };
-
-    // Open Edit Quiz Modal
     const handleEditQuiz = (quiz: Quiz) => {
         setSelectedQuiz(quiz);
         setIsEditModalOpen(true);
-        form.setFieldsValue({ title: quiz.title });
+        form.setFieldsValue({ name: quiz.name, description: quiz.description });
     };
 
-    // // Open Add Question Modal
-    // const handleAddQuestion = (quiz: Quiz) => {
-    //     setSelectedQuiz(quiz);
-    //     questionForm.resetFields();
-    //     setIsEditModalOpen(true); // Reuse edit modal for adding questions
-    // };
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            console.log("Form Values:", values);
+            const accessToken = localStorage.getItem("accessToken");
+            console.log("Access Token:", accessToken);
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
 
-    // Save Question
-    const handleSaveQuestion = () => {
-        questionForm.validateFields().then((values) => {
+            const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+            const payload = {
+                categoryId: selectedQuiz ? selectedQuiz.categoryId : values.category,
+                name: values.name,
+                description: values.description || "",
+            };
+            console.log("Payload gửi đi:", payload);
+
             if (selectedQuiz) {
+                const updatePayload = { quizId: selectedQuiz.quizId, ...payload, status: selectedQuiz.status };
+                console.log("Update Payload:", updatePayload);
+                const response = await axios.post(`${API_BASE_URL}/Update_Quiz`, updatePayload, { headers });
+                console.log("Update Response:", response.data);
+                message.success("Quiz updated successfully!");
+            } else {
+                console.log("Create Payload:", payload);
+                const response = await axios.post(`${API_BASE_URL}/Create_Quiz`, payload, { headers });
+                console.log("Create Response:", response.data);
+                message.success("New quiz added successfully!");
+            }
+
+            setIsModalOpen(false);
+            form.resetFields();
+            fetchQuizzes();
+        } catch (error) {
+            const err = error as AxiosError<{ message?: string }>;
+            console.error("Error details:", err.response?.data || err.message);
+            message.error(err.response?.data?.message || "Vui lòng kiểm tra lại thông tin!");
+        }
+    };
+
+    const handleDeleteQuiz = async (quizId: string) => {
+        try {
+            const accessToken = localStorage.getItem("accessToken");
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
+            setQuizzes(quizzes.filter((quiz) => quiz.quizId !== quizId));
+            message.success("Quiz deleted successfully!");
+        } catch (error) {
+            const err = error as AxiosError<{ message?: string }>;
+            console.error("Error deleting quiz:", err.response?.data || err.message);
+        }
+    };
+
+    const handleSaveQuestion = () => {
+        questionForm.validateFields().then((values: { question: string }) => {
+            if (selectedQuiz) {
+                const newQuestions = [...(selectedQuiz.questions || []), values.question];
                 const updatedQuizzes = quizzes.map((quiz) =>
-                    quiz.id === selectedQuiz.id ? { ...quiz, questions: [...quiz.questions, values.question] } : quiz
+                    quiz.quizId === selectedQuiz.quizId ? { ...quiz, questions: newQuestions } : quiz
                 );
                 setQuizzes(updatedQuizzes);
+                setSelectedQuiz({ ...selectedQuiz, questions: newQuestions });
                 message.success("Question added successfully!");
                 questionForm.resetFields();
             }
         });
     };
 
-    // Delete Question
-    const handleDeleteQuestion = (quizId: number, questionIndex: number) => {
+    const handleDeleteQuestion = (quizId: string, questionIndex: number) => {
         const updatedQuizzes = quizzes.map((quiz) =>
-            quiz.id === quizId ? { ...quiz, questions: quiz.questions.filter((_, index) => index !== questionIndex) } : quiz
+            quiz.quizId === quizId
+                ? { ...quiz, questions: quiz.questions?.filter((_, index) => index !== questionIndex) }
+                : quiz
         );
         setQuizzes(updatedQuizzes);
+        setSelectedQuiz({
+            ...selectedQuiz!,
+            questions: selectedQuiz!.questions?.filter((_, index) => index !== questionIndex),
+        });
         message.success("Question deleted successfully!");
     };
 
-    // Table columns
     const columns = [
-        { title: "ID", dataIndex: "id", key: "id", width: "10%" },
-        { title: "Quiz Title", dataIndex: "title", key: "title" },
+        { title: "Quiz Name", dataIndex: "name", key: "name" },
         {
             title: "Category",
             key: "category",
-            render: (_: unknown, record: Quiz) => categories.find((cat) => cat.id === record.categoryId)?.name || "Unknown",
+            render: (_: unknown, record: Quiz) =>
+                categories.find((cat) => cat.categoryId === record.categoryId)?.name || "Unknown",
         },
         {
             title: "Questions",
             key: "questions",
-            render: (_: unknown, record: Quiz) => <span>{record.questions.length} questions</span>,
+            render: (_: unknown, record: Quiz) => <span>{record.questions?.length || 0} questions</span>,
         },
         {
             title: "Actions",
@@ -128,12 +198,9 @@ const AdminQuiz: React.FC = () => {
                     <Button icon={<EditOutlined />} onClick={() => handleEditQuiz(record)}>
                         Edit
                     </Button>
-                    {/* <Button icon={<PlusOutlined />} onClick={() => handleAddQuestion(record)}>
-                        Add Question
-                    </Button> */}
                     <Popconfirm
                         title="Are you sure you want to delete this quiz?"
-                        onConfirm={() => handleDeleteQuiz(record.id)}
+                        onConfirm={() => handleDeleteQuiz(record.quizId)}
                         okText="Yes"
                         cancelText="No"
                     >
@@ -155,9 +222,8 @@ const AdminQuiz: React.FC = () => {
                 </Button>
             </div>
 
-            <Table dataSource={quizzes} columns={columns} rowKey="id" pagination={{ pageSize: 5 }} />
+            <Table dataSource={quizzes} columns={columns} rowKey="quizId" pagination={{ pageSize: 5 }} />
 
-            {/* Add/Edit Quiz Modal */}
             <Modal
                 title={selectedQuiz ? "Edit Quiz" : "Add New Quiz"}
                 open={isModalOpen}
@@ -166,14 +232,21 @@ const AdminQuiz: React.FC = () => {
                 okText={selectedQuiz ? "Update" : "Add"}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item name="title" label="Quiz Title" rules={[{ required: true, message: "Please enter quiz title" }]}>
-                        <Input placeholder="Enter quiz title..." />
+                    <Form.Item name="name" label="Quiz Name" rules={[{ required: true, message: "Please enter quiz name" }]}>
+                        <Input placeholder="Enter quiz name..." />
+                    </Form.Item>
+                    <Form.Item name="description" label="Description">
+                        <Input placeholder="Enter quiz description..." />
                     </Form.Item>
                     {!selectedQuiz && (
-                        <Form.Item name="category" label="Category" rules={[{ required: true, message: "Please select a category" }]}>
+                        <Form.Item
+                            name="category"
+                            label="Category"
+                            rules={[{ required: true, message: "Please select a category" }]}
+                        >
                             <Select placeholder="Select category">
                                 {categories.map((category) => (
-                                    <Select.Option key={category.id} value={category.id}>
+                                    <Select.Option key={category.categoryId} value={category.categoryId}>
                                         {category.name}
                                     </Select.Option>
                                 ))}
@@ -183,15 +256,21 @@ const AdminQuiz: React.FC = () => {
                 </Form>
             </Modal>
 
-            {/* Edit Quiz Modal (View & Edit Questions) */}
             <Modal
                 title="Edit Quiz & Questions"
                 open={isEditModalOpen}
                 onCancel={() => setIsEditModalOpen(false)}
-                footer={null}
+                footer={[
+                    <Button key="submit" type="primary" onClick={handleSubmit}>
+                        Save Changes
+                    </Button>,
+                ]}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item name="title" label="Quiz Title">
+                    <Form.Item name="name" label="Quiz Name" rules={[{ required: true, message: "Please enter quiz name" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item name="description" label="Description">
                         <Input />
                     </Form.Item>
                 </Form>
@@ -201,10 +280,11 @@ const AdminQuiz: React.FC = () => {
                     dataSource={selectedQuiz?.questions || []}
                     renderItem={(question, index) => (
                         <List.Item
+                            key={`${selectedQuiz?.quizId || "unknown"}-question-${index}`}
                             actions={[
                                 <Popconfirm
                                     title="Delete this question?"
-                                    onConfirm={() => handleDeleteQuestion(selectedQuiz!.id, index)}
+                                    onConfirm={() => handleDeleteQuestion(selectedQuiz!.quizId, index)}
                                     okText="Yes"
                                     cancelText="No"
                                 >
@@ -217,7 +297,6 @@ const AdminQuiz: React.FC = () => {
                     )}
                 />
 
-                {/* Add New Question */}
                 <Form form={questionForm} layout="vertical" className="mt-4">
                     <Form.Item name="question" label="Add Question" rules={[{ required: true, message: "Enter a question" }]}>
                         <Input.TextArea placeholder="Enter question..." />

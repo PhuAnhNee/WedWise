@@ -55,7 +55,7 @@ const Register = () => {
         email,
         password,
         avatarUrl,
-        role: 2, // Role mặc định là 2 (user)
+        role: "2", // Chuyển số thành chuỗi
       };
 
       const response = await AuthService.register(user);

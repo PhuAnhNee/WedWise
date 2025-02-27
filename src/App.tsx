@@ -9,6 +9,7 @@ import WithDraw from "./pages/admin/withdraw/index";
 import Manage from "./pages/admin/manage/index";
 import QuizManage from "./pages/admin/quiz-manage/index";
 import AnswerManage from "./pages/admin/answer-manage/index";
+import QuestionManage from "./pages/admin/question-manage/index";
 import ProfileAdmin from "./pages/admin/profile";
 // import DashboardLayout from "./component/dashboard";
 import DashboardAdmin from "./pages/admin/dashboard/maindb";
@@ -40,10 +41,11 @@ const App: React.FC = () => {
         <Route path="users" element={<WithDraw />} />
         <Route path="manage" element={<Manage />} />
         <Route path="quiz-manage" element={<QuizManage />} />
+        <Route path="question-manage" element={<QuestionManage />} />
         <Route path="answer-manage" element={<AnswerManage />} />
         <Route path="/home" element={<Layout />}>
           <Route index element={<HomePage />} />
-          <Route path="therapist" element={<TherapistPage/>} />
+          <Route path="therapist" element={<TherapistPage />} />
           <Route path="therapist/:id" element={<TherapistDetail />} /> {/* Sửa lỗi nested route */}
           <Route path="my-booking" element={<MyBooking />} />
           <Route path="quizzes" element={<QuizPage />} />
