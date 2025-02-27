@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Form, Input, Button, message } from "antd";
+import { Form, Input, Button, notification } from "antd";
+import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 import AuthService from "../service/AuthService";
 import { useNavigate } from "react-router-dom";
 
@@ -14,11 +15,39 @@ interface RegisterFormValues {
 const Register = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [api, contextHolder] = notification.useNotification();
+
+  const showSuccessNotification = () => {
+    api.success({
+      message: 'Registration Successful',
+      description: 'Your account has been created successfully!',
+      icon: <CheckCircleFilled style={{ color: '#52c41a' }} />,
+      placement: 'topRight',
+      duration: 3,
+      style: {
+        backgroundColor: '#f6ffed',
+        border: '1px solid #b7eb8f'
+      }
+    });
+  };
+
+  const showErrorNotification = (errorMessage: string) => {
+    api.error({
+      message: 'Registration Failed',
+      description: errorMessage,
+      icon: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
+      placement: 'topRight',
+      duration: 4,
+      style: {
+        backgroundColor: '#fff2f0',
+        border: '1px solid #ffccc7'
+      }
+    });
+  };
 
   const onFinish = async (values: RegisterFormValues) => {
-    setLoading(true);
-
     try {
+      setLoading(true);
       const { fullName, phone, email, password, avatarUrl } = values;
       const user = {
         fullName,
@@ -30,21 +59,40 @@ const Register = () => {
       };
 
       const response = await AuthService.register(user);
+      
+      // Add debug logs similar to login component
+      console.log("Register Response:", response);
+      console.log("Access Token:", response.accessToken);
+      console.log("Stored token:", AuthService.getToken());
+      const decodedToken = AuthService.getDecodedToken();
+      console.log("Decoded Token:", decodedToken);
+      
+      showSuccessNotification();
 
-      if (response && response.status === 200) {
-        message.success("Registration successful");
-        setTimeout(() => {
-          navigate("/"); // Điều hướng về trang đăng nhập
-        }, 1000);
-      } else {
-        message.error("Registration failed");
-      }
-    } catch (error: unknown) {
+      // Đợi 1 giây trước khi chuyển trang để người dùng có thể thấy thông báo
+      setTimeout(() => {
+        navigate("/"); // Điều hướng về trang đăng nhập
+      }, 1000);
+      
+    } catch (error) {
+      let errorMessage = "An error occurred during registration. Please try again.";
+
       if (error instanceof Error) {
-        message.error(error.message || "Registration failed");
-      } else {
-        message.error("Registration failed");
+        errorMessage = error.message;
       }
+
+      // Xử lý các trường hợp lỗi cụ thể
+      if (errorMessage.includes('409')) {
+        errorMessage = "This email is already registered. Please use another email.";
+      } else if (errorMessage.includes('400')) {
+        errorMessage = "Invalid registration data. Please check your information.";
+      } else if (errorMessage.includes('429')) {
+        errorMessage = "Too many registration attempts. Please try again later.";
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = "Connection timeout. Please check your internet connection.";
+      }
+
+      showErrorNotification(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -52,6 +100,7 @@ const Register = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative">
+      {contextHolder}
       <div className="flex bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-4xl">
         {/* Hình ảnh bên trái */}
         <div className="w-1/2 hidden md:block">
@@ -103,7 +152,10 @@ const Register = () => {
             <Form.Item
               label="Password"
               name="password"
-              rules={[{ required: true, message: "Please enter your password!" }]}
+              rules={[
+                { required: true, message: "Please enter your password!" },
+                { min: 4, message: "Password must be at least 4 characters!" }
+              ]}
             >
               <Input.Password size="large" placeholder="Enter your password" className="rounded-lg" />
             </Form.Item>
@@ -118,7 +170,7 @@ const Register = () => {
 
             <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
               <Button type="primary" htmlType="submit" size="large" className="w-full" loading={loading}>
-                Register
+                {loading ? "Registering..." : "Register"}
               </Button>
             </Form.Item>
           </Form>

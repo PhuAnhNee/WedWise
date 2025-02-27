@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaSearch, FaUserCircle } from "react-icons/fa";
+import { FaSearch, FaUserCircle, FaWallet } from "react-icons/fa";
 import { Dropdown, Menu } from "antd";
 import AuthService from "../pages/service/AuthService";
 
@@ -71,6 +71,14 @@ const Navbar: React.FC = () => {
             />
             <FaSearch className="absolute left-3 top-3 text-gray-500" />
           </div>
+
+          {/* Wallet Icon */}
+          <button
+            onClick={() => navigate("/home/wallet")}
+            className="text-gray-700 hover:text-blue-600 transition"
+          >
+            <FaWallet className="text-2xl" />
+          </button>
 
           {/* User Info with Dropdown */}
           <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
