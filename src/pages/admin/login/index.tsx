@@ -10,6 +10,7 @@ const AdminLogin: React.FC = () => {
     const onSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
+        setMessage(null); // Xóa thông báo cũ trước khi gửi yêu cầu
 
         const formData = new FormData(event.target as HTMLFormElement);
         const email = formData.get("email") as string;
@@ -26,26 +27,28 @@ const AdminLogin: React.FC = () => {
             );
 
             const data = await response.json();
-            console.log("📌 API Response:", data); // Kiểm tra response
+            console.log("📌 API Response:", data); // Log để debug
 
             if (response.ok) {
-                const accessToken = data.accessToken; // Lấy token từ key "accessToken"
-                // const refreshToken = data.refreshToken; // Lấy refresh token (nếu cần)
+                const accessToken = data.accessToken;
 
-                if (!accessToken) {
-                    console.error("❌ Không tìm thấy accessToken trong response!");
-                    setMessage({ type: "error", text: "Lỗi hệ thống, vui lòng thử lại!" });
+                if (!accessToken || typeof accessToken !== "string") {
+                    console.error("❌ accessToken không hợp lệ:", accessToken);
+                    setMessage({ type: "error", text: "Lỗi hệ thống: Token không hợp lệ!" });
                     return;
                 }
 
-                localStorage.setItem("accessToken", accessToken); // Lưu vào localStorage
-                sessionStorage.setItem("accessToken", accessToken); // Lưu vào sessionStorage
-
-                console.log("✅ Access Token đã lưu:", localStorage.getItem("accessToken")); // Kiểm tra xem đã lưu chưa
+                // Xóa token cũ trước khi lưu token mới
+                localStorage.removeItem("accessToken");
+                localStorage.setItem("accessToken", accessToken);
+                console.log("✅ Access Token đã lưu:", localStorage.getItem("accessToken"));
 
                 setMessage({ type: "success", text: "Đăng nhập thành công!" });
 
-                setTimeout(() => navigate("/admin/dashboard"), 2000);
+                // Chuyển hướng sau 2 giây nếu thành công
+                setTimeout(() => {
+                    navigate("/admin/dashboard");
+                }, 2000);
             } else {
                 setMessage({ type: "error", text: data.message || "Email hoặc mật khẩu không đúng!" });
             }
@@ -56,7 +59,6 @@ const AdminLogin: React.FC = () => {
             setLoading(false);
         }
     };
-
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-purple-500">
@@ -99,7 +101,9 @@ const AdminLogin: React.FC = () => {
                         </div>
 
                         <div className="text-center">
-                            <a href="#" className="text-sm text-blue-500 hover:underline">Forgot your password?</a>
+                            <a href="#" className="text-sm text-blue-500 hover:underline">
+                                Forgot your password?
+                            </a>
                         </div>
 
                         <div>
@@ -114,9 +118,13 @@ const AdminLogin: React.FC = () => {
                     </form>
 
                     <div className="mt-6 text-center text-sm text-gray-600">
-                        <a href="#" className="text-blue-500 hover:underline">Terms of use</a>
+                        <a href="#" className="text-blue-500 hover:underline">
+                            Terms of use
+                        </a>
                         <span className="mx-2">|</span>
-                        <a href="#" className="text-blue-500 hover:underline">Privacy policy</a>
+                        <a href="#" className="text-blue-500 hover:underline">
+                            Privacy policy
+                        </a>
                     </div>
                 </div>
             </div>
