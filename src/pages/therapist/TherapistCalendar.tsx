@@ -70,8 +70,9 @@ const TherapistCalendar = () => {
 
       toast.success("Lịch trống đã được cập nhật thành công!");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
     }
+    
   };
 
   const daysInMonth = getDaysInMonth(selectedDate);
