@@ -16,27 +16,20 @@ interface RegisterCredentials {
 }
 
 interface LoginResponse {
-    token: string;
-    user: {
-        sid: string;
-        nameidentifier: string;
-        emailaddress: string;
-        mobilephone: number;
-        role: string;
-        // Thêm các trường khác của user nếu cần
-    };
+    accessToken: string;
+    refreshToken: string;
 }
 
 // Interface cho dữ liệu sau khi giải mã token
 interface DecodedToken {
-    id: string;
-    email: string;
-    role: number;
-    exp: number; // Thời gian hết hạn của token
-}
-interface LoginResponse {
-    accessToken: string;
-    refreshToken: string;
+    UserId: string;
+    Name: string;
+    Email: string;
+    Phone: string;
+    Role: string;
+    exp: number;
+    iss: string;
+    aud: string;
 }
 
 const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
@@ -98,10 +91,9 @@ class AuthService {
 
             const response = await axios.post(`${API_BASE_URL}/Auth/Register`, user);
 
-            if (response.data.token) {
-                this.token = response.data.token;
-                localStorage.setItem("token", response.data.token);
-                localStorage.setItem("user", JSON.stringify(response.data.user));
+            if (response.data.accessToken) {
+                this.token = response.data.accessToken;
+                localStorage.setItem("token", response.data.accessToken);
                 this.decodeToken(); // Giải mã và lưu thông tin token
             }
 
@@ -140,9 +132,15 @@ class AuthService {
 
     // 🟢 Lấy thông tin người dùng hiện tại
     getCurrentUser(): any {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-            return JSON.parse(userStr);
+        const decodedToken = this.getDecodedToken();
+        if (decodedToken) {
+            return {
+                id: decodedToken.UserId,
+                name: decodedToken.Name,
+                email: decodedToken.Email,
+                phone: decodedToken.Phone,
+                role: decodedToken.Role
+            };
         }
         return null;
     }

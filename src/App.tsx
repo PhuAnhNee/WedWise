@@ -26,6 +26,7 @@ import TherapistProfile from "./pages/therapist/TherapistProfile";
 import TherapistAppointments from "./pages/therapist/TherapistAppointment";
 import TherapistCalendar from "./pages/therapist/TherapistCalendar";
 import TherapistLayout from "./therapistLayout/TherapistLayout";
+import Wallet from "./pages/member/Wallet";
 const App: React.FC = () => {
   return (
     <Router>
@@ -47,6 +48,7 @@ const App: React.FC = () => {
           <Route path="my-booking" element={<MyBooking />} />
           <Route path="quizzes" element={<QuizPage />} />
           <Route path="quiz/:quizId" element={<QuizDetail />} />
+          <Route path="wallet" element={<Wallet />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<Settings />} />
         </Route>
