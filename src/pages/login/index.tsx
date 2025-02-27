@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Form, Input, Checkbox, notification } from "antd";
 import { GoogleOutlined, CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+import {jwtDecode} from "jwt-decode"; // Sử dụng default import
 import AuthService from "../service/AuthService";
 
 const Login: React.FC = () => {
@@ -43,13 +44,19 @@ const Login: React.FC = () => {
             const response = await AuthService.login(values);
             console.log("Login Response:", response);
 
-            const decodedToken = AuthService.getDecodedToken();
+            if (!response?.accessToken) {
+                throw new Error("No token received");
+            }
+
+            localStorage.setItem("token", response.accessToken); // Lưu token vào localStorage
+            console.log("Saved Token:", localStorage.getItem("token"));
+            const decodedToken: any = jwtDecode(response.accessToken);
             console.log("Decoded Token:", decodedToken);
-            
+
             showSuccessNotification();
-            
+
             setTimeout(() => {
-                switch (decodedToken?.role) {
+                switch (decodedToken?.Role) {
                     case "MEMBER":
                         navigate("/home");
                         break;

@@ -12,7 +12,7 @@ interface RegisterCredentials {
     email: string;
     password: string;
     avatarUrl?: string;
-    role?: number; // Mặc định là 2 nếu không truyền
+    role?: string; // Role mặc định là "USER" nếu không truyền
 }
 
 interface LoginResponse {
@@ -20,12 +20,15 @@ interface LoginResponse {
     refreshToken: string;
 }
 
-// Interface cho dữ liệu sau khi giải mã token
+// Interface mới để khớp với token từ backend
 interface DecodedToken {
-    id: string;
-    email: string;
-    role: string; // Role là string, không phải number
-    exp: number; // Thời gian hết hạn của token
+    UserId: string;
+    Name: string;
+    Email: string;
+    Phone: string;
+    Role: string;
+    Avatar: string;
+    exp: number;
 }
 
 const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
@@ -34,7 +37,7 @@ class AuthService {
     private static instance: AuthService;
     private token: string | null = null;
 
-    private constructor() { }
+    private constructor() {}
 
     public static getInstance(): AuthService {
         if (!AuthService.instance) {
@@ -58,9 +61,9 @@ class AuthService {
                 const decoded = this.decodeToken();
                 console.log("Decoded result:", decoded);
 
-                // Log role
                 if (decoded) {
-                    console.log("User role:", decoded.role);
+                    console.log("User role:", decoded.Role);
+                    localStorage.setItem("user", JSON.stringify(decoded));
                 }
             }
 
@@ -84,21 +87,21 @@ class AuthService {
                 email: credentials.email,
                 password: credentials.password,
                 avatarUrl: credentials.avatarUrl || "",
-                role: credentials.role || 2,
+                role: credentials.role || "USER",
             };
 
             console.log("Register Data:", user);
 
             const response = await axios.post(`${API_BASE_URL}/Auth/Register`, user);
 
-            if (response.data.token) {
-                this.token = response.data.token;
-                localStorage.setItem("token", response.data.token);
+            if (response.data.accessToken) {
+                this.token = response.data.accessToken;
+                localStorage.setItem("token", response.data.accessToken);
                 localStorage.setItem("user", JSON.stringify(response.data.user));
                 const decoded = this.decodeToken();
 
                 if (decoded) {
-                    console.log("Registered User Role:", decoded.role);
+                    console.log("Registered User Role:", decoded.Role);
                 }
             }
 
@@ -135,15 +138,6 @@ class AuthService {
         return !!this.getToken();
     }
 
-    // 🟢 Lấy thông tin người dùng hiện tại
-    getCurrentUser(): any {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-            return JSON.parse(userStr);
-        }
-        return null;
-    }
-
     // 🟢 Giải mã Token và lưu thông tin
     decodeToken(): DecodedToken | null {
         const token = this.getToken();
@@ -152,10 +146,13 @@ class AuthService {
                 const decoded: any = jwtDecode(token);
 
                 const formattedToken: DecodedToken = {
-                    id: decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/sid"] || "",
-                    email: decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "",
-                    role: decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "USER", // Mặc định là "USER" nếu không có
-                    exp: decoded.exp || 0
+                    UserId: decoded.UserId || "",
+                    Name: decoded.Name || "",
+                    Email: decoded.Email || "",
+                    Phone: decoded.Phone || "",
+                    Role: decoded.Role || "USER",
+                    Avatar: decoded.Avatar || "",
+                    exp: decoded.exp || 0,
                 };
 
                 localStorage.setItem("decodedToken", JSON.stringify(formattedToken));
@@ -190,7 +187,12 @@ class AuthService {
     // 🟢 Lấy role của user
     getUserRole(): string | null {
         const decoded = this.getDecodedToken();
-        return decoded?.role || null;
+        return decoded?.Role || null;
+    }
+
+    // 🟢 Lấy thông tin người dùng hiện tại từ token
+    getCurrentUser(): DecodedToken | null {
+        return this.getDecodedToken();
     }
 }
 
