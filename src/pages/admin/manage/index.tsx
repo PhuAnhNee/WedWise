@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { Table, Modal, Input, Button, Form, message, Popconfirm } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import axios from "axios";
 
-const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Category";
+const API_BASE_URL =
+    "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Category";
 
 interface Category {
-    id: number;
+    id: string;
     name: string;
-    description?: string; // ✅ Thêm description vào giao diện
+    description?: string;
+    status: number;
 }
 
 const AdminCategory: React.FC = () => {
@@ -17,7 +19,7 @@ const AdminCategory: React.FC = () => {
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [form] = Form.useForm();
 
-    // 🟢 Lấy danh sách danh mục từ API
+    // Fetch danh mục từ API
     const fetchCategories = async () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/Get_All_Categories`);
@@ -44,103 +46,120 @@ const AdminCategory: React.FC = () => {
         form.setFieldsValue({ name: category.name, description: category.description });
     };
 
-    // 🟢 Thêm hoặc cập nhật danh mục
+    // Xử lý thêm hoặc cập nhật danh mục
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
-            const accessToken = localStorage.getItem("accessToken"); // Lấy token từ localStorage
+            const accessToken = localStorage.getItem("accessToken");
+            console.log("Access Token:", accessToken);
 
             if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
+                message.error("Không tìm thấy accessToken. Vui lòng đăng nhập lại.");
                 return;
             }
 
-            const headers = {
-                "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json"
-            };
+            const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+            const payload = { name: values.name, description: values.description || "" };
+            console.log("Request Payload:", payload);
 
+            let response;
             if (editingCategory) {
-                // 🟢 Cập nhật danh mục
-                await axios.post(
+                // Cập nhật danh mục
+                response = await axios.post(
                     `${API_BASE_URL}/Update_Category`,
-                    { id: editingCategory.id, name: values.name, description: values.description || "" },
+                    { id: editingCategory.id, ...payload, status: editingCategory.status },
                     { headers }
                 );
-
+                console.log("Update Response:", response.data);
                 message.success("Category updated successfully!");
             } else {
-                // 🟢 Tạo danh mục mới (✅ Thêm `description`)
-                await axios.post(
-                    `${API_BASE_URL}/Create_Category`,
-                    { name: values.name, description: values.description || "" }, // ✅ Đảm bảo description không bị undefined
-                    { headers }
-                );
-
+                // Thêm danh mục mới
+                response = await axios.post(`${API_BASE_URL}/Create_Category`, payload, { headers });
+                console.log("Create Response:", response.data);
                 message.success("New category added successfully!");
             }
 
             setIsModalOpen(false);
             form.resetFields();
-            fetchCategories(); // Load lại danh sách danh mục từ API
-        } catch (error) {
-            console.error("Error submitting category:", error);
-            message.error("Failed to save category!");
+            fetchCategories();
+        } catch {
+            //   console.error("Error submitting category:", error.response?.data || error.message);
+            //   message.error(error.response?.data?.message || "Failed to save category!");
         }
     };
 
-    // 🟢 Xoá danh mục (cập nhật trạng thái "inactive")
-    const handleDeleteCategory = async (id: number) => {
+    // Cập nhật trạng thái Active/Inactive
+    const handleToggleCategoryStatus = async (id: string, newStatus: number) => {
         try {
-            const accessToken = localStorage.getItem("accessToken");
-
-            if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
-                return;
-            }
-
-            const headers = { "Authorization": `Bearer ${accessToken}` };
-
             const categoryToUpdate = categories.find((category) => category.id === id);
             if (!categoryToUpdate) {
                 message.error("Category not found!");
                 return;
             }
 
-            await axios.post(
-                `${API_BASE_URL}/Update_Category`,
-                { id: categoryToUpdate.id, name: categoryToUpdate.name, description: categoryToUpdate.description, status: "inactive" },
-                { headers }
-            );
+            const accessToken = localStorage.getItem("accessToken");
+            console.log("Access Token for Toggle:", accessToken);
 
-            message.success("Category deactivated successfully!");
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
+
+            const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+            const payload = {
+                id,
+                name: categoryToUpdate.name,
+                description: categoryToUpdate.description,
+                status: newStatus,
+            };
+            console.log("Toggle Payload:", payload);
+
+            const response = await axios.post(`${API_BASE_URL}/Update_Category`, payload, { headers });
+            console.log("Toggle Response:", response.data);
+
+            message.success(newStatus === 1 ? "Category activated successfully!" : "Category deactivated successfully!");
             fetchCategories();
-        } catch (error) {
-            console.error("Error deactivating category:", error);
-            message.error("Failed to deactivate category!");
+        } catch {
+            //   console.error("Error updating category status:", error.response?.data || error.message);
+            //   message.error(error.response?.data?.message || "Failed to update category status!");
         }
     };
 
     const columns = [
         { title: "Category Name", dataIndex: "name", key: "name" },
-        { title: "Description", dataIndex: "description", key: "description" }, // ✅ Hiển thị mô tả
-
+        { title: "Description", dataIndex: "description", key: "description" },
         {
             title: "Actions",
             key: "action",
-            width: "25%",
+            width: "30%",
             render: (_: unknown, record: Category) => (
                 <div className="flex gap-2">
                     <Button icon={<EditOutlined />} onClick={() => handleEditCategory(record)}>
                         Edit
                     </Button>
+
+                    {/* Nút Activate */}
                     <Popconfirm
-                        title="Are you sure you want to deactivate this category?"
-                        onConfirm={() => handleDeleteCategory(record.id)}
+                        title="Are you sure you want to activate this category?"
+                        onConfirm={() => handleToggleCategoryStatus(record.id, 1)}
                         okText="Yes"
                         cancelText="No"
+                        disabled={record.status === 1}
                     >
-                        <Button icon={<DeleteOutlined />} danger>
+                        <Button type="primary" disabled={record.status === 1}>
+                            Activate
+                        </Button>
+                    </Popconfirm>
+
+                    {/* Nút Deactivate */}
+                    <Popconfirm
+                        title="Are you sure you want to deactivate this category?"
+                        onConfirm={() => handleToggleCategoryStatus(record.id, 0)}
+                        okText="Yes"
+                        cancelText="No"
+                        disabled={record.status === 0}
+                    >
+                        <Button danger disabled={record.status === 0}>
                             Deactivate
                         </Button>
                     </Popconfirm>
@@ -158,7 +177,7 @@ const AdminCategory: React.FC = () => {
                 </Button>
             </div>
 
-            <Table dataSource={categories} columns={columns} rowKey="id" pagination={{ pageSize: 5 }} />
+            <Table dataSource={categories} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
 
             <Modal
                 title={editingCategory ? "Edit Category" : "Add Category"}
@@ -168,7 +187,11 @@ const AdminCategory: React.FC = () => {
                 okText={editingCategory ? "Update" : "Add"}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item name="name" label="Category Name" rules={[{ required: true, message: "Please enter a category name" }]}>
+                    <Form.Item
+                        name="name"
+                        label="Category Name"
+                        rules={[{ required: true, message: "Please enter a category name" }]}
+                    >
                         <Input placeholder="Enter category name..." />
                     </Form.Item>
                     <Form.Item name="description" label="Description">
