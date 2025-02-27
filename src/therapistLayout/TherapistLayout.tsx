@@ -34,6 +34,14 @@ const TherapistLayout = () => {
             Calendar
           </Link>
           <Link
+            to="/therapist/schedule"
+            className={`block p-2 rounded ${
+              location.pathname === "/therapist/schedule" ? "bg-blue-500" : "hover:bg-blue-500"
+            }`}
+          >
+            Schedule
+          </Link>
+          <Link
             to="/therapist/appointments"
             className={`block p-2 rounded ${
               location.pathname === "/therapist/appointments" ? "bg-blue-500" : "hover:bg-blue-500"

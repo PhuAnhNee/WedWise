@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format, addMonths, subMonths, startOfMonth, getDaysInMonth } from "date-fns";
 import toast, { Toaster } from "react-hot-toast";
+import AuthService from "../service/AuthService";
 
 const slots = [
   { id: 1, time: "7:30-9:00" },
@@ -14,9 +15,12 @@ const slots = [
 
 const TherapistCalendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedSlots, setSelectedSlots] = useState<number[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
+
+  const currentUser = AuthService.getCurrentUser();
+  const therapistId: string | undefined = currentUser?.UserId;
 
   const handlePrevMonth = () => setSelectedDate(subMonths(selectedDate, 1));
   const handleNextMonth = () => setSelectedDate(addMonths(selectedDate, 1));
@@ -25,12 +29,16 @@ const TherapistCalendar = () => {
   };
 
   const toggleSlot = (id: number) => {
-    setSelectedSlots((prev) =>
-      prev.includes(id) ? prev.filter((slot) => slot !== id) : [...prev, id]
-    );
+    setSelectedSlot((prev) => (prev === id ? null : id));
   };
 
   const openConfirmModal = () => {
+    // Kiểm tra đăng nhập trước khi mở modal
+    const token = AuthService.getToken();
+    if (!therapistId || !token) {
+      toast.error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
+      return;
+    }
     setShowModal(true);
   };
 
@@ -39,13 +47,30 @@ const TherapistCalendar = () => {
   };
 
   const handleConfirm = async () => {
-    if (!selectedDate || selectedSlots.length === 0) {
-      setError("Vui lòng chọn ít nhất một ngày và một khung giờ!");
+    // Lấy token trong hàm xử lý để đảm bảo token mới nhất
+    const token = AuthService.getToken();
+    
+    if (!therapistId || !token) {
+      setError("Bạn chưa đăng nhập hoặc thông tin không hợp lệ.");
+      return;
+    }
+
+    if (!selectedDate || selectedSlot === null) {
+      setError("Vui lòng chọn một ngày và một khung giờ!");
       return;
     }
 
     setError("");
     setShowModal(false);
+    
+    const requestData = [
+      {
+        therapistId: "0c0493c2-4f20-498a-a520-97635c24c66d",
+        date: new Date().toISOString(), // Định dạng ISO string nếu cần
+        slot: 5,
+        isAvailable: true,
+      }
+    ];
     
     try {
       const response = await fetch(
@@ -54,24 +79,26 @@ const TherapistCalendar = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            therapistId: "3fa85f64-5717-4562-b3fc-2c963f66afa6", 
-            date: selectedDate.toISOString(),
-            slot: selectedSlots,
-            isAvailable: true,
-          }),
+          body: JSON.stringify(requestData),
         }
       );
-
+    
+      const responseText = await response.text(); // Đọc phản hồi dưới dạng text
+    
+      console.log("Phản hồi từ API:", responseText);
+    
       if (!response.ok) {
-        throw new Error("Lỗi khi tạo lịch, vui lòng thử lại.");
+        throw new Error(responseText || "Lỗi không xác định khi tạo lịch.");
       }
-
-      toast.success("Lịch trống đã được cập nhật thành công!");
+    
+      toast.success("Lịch đã được tạo thành công!");
     } catch (error) {
+      console.error("Lỗi khi gửi request:", error);
       toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
     }
+    
     
   };
 
@@ -117,11 +144,10 @@ const TherapistCalendar = () => {
               <div key={slot.id} className="flex items-center justify-between p-2 border-b last:border-b-0">
                 <span>{`Slot ${slot.id}`}</span>
                 <span>{slot.time}</span>
-                <input type="checkbox" checked={selectedSlots.includes(slot.id)} onChange={() => toggleSlot(slot.id)} className="w-5 h-5" />
+                <input type="radio" checked={selectedSlot === slot.id} onChange={() => toggleSlot(slot.id)} className="w-5 h-5" />
               </div>
             ))}
           </div>
-
           <div className="flex gap-4 mt-4">
             <button onClick={openConfirmModal} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Xác nhận</button>
           </div>
@@ -134,7 +160,7 @@ const TherapistCalendar = () => {
             <h2 className="text-lg font-semibold mb-4">Xác nhận lịch trống</h2>
             {error && <p className="text-red-500 mb-2">{error}</p>}
             <p><strong>Ngày:</strong> {format(selectedDate, "MMMM d, yyyy")}</p>
-            <p><strong>Slots:</strong> {selectedSlots.join(", ")}</p>
+            <p><strong>Slot:</strong> {selectedSlot}</p>
             <div className="flex gap-4 mt-4 justify-center">
               <button onClick={handleConfirm} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Xác nhận</button>
               <button onClick={closeConfirmModal} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Hủy</button>
