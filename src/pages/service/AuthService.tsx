@@ -1,5 +1,5 @@
 import axios from "axios";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 interface LoginCredentials {
     email: string;
@@ -12,31 +12,23 @@ interface RegisterCredentials {
     email: string;
     password: string;
     avatarUrl?: string;
-    role?: number; // Mặc định là 2 nếu không truyền
+    role?: string; // Role mặc định là "USER" nếu không truyền
 }
 
-interface LoginResponse {
-    token: string;
-    user: {
-        sid: string;
-        nameidentifier: string;
-        emailaddress: string;
-        mobilephone: number;
-        role: string;
-        // Thêm các trường khác của user nếu cần
-    };
-}
-
-// Interface cho dữ liệu sau khi giải mã token
-interface DecodedToken {
-    id: string;
-    email: string;
-    role: number;
-    exp: number; // Thời gian hết hạn của token
-}
 interface LoginResponse {
     accessToken: string;
     refreshToken: string;
+}
+
+// Interface mới để khớp với token từ backend
+interface DecodedToken {
+    UserId: string;
+    Name: string;
+    Email: string;
+    Phone: string;
+    Role: string;
+    Avatar: string;
+    exp: number;
 }
 
 const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
@@ -45,7 +37,7 @@ class AuthService {
     private static instance: AuthService;
     private token: string | null = null;
 
-    private constructor() { }
+    private constructor() {}
 
     public static getInstance(): AuthService {
         if (!AuthService.instance) {
@@ -58,19 +50,23 @@ class AuthService {
     async login(credentials: LoginCredentials): Promise<LoginResponse> {
         try {
             const response = await axios.post<LoginResponse>(`${API_BASE_URL}/Auth/Login`, credentials);
-            
+
             console.log("Raw API Response:", response.data);
-    
+
             if (response.data.accessToken) {
-                this.token = response.data.accessToken; // Use accessToken instead of token
+                this.token = response.data.accessToken;
                 localStorage.setItem("token", response.data.accessToken);
-                
-                // Add debug logs
+
                 console.log("Token being decoded:", this.token);
                 const decoded = this.decodeToken();
                 console.log("Decoded result:", decoded);
+
+                if (decoded) {
+                    console.log("User role:", decoded.Role);
+                    localStorage.setItem("user", JSON.stringify(decoded));
+                }
             }
-    
+
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -90,27 +86,31 @@ class AuthService {
                 phone: credentials.phone,
                 email: credentials.email,
                 password: credentials.password,
-                avatarUrl: credentials.avatarUrl || "", // Nếu không có avatarUrl, truyền chuỗi rỗng
-                role: credentials.role || 2, // Mặc định là 2 nếu không truyền
+                avatarUrl: credentials.avatarUrl || "",
+                role: credentials.role || "USER",
             };
 
-            console.log("Register Data:", user);  // In ra dữ liệu để kiểm tra
+            console.log("Register Data:", user);
 
             const response = await axios.post(`${API_BASE_URL}/Auth/Register`, user);
 
-            if (response.data.token) {
-                this.token = response.data.token;
-                localStorage.setItem("token", response.data.token);
+            if (response.data.accessToken) {
+                this.token = response.data.accessToken;
+                localStorage.setItem("token", response.data.accessToken);
                 localStorage.setItem("user", JSON.stringify(response.data.user));
-                this.decodeToken(); // Giải mã và lưu thông tin token
+                const decoded = this.decodeToken();
+
+                if (decoded) {
+                    console.log("Registered User Role:", decoded.Role);
+                }
             }
 
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                const errorMessage = error.response?.data?.message || 'Registration failed';
-                console.error('Registration error:', errorMessage);
-                console.error('Error response:', error.response?.data);
+                const errorMessage = error.response?.data?.message || "Registration failed";
+                console.error("Registration error:", errorMessage);
+                console.error("Error response:", error.response?.data);
                 throw new Error(errorMessage);
             }
             throw error;
@@ -138,23 +138,25 @@ class AuthService {
         return !!this.getToken();
     }
 
-    // 🟢 Lấy thông tin người dùng hiện tại
-    getCurrentUser(): any {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-            return JSON.parse(userStr);
-        }
-        return null;
-    }
-
     // 🟢 Giải mã Token và lưu thông tin
     decodeToken(): DecodedToken | null {
         const token = this.getToken();
         if (token) {
             try {
-                const decoded: DecodedToken = jwtDecode(token);
-                localStorage.setItem("decodedToken", JSON.stringify(decoded));
-                return decoded;
+                const decoded: any = jwtDecode(token);
+
+                const formattedToken: DecodedToken = {
+                    UserId: decoded.UserId || "",
+                    Name: decoded.Name || "",
+                    Email: decoded.Email || "",
+                    Phone: decoded.Phone || "",
+                    Role: decoded.Role || "USER",
+                    Avatar: decoded.Avatar || "",
+                    exp: decoded.exp || 0,
+                };
+
+                localStorage.setItem("decodedToken", JSON.stringify(formattedToken));
+                return formattedToken;
             } catch (error) {
                 console.error("Error decoding token:", error);
                 return null;
@@ -176,10 +178,21 @@ class AuthService {
     isTokenExpired(): boolean {
         const decoded = this.getDecodedToken();
         if (decoded) {
-            const currentTime = Math.floor(Date.now() / 1000); // Chuyển thời gian hiện tại thành giây
+            const currentTime = Math.floor(Date.now() / 1000);
             return decoded.exp < currentTime;
         }
-        return true; // Nếu không có token hoặc không giải mã được, coi như đã hết hạn
+        return true;
+    }
+
+    // 🟢 Lấy role của user
+    getUserRole(): string | null {
+        const decoded = this.getDecodedToken();
+        return decoded?.Role || null;
+    }
+
+    // 🟢 Lấy thông tin người dùng hiện tại từ token
+    getCurrentUser(): DecodedToken | null {
+        return this.getDecodedToken();
     }
 }
 
