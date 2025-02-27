@@ -1,40 +1,76 @@
 import { useEffect, useState } from "react";
-import { Card, Avatar, Spin, Button, Form, Input, Switch, message } from "antd";
-import { EditOutlined, SaveOutlined } from "@ant-design/icons";
+import { Card, Avatar, Spin, Button, Form, Input, Switch, notification } from "antd";
+import { EditOutlined, SaveOutlined, CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 import axios from "axios";
-import AuthService from "../service/AuthService"; // Import AuthService
+import AuthService from "../service/AuthService";
+
+interface TherapistProfile {
+  therapistName?: string;
+  avatar?: string;
+  description?: string;
+  consultationFee?: number;
+  meetUrl?: string;
+  status?: boolean;
+}
 
 const Profile = () => {
-  const currentUser = AuthService.getCurrentUser(); // Lấy thông tin user từ token
-  const therapistId = currentUser?.UserId; // Gán therapistId từ token
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState<TherapistProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [api, contextHolder] = notification.useNotification();
+
+  const currentUser = AuthService.getCurrentUser();
+  const therapistId: string | undefined = currentUser?.UserId;
+
+  const showSuccessNotification = () => {
+    api.success({
+      message: "Cập nhật thành công",
+      description: "Thông tin hồ sơ đã được cập nhật thành công!",
+      icon: <CheckCircleFilled style={{ color: "#52c41a" }} />, 
+      placement: "topRight",
+      duration: 3,
+      style: {
+        backgroundColor: "#f6ffed",
+        border: "1px solid #b7eb8f",
+      },
+    });
+  };
+
+  const showErrorNotification = (errorMessage: string) => {
+    api.error({
+      message: "Cập nhật thất bại",
+      description: errorMessage,
+      icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />, 
+      placement: "topRight",
+      duration: 4,
+      style: {
+        backgroundColor: "#fff2f0",
+        border: "1px solid #ffccc7",
+      },
+    });
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!therapistId) {
-        message.error("Không tìm thấy UserId");
+        showErrorNotification("Không tìm thấy UserId");
         setLoading(false);
         return;
       }
-
-      console.log("Fetching profile for therapistId:", therapistId);
 
       try {
         const response = await axios.get(
           `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id?id=${therapistId}`
         );
-        console.log("Response data:", response.data);
 
         if (response.data) {
           setProfile(response.data);
         } else {
-          message.error("Không tìm thấy hồ sơ");
+          showErrorNotification("Không tìm thấy hồ sơ");
         }
       } catch (error) {
         console.error("Lỗi khi lấy hồ sơ:", error);
-        message.error("Không thể tải hồ sơ");
+        showErrorNotification("Không thể tải hồ sơ");
       } finally {
         setLoading(false);
       }
@@ -43,82 +79,80 @@ const Profile = () => {
     fetchProfile();
   }, [therapistId]);
 
-  const handleUpdate = async (values) => {
-    const token = currentUser?.token || localStorage.getItem("token"); // Thử lấy token từ localStorage
-  
+  const handleUpdate = async (values: TherapistProfile) => {
+    const token = AuthService.getToken();
+
     if (!token) {
-      message.error("Bạn chưa đăng nhập hoặc token không hợp lệ");
+      showErrorNotification("Bạn chưa đăng nhập hoặc token không hợp lệ");
       return;
     }
-  
-    console.log("Token gửi đi:", token); // Kiểm tra token
-  
+
     try {
       await axios.post(
         "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
         { therapistId, ...values },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Thêm token vào header
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
       );
-      message.success("Cập nhật hồ sơ thành công!");
-      setProfile({ ...profile, ...values });
+      showSuccessNotification();
+      setProfile((prevProfile) => ({ ...prevProfile!, ...values }));
       setEditing(false);
     } catch (error) {
       console.error("Lỗi cập nhật:", error);
-      message.error("Không thể cập nhật hồ sơ");
+      showErrorNotification("Không thể cập nhật hồ sơ");
     }
   };
-  
-  
-  
 
   if (loading) return <Spin size="large" className="flex justify-center items-center h-screen" />;
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
-      <Card className="max-w-lg w-full" hoverable>
-        {editing ? (
-          <Form layout="vertical" initialValues={profile} onFinish={handleUpdate}>
-            <Form.Item label="Avatar URL" name="avatar">
-              <Input />
-            </Form.Item>
-            <Form.Item label="Description" name="description">
-              <Input.TextArea />
-            </Form.Item>
-            <Form.Item label="Consultation Fee" name="consultationFee">
-              <Input type="number" />
-            </Form.Item>
-            <Form.Item label="Meet URL" name="meetUrl">
-              <Input />
-            </Form.Item>
-            <Form.Item label="Status" name="status" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>Lưu</Button>
-          </Form>
-        ) : (
-          <>
-            <div className="text-center">
-              <Avatar size={100} src={profile?.avatar} />
-              <h2 className="text-2xl font-bold mt-4">Hồ sơ chuyên gia</h2>
-              <p className="text-gray-600 mt-2">{profile?.description}</p>
-            </div>
-            <div className="mt-6">
-              <p><strong>Trạng thái:</strong> {profile?.status ? "Hoạt động" : "Không hoạt động"}</p>
-              <p><strong>Phí tư vấn:</strong> ${profile?.consultationFee}</p>
-              <p><strong>Meet URL:</strong> <a href={profile?.meetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500">Tham gia cuộc họp</a></p>
-            </div>
-            <div className="mt-6 text-center">
-              <Button type="primary" icon={<EditOutlined />} onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ</Button>
-            </div>
-          </>
-        )}
-      </Card>
-    </div>
+    <>
+      {contextHolder}
+      <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
+        <Card className="max-w-lg w-full" hoverable>
+          {editing ? (
+            <Form layout="vertical" initialValues={profile || {}} onFinish={handleUpdate}>
+              <Form.Item label="Avatar URL" name="avatar">
+                <Input />
+              </Form.Item>
+              <Form.Item label="Description" name="description">
+                <Input.TextArea />
+              </Form.Item>
+              <Form.Item label="Consultation Fee" name="consultationFee">
+                <Input type="number" />
+              </Form.Item>
+              <Form.Item label="Meet URL" name="meetUrl">
+                <Input />
+              </Form.Item>
+              <Form.Item label="Status" name="status" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>Lưu</Button>
+            </Form>
+          ) : (
+            <>
+              <div className="text-center">
+                <Avatar size={100} src={profile?.avatar} />
+                <h2 className="text-2xl font-bold mt-4">{profile?.therapistName}</h2>
+                <p className="text-gray-600 mt-2">{profile?.description}</p>
+              </div>
+              <div className="mt-6">
+                <p><strong>Trạng thái:</strong> {profile?.status ? "Hoạt động" : "Không hoạt động"}</p>
+                <p><strong>Phí tư vấn:</strong> ${profile?.consultationFee}</p>
+                <p><strong>Meet URL:</strong> <a href={profile?.meetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500">Tham gia cuộc họp</a></p>
+              </div>
+              <div className="mt-6 text-center">
+                <Button type="primary" icon={<EditOutlined />} onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ</Button>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+    </>
   );
 };
 
