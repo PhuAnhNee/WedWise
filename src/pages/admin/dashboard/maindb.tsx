@@ -5,7 +5,6 @@ import {
     BarChartOutlined,
     SettingOutlined,
     UserOutlined,
-    // StockOutlined,
     FormOutlined,
     AppstoreOutlined,
     FileDoneOutlined,
@@ -29,7 +28,7 @@ const { Header, Sider, Content } = Layout;
 const Dashboard: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [selectedPage, setSelectedPage] = useState("dashboard");
-    const navigate = useNavigate(); // Điều hướng
+    const navigate = useNavigate();
 
     const {
         token: { colorBgContainer, borderRadiusLG },
@@ -61,6 +60,7 @@ const Dashboard: React.FC = () => {
 
     // Xử lý Logout
     const handleLogout = () => {
+        localStorage.removeItem("accessToken"); // Xóa accessToken khỏi localStorage
         message.success("Logged out successfully!");
         setTimeout(() => {
             navigate("/"); // Điều hướng về trang Login
@@ -73,8 +73,10 @@ const Dashboard: React.FC = () => {
             onClick={({ key }) => {
                 if (key === "profile") {
                     navigate("/admin/profile"); // Chuyển hướng đến trang Profile Admin
+                } else if (key === "settings") {
+                    setSelectedPage("settings"); // Chuyển sang trang Settings trong dashboard
                 } else if (key === "logout") {
-                    handleLogout();
+                    handleLogout(); // Gọi hàm logout
                 }
             }}
             items={[
@@ -84,7 +86,6 @@ const Dashboard: React.FC = () => {
             ]}
         />
     );
-
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
@@ -103,11 +104,8 @@ const Dashboard: React.FC = () => {
                         Dashboard
                     </Menu.Item>
                     <Menu.Item key="withdraw" icon={<BarChartOutlined />}>
-                        WithDraw
+                        Withdraw
                     </Menu.Item>
-                    {/* <Menu.Item key="salesreport" icon={<StockOutlined />}>
-                        Sales Report
-                    </Menu.Item> */}
                     <Menu.Item key="manage" icon={<FormOutlined />}>
                         Manage
                     </Menu.Item>
@@ -120,9 +118,6 @@ const Dashboard: React.FC = () => {
                     <Menu.Item key="answer-manage" icon={<FileProtectOutlined />}>
                         Answer Manage
                     </Menu.Item>
-                    {/* <Menu.Item key="settings" icon={<SettingOutlined />}>
-                        Settings
-                    </Menu.Item> */}
                 </Menu>
             </Sider>
 
@@ -148,11 +143,7 @@ const Dashboard: React.FC = () => {
 
                     {/* Avatar & Dropdown Menu */}
                     <Dropdown overlay={userMenu} placement="bottomRight">
-                        <Avatar
-                            size="large"
-                            icon={<UserOutlined />}
-                            className="cursor-pointer"
-                        />
+                        <Avatar size="large" icon={<UserOutlined />} className="cursor-pointer" />
                     </Dropdown>
                 </Header>
 

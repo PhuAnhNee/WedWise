@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomMessage from "../../../component/message/index";
 
+// Hàm giải mã JWT để lấy payload
+const decodeJWT = (token: string) => {
+    try {
+        const base64Url = token.split(".")[1]; // Lấy phần payload từ JWT
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+            atob(base64)
+                .split("")
+                .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                .join("")
+        );
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error("❌ Error decoding JWT:", error);
+        return null;
+    }
+};
+
 const AdminLogin: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
@@ -27,7 +45,7 @@ const AdminLogin: React.FC = () => {
             );
 
             const data = await response.json();
-            console.log("📌 API Response:", data); // Log để debug
+            console.log("📌 API Response:", data);
 
             if (response.ok) {
                 const accessToken = data.accessToken;
@@ -35,6 +53,22 @@ const AdminLogin: React.FC = () => {
                 if (!accessToken || typeof accessToken !== "string") {
                     console.error("❌ accessToken không hợp lệ:", accessToken);
                     setMessage({ type: "error", text: "Lỗi hệ thống: Token không hợp lệ!" });
+                    return;
+                }
+
+                // Giải mã token để lấy payload
+                const decodedToken = decodeJWT(accessToken);
+                if (!decodedToken) {
+                    setMessage({ type: "error", text: "Không thể giải mã token!" });
+                    return;
+                }
+
+                console.log("📌 Decoded Token:", decodedToken);
+
+                // Kiểm tra role trong payload
+                const role = decodedToken.Role || decodedToken.role; // Một số hệ thống có thể dùng "role" thay vì "Role"
+                if (role !== "ADMIN") {
+                    setMessage({ type: "error", text: "Bạn không phải là admin!" });
                     return;
                 }
 
