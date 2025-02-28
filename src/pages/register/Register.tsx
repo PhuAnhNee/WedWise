@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Form, Input, Button, notification } from "antd";
+import { Form, Input, Button, notification, Radio } from "antd";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 import AuthService from "../service/AuthService";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +9,7 @@ interface RegisterFormValues {
   phone: string;
   email: string;
   password: string;
-  avatarUrl: string;
+  role: string;
 }
 
 const Register = () => {
@@ -48,30 +48,26 @@ const Register = () => {
   const onFinish = async (values: RegisterFormValues) => {
     try {
       setLoading(true);
-      const { fullName, phone, email, password, avatarUrl } = values;
+      
+      // Chỉ gửi đúng các trường yêu cầu
       const user = {
-        fullName,
-        phone,
-        email,
-        password,
-        avatarUrl,
-        role: "2", // Chuyển số thành chuỗi
+        fullName: values.fullName,
+        phone: values.phone,
+        email: values.email,
+        password: values.password,
+        role: parseInt(values.role) 
       };
 
+      console.log("Sending registration data:", user);
+      
       const response = await AuthService.register(user);
       
-      // Add debug logs similar to login component
       console.log("Register Response:", response);
-      console.log("Access Token:", response.accessToken);
-      console.log("Stored token:", AuthService.getToken());
-      const decodedToken = AuthService.getDecodedToken();
-      console.log("Decoded Token:", decodedToken);
       
       showSuccessNotification();
 
-      // Đợi 1 giây trước khi chuyển trang để người dùng có thể thấy thông báo
       setTimeout(() => {
-        navigate("/"); // Điều hướng về trang đăng nhập
+        navigate("/");
       }, 1000);
       
     } catch (error) {
@@ -92,6 +88,7 @@ const Register = () => {
         errorMessage = "Connection timeout. Please check your internet connection.";
       }
 
+      console.error("Registration error detail:", errorMessage);
       showErrorNotification(errorMessage);
     } finally {
       setLoading(false);
@@ -117,7 +114,7 @@ const Register = () => {
 
           <Form
             name="register"
-            initialValues={{ remember: true }}
+            initialValues={{ remember: true, role: "2" }}
             onFinish={onFinish}
             labelCol={{ span: 6 }}
             wrapperCol={{ span: 18 }}
@@ -160,12 +157,15 @@ const Register = () => {
               <Input.Password size="large" placeholder="Enter your password" className="rounded-lg" />
             </Form.Item>
 
-            <Form.Item
-              label="Avatar URL"
-              name="avatarUrl"
-              rules={[{ required: true, message: "Please provide your avatar URL!" }]}
+            <Form.Item 
+              label="Role" 
+              name="role"
+              rules={[{ required: true, message: "Please select a role!" }]}
             >
-              <Input size="large" placeholder="Enter your avatar URL" className="rounded-lg" />
+              <Radio.Group>
+                <Radio value="2">Member</Radio>
+                <Radio value="3">Therapist</Radio>
+              </Radio.Group>
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 6, span: 18 }}>

@@ -11,8 +11,7 @@ interface RegisterCredentials {
     phone: string;
     email: string;
     password: string;
-    avatarUrl?: string;
-    role?: string; // Role mặc định là "USER" nếu không truyền
+    role: number; 
 }
 
 interface LoginResponse {
@@ -78,44 +77,58 @@ class AuthService {
         }
     }
 
-    // 🟢 Đăng ký
-    async register(credentials: RegisterCredentials): Promise<any> {
-        try {
-            const user = {
-                fullName: credentials.fullName,
-                phone: credentials.phone,
-                email: credentials.email,
-                password: credentials.password,
-                avatarUrl: credentials.avatarUrl || "",
-                role: credentials.role || "USER",
-            };
+   // 🟢 Đăng ký
+async register(credentials: RegisterCredentials): Promise<any> {
+    try {
+        // Chỉ gửi đúng những trường cần thiết theo yêu cầu
+        const user = {
+            fullName: credentials.fullName,
+            phone: credentials.phone,
+            email: credentials.email,
+            password: credentials.password,
+            role: credentials.role
+        };
 
-            console.log("Register Data:", user);
-
-            const response = await axios.post(`${API_BASE_URL}/Auth/Register`, user);
-
-            if (response.data.accessToken) {
-                this.token = response.data.accessToken;
-                localStorage.setItem("token", response.data.accessToken);
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                const decoded = this.decodeToken();
-
-                if (decoded) {
-                    console.log("Registered User Role:", decoded.Role);
-                }
+        console.log("Register Data:", user);
+        
+        const config = {
+            headers: {
+                'Content-Type': 'application/json'
             }
+        };
 
-            return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const errorMessage = error.response?.data?.message || "Registration failed";
-                console.error("Registration error:", errorMessage);
-                console.error("Error response:", error.response?.data);
-                throw new Error(errorMessage);
+        const response = await axios.post(`${API_BASE_URL}/Auth/Register`, user, config);
+
+        if (response.data.accessToken) {
+            this.token = response.data.accessToken;
+            localStorage.setItem("token", response.data.accessToken);
+            localStorage.setItem("user", JSON.stringify(response.data.user));
+            const decoded = this.decodeToken();
+
+            if (decoded) {
+                console.log("Registered User Role:", decoded.Role);
             }
-            throw error;
         }
+
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const errorMessage = error.response?.data?.message || 
+                                error.response?.data?.title || 
+                                "Registration failed";
+            
+            console.error("Registration error:", errorMessage);
+            console.error("Error response data:", error.response?.data);
+            
+            if (error.response?.data?.errors) {
+                console.error("Validation errors:", error.response?.data?.errors);
+            }
+            
+            throw new Error(errorMessage);
+        }
+        throw error;
     }
+}
 
     // 🟢 Đăng xuất
     logout(): void {
