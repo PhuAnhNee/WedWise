@@ -24,11 +24,11 @@ import QuizPage from "./pages/member/QuizPage";
 import QuizDetail from "./pages/member/QuizDetail";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import TherapistProfile from "./pages/therapist/TherapistProfile";
-import TherapistAppointments from "./pages/therapist/TherapistAppointment";
 import TherapistCalendar from "./pages/therapist/TherapistCalendar";
 import TherapistLayout from "./therapistLayout/TherapistLayout";
 import Wallet from "./pages/member/Wallet";
 import TherapistSchedule from "./pages/therapist/TherapistSchedule";
+import TherapistBookingList from "./pages/therapist/TherapistBookingList";
 const App: React.FC = () => {
   return (
     <Router>
@@ -58,7 +58,7 @@ const App: React.FC = () => {
         <Route path="/therapist" element={<TherapistLayout />}>
           <Route index element={<TherapistDashboard />} />
           <Route path="profile" element={<TherapistProfile />} />
-          <Route path="appointments" element={<TherapistAppointments />} />
+          <Route path="booking-list" element={<TherapistBookingList />} />
           <Route path="calendar" element={<TherapistCalendar />} />
           <Route path="schedule" element={<TherapistSchedule />} />
         </Route>

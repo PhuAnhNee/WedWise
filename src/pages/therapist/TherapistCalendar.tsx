@@ -3,6 +3,7 @@ import { format, addMonths, subMonths, startOfMonth, getDaysInMonth } from "date
 import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
 
+
 const slots = [
   { id: 1, time: "7:30-9:00" },
   { id: 2, time: "9:30-11:00" },
@@ -14,7 +15,7 @@ const slots = [
 ];
 
 const TherapistCalendar = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());  // Ngày mặc định là ngày hiện tại
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
@@ -24,16 +25,18 @@ const TherapistCalendar = () => {
 
   const handlePrevMonth = () => setSelectedDate(subMonths(selectedDate, 1));
   const handleNextMonth = () => setSelectedDate(addMonths(selectedDate, 1));
+
   const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
+    setSelectedDate(date);  // Cập nhật selectedDate khi người dùng chọn ngày mới
+    console.log("Ngày đã chọn:", date);  // Kiểm tra giá trị của date
   };
+  
 
   const toggleSlot = (id: number) => {
     setSelectedSlot((prev) => (prev === id ? null : id));
   };
 
   const openConfirmModal = () => {
-    // Kiểm tra đăng nhập trước khi mở modal
     const token = AuthService.getToken();
     if (!therapistId || !token) {
       toast.error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
@@ -47,31 +50,41 @@ const TherapistCalendar = () => {
   };
 
   const handleConfirm = async () => {
-    // Lấy token trong hàm xử lý để đảm bảo token mới nhất
     const token = AuthService.getToken();
-    
+  
     if (!therapistId || !token) {
       setError("Bạn chưa đăng nhập hoặc thông tin không hợp lệ.");
       return;
     }
-
+  
     if (!selectedDate || selectedSlot === null) {
       setError("Vui lòng chọn một ngày và một khung giờ!");
       return;
     }
-
+  
     setError("");
     setShowModal(false);
-    
+  
+    // Tạo một bản sao của selectedDate và cộng thêm 1 ngày
+    const dateToSend = new Date(selectedDate);
+    dateToSend.setDate(dateToSend.getDate() + 1);
+  
+    // In ngày đã được cộng thêm 1 ngày để kiểm tra
+    console.log("Ngày sau khi cộng thêm 1 ngày:", dateToSend);
+  
+    // Đảm bảo ngày được chọn đúng
     const requestData = [
       {
-        therapistId: "0c0493c2-4f20-498a-a520-97635c24c66d",
-        date: new Date().toISOString(), // Định dạng ISO string nếu cần
-        slot: 5,
+        therapistId: therapistId, // Sử dụng therapistId từ người dùng hiện tại
+        date: dateToSend.toISOString(), // Định dạng ISO string với ngày giờ đúng
+        slot: selectedSlot, // Khung giờ được chọn
         isAvailable: true,
       }
     ];
-    
+  
+    // Log dữ liệu gửi đi
+    console.log("Dữ liệu gửi đi:", JSON.stringify(requestData, null, 2));
+  
     try {
       const response = await fetch(
         "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Create_Schedule",
@@ -84,23 +97,24 @@ const TherapistCalendar = () => {
           body: JSON.stringify(requestData),
         }
       );
-    
-      const responseText = await response.text(); // Đọc phản hồi dưới dạng text
-    
+  
+      const responseText = await response.text();
       console.log("Phản hồi từ API:", responseText);
-    
+  
       if (!response.ok) {
         throw new Error(responseText || "Lỗi không xác định khi tạo lịch.");
       }
-    
+  
       toast.success("Lịch đã được tạo thành công!");
     } catch (error) {
       console.error("Lỗi khi gửi request:", error);
       toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
     }
-    
-    
   };
+  
+  
+  
+  
 
   const daysInMonth = getDaysInMonth(selectedDate);
   const startDay = startOfMonth(selectedDate).getDay();
@@ -128,7 +142,7 @@ const TherapistCalendar = () => {
               return (
                 <button
                   key={i}
-                  onClick={() => handleDateChange(currentDate)}
+                  onClick={() => handleDateChange(currentDate)}  // Cập nhật selectedDate khi chọn ngày
                   className={`p-2 rounded ${currentDate.toDateString() === selectedDate.toDateString() ? "bg-blue-600 text-white" : "hover:bg-gray-200"}`}
                 >
                   {i + 1}
