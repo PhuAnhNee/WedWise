@@ -160,7 +160,7 @@ const AdminQuiz: React.FC = () => {
 
     return (
         <div className="container mx-auto p-6">
-            <h2 className="text-2xl font-bold mb-4">Quiz Management</h2>
+            <h2 className="text-2xl font-bold mb-4">Question Management</h2>
 
             <Table dataSource={quizzes} columns={columns} rowKey="quizId" pagination={{ pageSize: 5 }} />
 
