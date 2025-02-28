@@ -18,6 +18,7 @@ const Profile = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [api, contextHolder] = notification.useNotification();
+  const [descriptionLength, setDescriptionLength] = useState<number>(0); // Thêm state để đếm số kí tự
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
@@ -107,12 +108,16 @@ const Profile = () => {
     }
   };
 
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDescriptionLength(e.target.value.length);
+  };
+
   if (loading) return <Spin size="large" className="flex justify-center items-center h-screen" />;
 
   return (
     <>
       {contextHolder}
-      <div className="flex justify-center items-center min-h-screen bg-gray-100 p-6">
+      <div className="flex justify-center items-center h-full bg-gray-100 p-6">
         <Card className="max-w-lg w-full" hoverable>
           {editing ? (
             <Form layout="vertical" initialValues={profile || {}} onFinish={handleUpdate}>
@@ -120,7 +125,11 @@ const Profile = () => {
                 <Input />
               </Form.Item>
               <Form.Item label="Description" name="description">
-                <Input.TextArea />
+                <Input.TextArea 
+                  onChange={handleDescriptionChange} 
+                  maxLength={100} 
+                />
+                <div className="text-right text-sm text-gray-500">{descriptionLength}/100</div> 
               </Form.Item>
               <Form.Item label="Consultation Fee" name="consultationFee">
                 <Input type="number" />

@@ -48,8 +48,8 @@ const TherapistSchedule = () => {
         fetchSchedule();
     }, []);
 
-    const formatDate = (date: Date) => date.toISOString();
-    const markedDates = schedule.map(slot => formatDate(new Date(slot.date)).split('T')[0]);
+    const formatDate = (date: Date) => date.toISOString().split('T')[0]; // Lấy phần ngày thôi (YYYY-MM-DD)
+    const markedDates = schedule.map(slot => formatDate(new Date(slot.date))); // Lọc ngày từ dữ liệu API
 
     const handleDelete = async (scheduleItem: Schedule) => {
         const token = AuthService.getToken();
@@ -101,7 +101,7 @@ const TherapistSchedule = () => {
                     onChange={(value) => setSelectedDate(value as Date | null)} 
                     value={selectedDate} 
                     tileClassName={({ date }) => 
-                        markedDates.includes(formatDate(date).split('T')[0]) ? 'bg-green-300 text-white font-bold rounded-lg' : 'hover:bg-gray-200 rounded-lg'
+                        markedDates.includes(formatDate(date)) ? 'bg-green-300 text-white font-bold rounded-lg' : 'hover:bg-gray-200 rounded-lg'
                     }
                     className="mb-6 border rounded-xl shadow-md p-2"
                 />
@@ -110,7 +110,7 @@ const TherapistSchedule = () => {
                 <div className="bg-gray-50 p-5 rounded-xl shadow-md mt-4">
                     <h3 className="text-xl font-semibold mb-4 text-center">Lịch làm việc ngày {selectedDate.toLocaleDateString()}</h3>
                     <ul>
-                        {schedule.filter(slot => formatDate(new Date(slot.date)).split('T')[0] === formatDate(selectedDate).split('T')[0]).map((slot) => (
+                        {schedule.filter(slot => formatDate(new Date(slot.date)) === formatDate(selectedDate)).map((slot) => (
                             <li key={slot.scheduleId} className="p-4 bg-white rounded-lg shadow-md mb-3 flex justify-between items-center border border-gray-200">
                                 <span><strong>Slot:</strong> {slot.slot} | <strong> Tình trạng:</strong> {slot.isAvailable ? 'Còn trống' : 'Đã đặt'}</span>
                                 <button 
