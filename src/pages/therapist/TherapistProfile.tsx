@@ -18,7 +18,7 @@ const Profile = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [editing, setEditing] = useState<boolean>(false);
   const [api, contextHolder] = notification.useNotification();
-  const [descriptionLength, setDescriptionLength] = useState<number>(0); // Thêm state để đếm số kí tự
+  const [descriptionLength, setDescriptionLength] = useState<number>(0);
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
@@ -82,16 +82,27 @@ const Profile = () => {
 
   const handleUpdate = async (values: TherapistProfile) => {
     const token = AuthService.getToken();
-
+  
     if (!token) {
       showErrorNotification("Bạn chưa đăng nhập hoặc token không hợp lệ");
       return;
     }
-
+  
+    // Debugging: log giá trị của description trước khi gửi
+    console.log("Dữ liệu gửi đi khi ấn lưu:", { therapistId, therapistName: values.therapistName, ...values });
+  
     try {
-      await axios.post(
+      const response = await axios.post(
         "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
-        { therapistId, ...values },
+        {
+          therapistId,
+          therapistName: values.therapistName,
+          avatar: values.avatar,
+          status: values.status,
+          description: values.description,  // Kiểm tra trường description
+          consultationFee: values.consultationFee,
+          meetUrl: values.meetUrl,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -99,6 +110,9 @@ const Profile = () => {
           },
         }
       );
+      
+      console.log("Phản hồi từ API:", response.data); // Kiểm tra phản hồi từ API
+
       showSuccessNotification();
       setProfile((prevProfile) => ({ ...prevProfile!, ...values }));
       setEditing(false);
@@ -107,7 +121,7 @@ const Profile = () => {
       showErrorNotification("Không thể cập nhật hồ sơ");
     }
   };
-
+  
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDescriptionLength(e.target.value.length);
   };
@@ -121,6 +135,9 @@ const Profile = () => {
         <Card className="max-w-lg w-full" hoverable>
           {editing ? (
             <Form layout="vertical" initialValues={profile || {}} onFinish={handleUpdate}>
+              <Form.Item label="Tên trị liệu viên" name="therapistName">
+                <Input />
+              </Form.Item>
               <Form.Item label="Avatar URL" name="avatar">
                 <Input />
               </Form.Item>
