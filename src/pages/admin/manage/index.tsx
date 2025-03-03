@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Modal, Input, Button, Form, message, Popconfirm } from "antd";
+import { Table, Modal, Input, Button, Form, message } from "antd";
 import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import axios from "axios";
 
@@ -82,120 +82,103 @@ const AdminCategory: React.FC = () => {
             setIsModalOpen(false);
             form.resetFields();
             fetchCategories();
-        } catch {
-            //   console.error("Error submitting category:", error.response?.data || error.message);
-            //   message.error(error.response?.data?.message || "Failed to save category!");
-        }
-    };
-
-    // Cập nhật trạng thái Active/Inactive
-    const handleToggleCategoryStatus = async (id: string, newStatus: number) => {
-        try {
-            const categoryToUpdate = categories.find((category) => category.id === id);
-            if (!categoryToUpdate) {
-                message.error("Category not found!");
-                return;
-            }
-
-            const accessToken = localStorage.getItem("accessToken");
-            console.log("Access Token for Toggle:", accessToken);
-
-            if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
-                return;
-            }
-
-            const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
-            const payload = {
-                id,
-                name: categoryToUpdate.name,
-                description: categoryToUpdate.description,
-                status: newStatus,
-            };
-            console.log("Toggle Payload:", payload);
-
-            const response = await axios.post(`${API_BASE_URL}/Update_Category`, payload, { headers });
-            console.log("Toggle Response:", response.data);
-
-            message.success(newStatus === 1 ? "Category activated successfully!" : "Category deactivated successfully!");
-            fetchCategories();
-        } catch {
-            //   console.error("Error updating category status:", error.response?.data || error.message);
-            //   message.error(error.response?.data?.message || "Failed to update category status!");
+        } catch (error) {
+            console.error("Error submitting category:", error);
+            message.error("Failed to save category!");
         }
     };
 
     const columns = [
-        { title: "Category Name", dataIndex: "name", key: "name" },
-        { title: "Description", dataIndex: "description", key: "description" },
+        {
+            title: "Category Name",
+            dataIndex: "name",
+            key: "name",
+            render: (text: string) => <span className="font-medium text-gray-800">{text}</span>,
+        },
+        {
+            title: "Description",
+            dataIndex: "description",
+            key: "description",
+            render: (text?: string) => <span className="text-gray-600">{text || "No description"}</span>,
+        },
         {
             title: "Actions",
             key: "action",
-            width: "30%",
+            width: "20%",
             render: (_: unknown, record: Category) => (
                 <div className="flex gap-2">
-                    <Button icon={<EditOutlined />} onClick={() => handleEditCategory(record)}>
+                    <Button
+                        type="primary"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditCategory(record)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
                         Edit
                     </Button>
-
-                    {/* Nút Activate */}
-                    <Popconfirm
-                        title="Are you sure you want to activate this category?"
-                        onConfirm={() => handleToggleCategoryStatus(record.id, 1)}
-                        okText="Yes"
-                        cancelText="No"
-                        disabled={record.status === 1}
-                    >
-                        <Button type="primary" disabled={record.status === 1}>
-                            Activate
-                        </Button>
-                    </Popconfirm>
-
-                    {/* Nút Deactivate */}
-                    <Popconfirm
-                        title="Are you sure you want to deactivate this category?"
-                        onConfirm={() => handleToggleCategoryStatus(record.id, 0)}
-                        okText="Yes"
-                        cancelText="No"
-                        disabled={record.status === 0}
-                    >
-                        <Button danger disabled={record.status === 0}>
-                            Deactivate
-                        </Button>
-                    </Popconfirm>
                 </div>
             ),
         },
     ];
 
     return (
-        <div className="container mx-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Category Management</h2>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCategory}>
+        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800">Category Management</h2>
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAddCategory}
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                >
                     Add Category
                 </Button>
             </div>
 
-            <Table dataSource={categories} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
+            <Table
+                dataSource={categories}
+                columns={columns}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+                className="shadow-md rounded-lg overflow-hidden"
+                bordered
+                rowClassName="hover:bg-gray-100"
+            />
 
             <Modal
-                title={editingCategory ? "Edit Category" : "Add Category"}
+                title={
+                    <span className="text-xl font-semibold text-gray-800">
+                        {editingCategory ? "Edit Category" : "Add Category"}
+                    </span>
+                }
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={handleSubmit}
                 okText={editingCategory ? "Update" : "Add"}
+                okButtonProps={{ className: "bg-blue-500 hover:bg-blue-600 text-white" }}
+                cancelButtonProps={{ className: "border-gray-300 text-gray-700" }}
+                width={500}
+                centered
             >
-                <Form form={form} layout="vertical">
+                <Form form={form} layout="vertical" className="mt-4">
                     <Form.Item
                         name="name"
-                        label="Category Name"
+                        label={<span className="font-medium text-gray-700">Category Name</span>}
                         rules={[{ required: true, message: "Please enter a category name" }]}
                     >
-                        <Input placeholder="Enter category name..." />
+                        <Input
+                            placeholder="Enter category name..."
+                            className="border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
                     </Form.Item>
-                    <Form.Item name="description" label="Description">
-                        <Input placeholder="Enter category description..." />
+                    <Form.Item
+                        name="description"
+                        label={<span className="font-medium text-gray-700">Description</span>}
+                    >
+                        <Input.TextArea
+                            placeholder="Enter category description..."
+                            rows={4}
+                            className="border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
                     </Form.Item>
                 </Form>
             </Modal>
