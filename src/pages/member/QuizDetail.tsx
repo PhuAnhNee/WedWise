@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button, Card, Radio, Typography, Spin, notification, Empty } from "antd";
+import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+import axios from "axios";
+import AuthService from "../service/AuthService";
+
+const { Title, Text } = Typography;
 
 interface Answer {
   answerId: string;
@@ -20,11 +26,47 @@ interface Quiz {
   questions: Question[];
 }
 
-const QuizDetail: React.FC = () => {
+interface TherapistSpecialty {
+  therapistId: string;
+  // Additional specialty fields if needed
+}
+
+interface TherapistSuggestion {
+  therapistId: string;
+  therapistName: string;
+  avatar: string;
+  description: string;
+  consultationFee: number;
+  specialty: TherapistSpecialty[];
+  meetUrl: string;
+  status: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface QuizAnswer {
+  memberId: string;
+  questionId: string;
+  answerId: string;
+}
+
+// Interface for the API response format
+interface SuggestionResponse {
+  [quizId: string]: TherapistSuggestion[];
+}
+
+const QuizSubmission: React.FC = () => {
   const { quizId } = useParams();
+  const navigate = useNavigate();
+  const [api, contextHolder] = notification.useNotification();
+  
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [suggestedTherapists, setSuggestedTherapists] = useState<TherapistSuggestion[]>([]);
+  const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
     if (!quizId) {
@@ -53,28 +95,223 @@ const QuizDetail: React.FC = () => {
     fetchQuiz();
   }, [quizId]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-500">Error: {error}</p>;
+  const handleAnswerChange = (questionId: string, answerId: string) => {
+    setUserAnswers((prev) => ({
+      ...prev,
+      [questionId]: answerId,
+    }));
+  };
+
+  const showSuccessNotification = () => {
+    api.success({
+      message: "Gửi bài thành công",
+      description: "Chúng tôi đã phân tích đáp án của bạn và gợi ý các chuyên gia phù hợp!",
+      icon: <CheckCircleFilled style={{ color: "#52c41a" }} />,
+      placement: "topRight",
+      duration: 3,
+      style: {
+        backgroundColor: "#f6ffed",
+        border: "1px solid #b7eb8f",
+      },
+    });
+  };
+
+  const showErrorNotification = (errorMessage: string) => {
+    api.error({
+      message: "Gửi bài thất bại",
+      description: errorMessage,
+      icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
+      placement: "topRight",
+      duration: 4,
+      style: {
+        backgroundColor: "#fff2f0",
+        border: "1px solid #ffccc7",
+      },
+    });
+  };
+
+  const handleSubmit = async () => {
+    const decodedToken = AuthService.getDecodedToken();
+    
+    if (!decodedToken) {
+      showErrorNotification("Bạn cần đăng nhập để gửi bài làm");
+      return;
+    }
+
+    if (!quiz || Object.keys(userAnswers).length !== quiz.questions.length) {
+      showErrorNotification("Vui lòng trả lời tất cả các câu hỏi");
+      return;
+    }
+
+    const memberAnswers: QuizAnswer[] = Object.entries(userAnswers).map(([questionId, answerId]) => ({
+      memberId: decodedToken.UserId,
+      questionId,
+      answerId,
+    }));
+
+    setSubmitting(true);
+    try {
+      const response = await axios.post(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/MemberAnswer/Save_Member_Answer",
+        memberAnswers,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${AuthService.getToken()}`,
+          },
+        }
+      );
+
+      console.log("Submit response:", response.data);
+      showSuccessNotification();
+      
+      // Parse the nested response structure
+      const responseData: SuggestionResponse = response.data;
+      
+      // Extract therapists from the response
+      let therapists: TherapistSuggestion[] = [];
+      if (responseData && typeof responseData === 'object') {
+        // Extract all therapist arrays from each quiz result
+        Object.keys(responseData).forEach(key => {
+          if (Array.isArray(responseData[key])) {
+            therapists = [...therapists, ...responseData[key]];
+          }
+        });
+      }
+      
+      console.log("Extracted therapists:", therapists);
+      setSuggestedTherapists(therapists);
+      setShowResults(true);
+    } catch (error: any) {
+      console.error("Submit error:", error);
+      let errorMessage = "Đã có lỗi xảy ra khi gửi bài làm";
+      
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = typeof error.response.data === "string" 
+          ? error.response.data 
+          : error.response.data?.message || errorMessage;
+      }
+      
+      showErrorNotification(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const navigateToTherapist = (therapistId: string) => {
+    navigate(`/home/therapist/${therapistId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" tip="Đang tải bài trắc nghiệm..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="text-center text-red-500 p-4">Lỗi: {error}</p>;
+  }
+
+  if (!quiz) {
+    return <p className="text-center text-red-500 p-4">Không tìm thấy bài trắc nghiệm</p>;
+  }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-4">{quiz?.name}</h1>
-      <p className="text-gray-700 mb-4">{quiz?.description}</p>
+    <>
+      {contextHolder}
+      <div className="max-w-4xl mx-auto p-6">
+        {!showResults ? (
+          <Card className="shadow-lg">
+            <Title level={2} className="text-center">{quiz.name}</Title>
+            <Text className="block mb-6 text-center">{quiz.description}</Text>
 
-      {quiz?.questions.map((question, index) => (
-        <div key={question.questionId} className="mb-6">
-          <h2 className="text-lg font-semibold">{index + 1}. {question.questionContent}</h2>
-          <ul className="mt-2">
-            {question.answers.map((answer) => (
-              <li key={answer.answerId} className="p-2 border rounded-lg mb-2">
-                {answer.answerContent} - <span className="text-green-600">({answer.score} points)</span>
-              </li>
+            {quiz.questions.map((question, index) => (
+              <Card key={question.questionId} className="mb-6 shadow">
+                <Title level={4}>
+                  Câu {index + 1}: {question.questionContent}
+                </Title>
+                <Radio.Group
+                  onChange={(e) => handleAnswerChange(question.questionId, e.target.value)}
+                  value={userAnswers[question.questionId]}
+                  className="w-full"
+                >
+                  {question.answers.map((answer) => (
+                    <Radio 
+                      key={answer.answerId} 
+                      value={answer.answerId}
+                      className="block my-2 p-2 border rounded hover:bg-gray-50"
+                    >
+                      {answer.answerContent}
+                    </Radio>
+                  ))}
+                </Radio.Group>
+              </Card>
             ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+
+            <Button
+              type="primary"
+              size="large"
+              className="w-full mt-4"
+              onClick={handleSubmit}
+              loading={submitting}
+            >
+              {submitting ? "Đang xử lý..." : "Gửi bài làm"}
+            </Button>
+          </Card>
+        ) : (
+          <Card className="shadow-lg">
+            <Title level={2} className="text-center">Kết quả trắc nghiệm</Title>
+            <Text className="block mb-6 text-center">
+              Dựa trên câu trả lời của bạn, chúng tôi gợi ý các chuyên gia sau đây:
+            </Text>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {suggestedTherapists && suggestedTherapists.length > 0 ? (
+                suggestedTherapists.map((therapist) => (
+                  <Card 
+                    key={therapist.therapistId} 
+                    hoverable 
+                    className="shadow cursor-pointer"
+                    onClick={() => navigateToTherapist(therapist.therapistId)}
+                  >
+                    <div className="flex flex-col items-center">
+                      <img 
+                        src={therapist.avatar || "default-avatar.png"} 
+                        alt={therapist.therapistName} 
+                        className="w-24 h-24 rounded-full mb-4 object-cover"
+                      />
+                      <Title level={4}>{therapist.therapistName}</Title>
+                      <Text className="text-center mb-2">{therapist.description}</Text>
+                      <Text type="success">Phí tư vấn: {therapist.consultationFee} VND</Text>
+                      <Button type="link" className="mt-2">Xem chi tiết</Button>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-2">
+                  <Empty 
+                    description="Không có chuyên gia phù hợp dựa trên kết quả của bạn" 
+                    className="my-8"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-center mt-6">
+              <Button 
+                type="primary" 
+                onClick={() => navigate("/home/therapist")}
+              >
+                Xem tất cả chuyên gia
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
+    </>
   );
 };
 
-export default QuizDetail;
+export default QuizSubmission;

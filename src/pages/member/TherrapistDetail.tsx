@@ -226,19 +226,53 @@ const showErrorNotification = (errorMessage: string) => {
     <div className="max-w-4xl mx-auto p-6">
       {/* Therapist Info */}
       <Card className="mb-6 shadow-lg">
-        <div className="flex flex-col md:flex-row items-center">
-          <Avatar size={100} src={therapist.avatar || "default-avatar.png"} />
-          <div className="ml-0 md:ml-4 mt-4 md:mt-0 text-center md:text-left">
-            <Title level={3}>{therapist.description || therapist.fullName}</Title>
-            <Text type="secondary">Phí tư vấn: <Text type="success">{therapist.consultationFee} VND</Text></Text>
-            <div className="mt-2 flex flex-wrap justify-center md:justify-start gap-2">
-              <Button type="primary" icon={<PhoneOutlined />}> Gọi điện</Button>
-              <Button icon={<MailOutlined />}>Gửi email</Button>
-              <Button icon={<GlobalOutlined />}>Trang web</Button>
-            </div>
+  <div className="flex flex-col md:flex-row items-center">
+    <Avatar size={100} src={therapist.avatar || "default-avatar.png"} />
+    <div className="ml-0 md:ml-4 mt-4 md:mt-0 text-center md:text-left">
+      <Title level={3}>{therapist.therapistName || "Chuyên gia tư vấn"}</Title>
+      <Text className="block mb-2">{therapist.description}</Text>
+      <Text type="secondary">Phí tư vấn: <Text type="success">{therapist.consultationFee} VND</Text></Text>
+      
+      {therapist.specialty && therapist.specialty.length > 0 && (
+        <div className="mt-2">
+          <Text strong>Chuyên môn:</Text>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {therapist.specialty.map((spec: any, index: number) => (
+              <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                {spec.name || "Chuyên môn " + (index + 1)}
+              </span>
+            ))}
           </div>
         </div>
-      </Card>
+      )}
+      
+      <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+        <Button type="primary" icon={<PhoneOutlined />}> Gọi điện</Button>
+        <Button icon={<MailOutlined />}>Gửi email</Button>
+        {therapist.meetUrl && (
+          <Button icon={<GlobalOutlined />} href={therapist.meetUrl} target="_blank">
+            Liên kết họp
+          </Button>
+        )}
+      </div>
+    </div>
+  </div>
+   {/* Additional Information */}
+   <div className="mt-6 pt-4 border-t">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Text strong>Trạng thái:</Text>
+        <Text className="ml-2">{therapist.status ? "Đang hoạt động" : "Không hoạt động"}</Text>
+      </div>
+      {therapist.createdAt && (
+        <div>
+          <Text strong>Tham gia từ:</Text>
+          <Text className="ml-2">{dayjs(therapist.createdAt).format("DD/MM/YYYY")}</Text>
+        </div>
+      )}
+    </div>
+  </div>
+  </Card>
       
       {/* Debug Info - Uncomment nếu cần debug */}
       {/* <Card className="mb-6">

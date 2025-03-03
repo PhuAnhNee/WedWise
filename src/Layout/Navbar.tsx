@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaSearch, FaUserCircle, FaWallet } from "react-icons/fa";
 import { Dropdown, Menu } from "antd";
@@ -6,6 +6,17 @@ import AuthService from "../pages/service/AuthService";
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState<string>("User");
+  const [userAvatar, setUserAvatar] = useState<string>("");
+
+  useEffect(() => {
+    // Get user data when component mounts
+    const userData = AuthService.getCurrentUser();
+    if (userData) {
+      setUserName(userData.Name || "User");
+      setUserAvatar(userData.Avatar || "");
+    }
+  }, []);
 
   const handleLogout = () => {
     AuthService.logout();
@@ -83,8 +94,16 @@ const Navbar: React.FC = () => {
           {/* User Info with Dropdown */}
           <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
             <div className="flex items-center space-x-2 cursor-pointer">
-              <span className="text-gray-700 font-medium">Username</span>
-              <FaUserCircle className="text-3xl text-gray-600" />
+              <span className="text-gray-700 font-medium">{userName}</span>
+              {userAvatar ? (
+                <img 
+                  src={userAvatar} 
+                  alt="User avatar" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <FaUserCircle className="text-3xl text-gray-600" />
+              )}
             </div>
           </Dropdown>
         </div>
