@@ -5,73 +5,55 @@ import axios from "axios";
 import AuthService from "../service/AuthService";
 
 interface TherapistProfile {
-  therapistName?: string;
-  avatar?: string;
-  description?: string;
-  consultationFee?: number;
-  meetUrl?: string;
-  status?: boolean;
+  therapistName: string;
+  avatar: string;
+  description: string;
+  consultationFee: number;
+  meetUrl: string;
+  status: boolean;
 }
 
 const Profile = () => {
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editing, setEditing] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [api, contextHolder] = notification.useNotification();
-  const [descriptionLength, setDescriptionLength] = useState<number>(0);
+  const [form] = Form.useForm();
 
   const currentUser = AuthService.getCurrentUser();
-  const therapistId: string | undefined = currentUser?.UserId;
+  const therapistId = currentUser?.UserId;
 
-  const showSuccessNotification = () => {
-    api.success({
-      message: "Cập nhật thành công",
-      description: "Thông tin hồ sơ đã được cập nhật thành công!",
-      icon: <CheckCircleFilled style={{ color: "#52c41a" }} />, 
+  const showNotification = (type: "success" | "error", message: string, description: string) => {
+    api[type]({
+      message,
+      description,
+      icon: type === "success" ? <CheckCircleFilled style={{ color: "#52c41a" }} /> : <CloseCircleFilled style={{ color: "#ff4d4f" }} />, 
       placement: "topRight",
       duration: 3,
-      style: {
-        backgroundColor: "#f6ffed",
-        border: "1px solid #b7eb8f",
-      },
-    });
-  };
-
-  const showErrorNotification = (errorMessage: string) => {
-    api.error({
-      message: "Cập nhật thất bại",
-      description: errorMessage,
-      icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />, 
-      placement: "topRight",
-      duration: 4,
-      style: {
-        backgroundColor: "#fff2f0",
-        border: "1px solid #ffccc7",
-      },
     });
   };
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!therapistId) {
-        showErrorNotification("Không tìm thấy UserId");
+        showNotification("error", "Lỗi", "Không tìm thấy UserId");
         setLoading(false);
         return;
       }
 
       try {
-        const response = await axios.get(
-          `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id?id=${therapistId}`
+        const { data } = await axios.get<TherapistProfile>(
+          "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
+          { params: { id: therapistId } }
         );
-
-        if (response.data) {
-          setProfile(response.data);
+        if (data) {
+          setProfile(data);
+          form.setFieldsValue(data);
         } else {
-          showErrorNotification("Không tìm thấy hồ sơ");
+          showNotification("error", "Lỗi", "Không tìm thấy hồ sơ");
         }
       } catch (error) {
-        console.error("Lỗi khi lấy hồ sơ:", error);
-        showErrorNotification("Không thể tải hồ sơ");
+        showNotification("error", "Lỗi", "Không thể tải hồ sơ");
       } finally {
         setLoading(false);
       }
@@ -80,50 +62,25 @@ const Profile = () => {
     fetchProfile();
   }, [therapistId]);
 
-  const handleUpdate = async (values: TherapistProfile) => {
+  const handleUpdate = async (values: Partial<TherapistProfile>) => {
     const token = AuthService.getToken();
-  
     if (!token) {
-      showErrorNotification("Bạn chưa đăng nhập hoặc token không hợp lệ");
+      showNotification("error", "Lỗi", "Bạn chưa đăng nhập hoặc token không hợp lệ");
       return;
     }
-  
-    // Debugging: log giá trị của description trước khi gửi
-    console.log("Dữ liệu gửi đi khi ấn lưu:", { therapistId, therapistName: values.therapistName, ...values });
-  
-    try {
-      const response = await axios.post(
-        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
-        {
-          therapistId,
-          therapistName: values.therapistName,
-          avatar: values.avatar,
-          status: values.status,
-          description: values.description,  // Kiểm tra trường description
-          consultationFee: values.consultationFee,
-          meetUrl: values.meetUrl,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      
-      console.log("Phản hồi từ API:", response.data); // Kiểm tra phản hồi từ API
 
-      showSuccessNotification();
+    try {
+      await axios.post(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
+        { therapistId, ...values },
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
       setProfile((prevProfile) => ({ ...prevProfile!, ...values }));
+      showNotification("success", "Cập nhật thành công", "Thông tin hồ sơ đã được cập nhật!");
       setEditing(false);
     } catch (error) {
-      console.error("Lỗi cập nhật:", error);
-      showErrorNotification("Không thể cập nhật hồ sơ");
+      showNotification("error", "Lỗi", "Không thể cập nhật hồ sơ");
     }
-  };
-  
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescriptionLength(e.target.value.length);
   };
 
   if (loading) return <Spin size="large" className="flex justify-center items-center h-screen" />;
@@ -134,7 +91,7 @@ const Profile = () => {
       <div className="flex justify-center items-center h-full bg-gray-100 p-6">
         <Card className="max-w-lg w-full" hoverable>
           {editing ? (
-            <Form layout="vertical" initialValues={profile || {}} onFinish={handleUpdate}>
+            <Form layout="vertical" form={form} onFinish={handleUpdate}>
               <Form.Item label="Tên trị liệu viên" name="therapistName">
                 <Input />
               </Form.Item>
@@ -142,11 +99,7 @@ const Profile = () => {
                 <Input />
               </Form.Item>
               <Form.Item label="Description" name="description">
-                <Input.TextArea 
-                  onChange={handleDescriptionChange} 
-                  maxLength={100} 
-                />
-                <div className="text-right text-sm text-gray-500">{descriptionLength}/100</div> 
+                <Input.TextArea maxLength={100} />
               </Form.Item>
               <Form.Item label="Consultation Fee" name="consultationFee">
                 <Input type="number" />
