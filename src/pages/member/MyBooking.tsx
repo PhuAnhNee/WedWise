@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, notification  } from "antd";
+import { Modal, Button, notification, Form, Input, Rate, Radio, Space } from "antd";
 import axios from "axios";
 import AuthService from "../service/AuthService";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
@@ -8,8 +8,8 @@ const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.sout
 
 // Define interfaces for our data structures
 interface Booking {
-  bookingId: string;  // Changed from id to bookingId
-  memberId: string;   // Changed from userId
+  bookingId: string;
+  memberId: string;
   therapistId: string;
   therapistName: string;
   scheduleId: string;
@@ -17,6 +17,15 @@ interface Booking {
   bookingDate: string;
   createdAt: string;
   notes?: string;
+  hasFeedback?: boolean; // Thêm trường này để theo dõi xem booking đã có feedback chưa
+}
+
+interface FeedbackData {
+  bookingId: string;
+  rating: number;
+  feedbackTitle: string;
+  feedbackContent: string;
+  isSatisfied: boolean;
 }
 
 const MyBooking: React.FC = () => {
@@ -24,40 +33,42 @@ const MyBooking: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [feedbackForm] = Form.useForm();
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState<boolean>(false);
+  const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState<boolean>(false);
 
-  // Fetch user's bookings when the component mounts
-   // ✅ Tạo notification
-   const [api, contextHolder] = notification.useNotification();
+  // Tạo notification
+  const [api, contextHolder] = notification.useNotification();
 
-   // ✅ Hàm hiển thị thông báo thành công
-   const showSuccessNotification = (message: string) => {
-     api.success({
-       message: "Thành công",
-       description: message,
-       icon: <CheckCircleFilled style={{ color: "#52c41a" }} />,
-       placement: "topRight",
-       duration: 3,
-       style: {
-         backgroundColor: "#f6ffed",
-         border: "1px solid #b7eb8f",
-       },
-     });
-   };
- 
-   // ✅ Hàm hiển thị thông báo lỗi
-   const showErrorNotification = (errorMessage: string) => {
-     api.error({
-       message: "Lỗi",
-       description: errorMessage,
-       icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
-       placement: "topRight",
-       duration: 4,
-       style: {
-         backgroundColor: "#fff2f0",
-         border: "1px solid #ffccc7",
-       },
-     });
-   };
+  // Hàm hiển thị thông báo thành công
+  const showSuccessNotification = (message: string) => {
+    api.success({
+      message: "Thành công",
+      description: message,
+      icon: <CheckCircleFilled style={{ color: "#52c41a" }} />,
+      placement: "topRight",
+      duration: 3,
+      style: {
+        backgroundColor: "#f6ffed",
+        border: "1px solid #b7eb8f",
+      },
+    });
+  };
+
+  // Hàm hiển thị thông báo lỗi
+  const showErrorNotification = (errorMessage: string) => {
+    api.error({
+      message: "Lỗi",
+      description: errorMessage,
+      icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
+      placement: "topRight",
+      duration: 4,
+      style: {
+        backgroundColor: "#fff2f0",
+        border: "1px solid #ffccc7",
+      },
+    });
+  };
 
   useEffect(() => {
     fetchBookings();
@@ -89,6 +100,9 @@ const MyBooking: React.FC = () => {
       
       if (response.data) {
         console.log("Bookings data retrieved:", response.data);
+        
+        // Ở đây có thể thêm logic để kiểm tra xem booking đã có feedback chưa
+        // Ví dụ: gọi API kiểm tra feedback hoặc trường hợp API trả về thông tin hasFeedback
         setBookings(response.data);
       }
     } catch (error) {
@@ -106,7 +120,7 @@ const MyBooking: React.FC = () => {
       return;
     }
 
-    if (!selectedBooking.bookingId) {  // Changed from id to bookingId
+    if (!selectedBooking.bookingId) {
       showErrorNotification("Không thể hủy lịch hẹn: ID lịch hẹn không hợp lệ");
       return;
     }
@@ -116,7 +130,7 @@ const MyBooking: React.FC = () => {
       
       // Call the cancel booking API
       await axios.post(
-        `${API_BASE_URL}/Booking/Cancel_Booking?id=${selectedBooking.bookingId}`,  // Using bookingId instead of id
+        `${API_BASE_URL}/Booking/Cancel_Booking?id=${selectedBooking.bookingId}`,
         {},
         {
           headers: {
@@ -134,6 +148,69 @@ const MyBooking: React.FC = () => {
       setIsModalVisible(false);
       setSelectedBooking(null);
     }
+  };
+
+  // Handle submitting feedback
+  const handleSubmitFeedback = async (values: any) => {
+    if (!selectedBooking || !selectedBooking.bookingId) {
+      showErrorNotification("Không thể gửi đánh giá: Thông tin lịch hẹn không hợp lệ");
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+
+    const feedbackData: FeedbackData = {
+      bookingId: selectedBooking.bookingId,
+      rating: values.rating,
+      feedbackTitle: values.feedbackTitle,
+      feedbackContent: values.feedbackContent,
+      isSatisfied: values.isSatisfied
+    };
+
+    try {
+      console.log("Submitting feedback:", feedbackData);
+      
+      // Call the create feedback API
+      await axios.post(
+        `${API_BASE_URL}/Feedback/Create_Feedback`,
+        feedbackData,
+        {
+          headers: {
+            Authorization: `Bearer ${AuthService.getToken()}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      showSuccessNotification("Đánh giá của bạn đã được gửi thành công!");
+      
+      // Update the local booking data to reflect that this booking now has feedback
+      if (selectedBooking) {
+        const updatedBookings = bookings.map(booking => 
+          booking.bookingId === selectedBooking.bookingId 
+            ? { ...booking, hasFeedback: true } 
+            : booking
+        );
+        setBookings(updatedBookings);
+      }
+      
+      // Close the feedback modal
+      setIsFeedbackModalVisible(false);
+      
+      // Reset the form
+      feedbackForm.resetFields();
+    } catch (error) {
+      console.error("Lỗi khi gửi đánh giá:", error);
+      showErrorNotification("Gửi đánh giá thất bại. Vui lòng thử lại!");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  // Open feedback modal
+  const openFeedbackModal = () => {
+    setIsFeedbackModalVisible(true);
+    setIsModalVisible(false); // Hide the booking details modal
   };
 
   // Function to format date for display
@@ -180,11 +257,11 @@ const MyBooking: React.FC = () => {
           {bookings.map((booking) => {
             const statusInfo = getStatusText(booking.status);
             // Only show cancel button for pending or confirmed bookings
-            const canCancel = booking.status === 0 || booking.status === 1;
+            // const canCancel = booking.status === 0 || booking.status === 1;
             
             return (
               <div 
-                key={booking.bookingId}  // Changed from id to bookingId
+                key={booking.bookingId}
                 className="p-4 border rounded-lg shadow-lg bg-white hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   console.log("Selected booking:", booking);
@@ -201,11 +278,15 @@ const MyBooking: React.FC = () => {
                   <span className="font-medium">Ngày tạo:</span> {formatDate(booking.createdAt)}
                 </p>
                 
-                {canCancel && (
-                  <div className="mt-4 text-right">
-                    <span className="text-sm text-gray-500">Nhấn để xem chi tiết</span>
+                {booking.status === 3 && booking.hasFeedback && (
+                  <div className="mt-2">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Đã đánh giá</span>
                   </div>
                 )}
+                
+                <div className="mt-4 text-right">
+                  <span className="text-sm text-gray-500">Nhấn để xem chi tiết</span>
+                </div>
               </div>
             );
           })}
@@ -225,25 +306,34 @@ const MyBooking: React.FC = () => {
           setIsModalVisible(false);
           setSelectedBooking(null);
         }}
-        footer={selectedBooking && (selectedBooking.status === 0 || selectedBooking.status === 1) ? [
-          <Button key="back" onClick={() => setIsModalVisible(false)}>
-            Đóng
-          </Button>,
-          <Button 
-            key="cancel" 
-            danger 
-            onClick={() => {
-              console.log("Cancel button clicked for booking:", selectedBooking);
-              handleCancelBooking();
-            }}
-          >
-            Hủy lịch hẹn
-          </Button>,
-        ] : [
-          <Button key="back" onClick={() => setIsModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
+        footer={selectedBooking ? (
+          <div>
+            <Button key="back" onClick={() => setIsModalVisible(false)}>
+              Đóng
+            </Button>
+            {(selectedBooking.status === 0 || selectedBooking.status === 1) && (
+              <Button 
+                key="cancel" 
+                danger 
+                onClick={() => {
+                  console.log("Cancel button clicked for booking:", selectedBooking);
+                  handleCancelBooking();
+                }}
+              >
+                Hủy lịch hẹn
+              </Button>
+            )}
+            {selectedBooking.status === 3 && !selectedBooking.hasFeedback && (
+              <Button 
+                key="feedback" 
+                type="primary" 
+                onClick={openFeedbackModal}
+              >
+                Gửi đánh giá
+              </Button>
+            )}
+          </div>
+        ) : null}
       >
         {selectedBooking && (
           <div className="space-y-3">
@@ -282,7 +372,97 @@ const MyBooking: React.FC = () => {
                 <p className="text-sm">Lịch hẹn đã được xác nhận. Vui lòng tham gia đúng giờ. Nếu cần hủy, vui lòng thực hiện trước thời gian hẹn.</p>
               </div>
             )}
+            
+            {selectedBooking.status === 3 && !selectedBooking.hasFeedback && (
+              <div className="bg-blue-50 p-3 rounded mt-4">
+                <p className="text-sm">Lịch hẹn đã hoàn thành. Bạn có thể gửi đánh giá về buổi tư vấn này.</p>
+              </div>
+            )}
+            
+            {selectedBooking.status === 3 && selectedBooking.hasFeedback && (
+              <div className="bg-blue-50 p-3 rounded mt-4">
+                <p className="text-sm">Bạn đã đánh giá về buổi tư vấn này. Cảm ơn bạn đã gửi phản hồi!</p>
+              </div>
+            )}
           </div>
+        )}
+      </Modal>
+
+      {/* Feedback modal */}
+      <Modal
+        title="Đánh giá buổi tư vấn"
+        open={isFeedbackModalVisible}
+        onCancel={() => {
+          setIsFeedbackModalVisible(false);
+          setIsModalVisible(true); // Show the booking details modal again
+        }}
+        footer={[
+          <Button key="back" onClick={() => {
+            setIsFeedbackModalVisible(false);
+            setIsModalVisible(true);
+          }}>
+            Hủy
+          </Button>,
+          <Button 
+            key="submit" 
+            type="primary" 
+            loading={isSubmittingFeedback}
+            onClick={() => feedbackForm.submit()}
+          >
+            Gửi đánh giá
+          </Button>,
+        ]}
+      >
+        {selectedBooking && (
+          <Form
+            form={feedbackForm}
+            layout="vertical"
+            onFinish={handleSubmitFeedback}
+            initialValues={{
+              isSatisfied: true,
+              rating: 5
+            }}
+          >
+            <Form.Item
+              label="Mức độ hài lòng"
+              name="isSatisfied"
+              rules={[{ required: true, message: 'Vui lòng chọn mức độ hài lòng' }]}
+            >
+              <Radio.Group>
+                <Space>
+                  <Radio value={true}>Hài lòng</Radio>
+                  <Radio value={false}>Không hài lòng</Radio>
+                </Space>
+              </Radio.Group>
+            </Form.Item>
+
+            <Form.Item
+              label="Đánh giá (1-5 sao)"
+              name="rating"
+              rules={[{ required: true, message: 'Vui lòng đánh giá số sao' }]}
+            >
+              <Rate />
+            </Form.Item>
+
+            <Form.Item
+              label="Tiêu đề đánh giá"
+              name="feedbackTitle"
+              rules={[{ required: true, message: 'Vui lòng nhập tiêu đề đánh giá' }]}
+            >
+              <Input placeholder="Nhập tiêu đề ngắn gọn về trải nghiệm của bạn" />
+            </Form.Item>
+
+            <Form.Item
+              label="Nội dung đánh giá"
+              name="feedbackContent"
+              rules={[{ required: true, message: 'Vui lòng nhập nội dung đánh giá' }]}
+            >
+              <Input.TextArea 
+                rows={4} 
+                placeholder="Mô tả chi tiết trải nghiệm tư vấn của bạn, điều bạn thích hoặc không thích"
+              />
+            </Form.Item>
+          </Form>
         )}
       </Modal>
     </div>

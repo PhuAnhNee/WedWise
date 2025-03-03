@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_All_Therapists";
@@ -7,7 +7,9 @@ const API_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeast
 const TherapistPage: React.FC = () => {
   const [therapists, setTherapists] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
+  
   useEffect(() => {
     fetchTherapists();
   }, []);
@@ -35,22 +37,33 @@ const TherapistPage: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {therapists.map((therapist) => (
-          <div key={therapist.therapistId} className="p-4 border rounded-lg shadow-lg">
-            <img src={therapist.avatar || "default-avatar.png"} alt="Therapist" className="w-24 h-24 rounded-full mx-auto" />
-            <h3 className="text-lg font-semibold text-center">Mô tả: {therapist.description}</h3>
-            <p className="text-center text-gray-600">Giá tư vấn: {therapist.consultationFee} VND</p>
-
-            <Link
-              to={`/home/therapist/${therapist.therapistId}`}
-              className="block mt-2 text-blue-500 text-center hover:underline"
-            >
-              Xem chi tiết
-            </Link>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {therapists.map((therapist) => (
+    <div 
+      key={therapist.therapistId} 
+      className="p-4 border rounded-lg shadow-lg hover:shadow-xl cursor-pointer"
+      onClick={() => navigate(`/home/therapist/${therapist.therapistId}`)}
+    >
+      <div className="flex flex-col items-center">
+        <img 
+          src={therapist.avatar || "default-avatar.png"} 
+          alt={therapist.therapistName || "Therapist"} 
+          className="w-24 h-24 rounded-full mb-4 object-cover"
+        />
+        <h3 className="text-lg font-semibold text-center">{therapist.therapistName || therapist.description}</h3>
+        <p className="text-center text-gray-600 mb-2">{therapist.description}</p>
+        <p className="text-center text-green-600">Phí tư vấn: {therapist.consultationFee} VND</p>
+        
+        <Link
+          to={`/home/therapist/${therapist.therapistId}`}
+          className="mt-2 text-blue-500 hover:underline"
+        >
+          Xem chi tiết
+        </Link>
       </div>
+    </div>
+  ))}
+</div>
     </div>
   );
 };
