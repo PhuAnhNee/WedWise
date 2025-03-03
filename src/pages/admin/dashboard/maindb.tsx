@@ -9,6 +9,7 @@ import {
     AppstoreOutlined,
     FileDoneOutlined,
     FileProtectOutlined,
+    AuditOutlined,
     QuestionOutlined,
     LogoutOutlined,
 } from "@ant-design/icons";
@@ -21,6 +22,7 @@ import Settings from "../setting";
 import QuizManage from "../quiz-manage";
 import AnswerManage from "../answer-manage";
 import QuestionManage from "../question-manage";
+import Feedback from "../feedback";
 import Manage from "../manage/index";
 
 const { Header, Sider, Content } = Layout;
@@ -51,6 +53,8 @@ const Dashboard: React.FC = () => {
                 return <AnswerManage />;
             case "question-manage":
                 return <QuestionManage />;
+            case "feedback":
+                return <Feedback />;
             case "settings":
                 return <Settings />;
             default:
@@ -117,6 +121,9 @@ const Dashboard: React.FC = () => {
                     </Menu.Item>
                     <Menu.Item key="answer-manage" icon={<FileProtectOutlined />}>
                         Answer Manage
+                    </Menu.Item>
+                    <Menu.Item key="feedback" icon={<AuditOutlined />}>
+                        Feedback
                     </Menu.Item>
                 </Menu>
             </Sider>
