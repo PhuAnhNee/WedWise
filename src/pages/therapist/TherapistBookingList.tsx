@@ -21,7 +21,11 @@ const TherapistBookingList = () => {
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
   const token = AuthService.getToken();
-
+  const statusMap: Record<number, string> = {
+    1: "Đang chờ tư vấn",
+    2: "Đã hủy",
+    3: "Đã hoàn thành tư vấn",
+  };
   useEffect(() => {
     if (!therapistId || !token) {
       setError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
@@ -101,47 +105,11 @@ const TherapistBookingList = () => {
       toast.error('Đã xảy ra lỗi khi bắt đầu tư vấn!');
     }
   };
-  
-  const handleGiveFeedback = async (bookingId: string) => {
-    const feedbackDescription = prompt('Nhập đánh giá buổi tư vấn');
-    console.log('Đang gửi đánh giá với Booking ID:', bookingId, 'Nội dung đánh giá:', feedbackDescription); // Log dữ liệu
-    if (!feedbackDescription) return;
-  
-    try {
-      const response = await fetch(
-        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/BookingResult/Create_Booking_Result',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            bookingId: bookingId,
-            description: feedbackDescription,
-          }),
-        }
-      );
-  
-      if (response.ok) {
-        toast.success('Đánh giá thành công!');
-        const updatedBookings = bookings.map((booking) =>
-          booking.bookingId === bookingId ? { ...booking, hasFeedback: true } : booking
-        );
-        setBookings(updatedBookings);
-      } else {
-        throw new Error('Đã xảy ra lỗi khi gửi đánh giá!');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại!');
-    }
-  };
-  
   const handleEndConsultation = async (bookingId: string) => {
     console.log('Đang gửi yêu cầu kết thúc tư vấn với Booking ID:', bookingId); // Log dữ liệu
     try {
       const response = await fetch(
-        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/?id=${bookingId}`,
+        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Finish_Booking/?id=${bookingId}`,
         {
           method: 'POST',
           headers: {
@@ -197,10 +165,10 @@ const TherapistBookingList = () => {
           <div key={booking.bookingId} className="border p-4 rounded-lg shadow-sm relative">
             <h3 className="font-semibold">Booking ID: {booking.bookingId}</h3>
             <p><strong>Member ID:</strong> {booking.memberId}</p>
-            <p><strong>Trạng thái:</strong> {booking.status === 1 ? 'Đã xác nhận' : 'Chưa xác nhận'}</p>
+            <p><strong>Trạng thái:</strong> {statusMap[booking.status] || "Không xác định"}</p>
             <p><strong>Phí:</strong> {booking.fee ? `${booking.fee} VND` : 'Miễn phí'}</p>
-            <p><strong>Ngày tạo:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
-            <p><strong>Ngày Booking:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleString() : 'Chưa có thông tin'}</p>
+            <p><strong>Ngày Booking:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
+            <p><strong>Ngày tư ván:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleString() : 'Chưa có thông tin'}</p>
             {booking.meetUrl && (
               <div>
                 <p><strong>Link tư vấn:</strong> <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer">Join meeting</a></p>
@@ -215,12 +183,7 @@ const TherapistBookingList = () => {
                         Bắt đầu tư vấn
                       </button>
 
-                      <button
-                        onClick={() => handleGiveFeedback(booking.bookingId)}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                      >
-                        Đánh giá tư vấn
-                      </button>
+                      
 
                       <button
                         onClick={() => handleEndConsultation(booking.bookingId)}

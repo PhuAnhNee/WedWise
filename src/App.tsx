@@ -30,6 +30,7 @@ import TherapistLayout from "./therapistLayout/TherapistLayout";
 import Wallet from "./pages/member/Wallet";
 import TherapistSchedule from "./pages/therapist/TherapistSchedule";
 import TherapistBookingList from "./pages/therapist/TherapistBookingList";
+import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPage";
 const App: React.FC = () => {
   return (
     <Router>
@@ -63,6 +64,7 @@ const App: React.FC = () => {
           <Route path="booking-list" element={<TherapistBookingList />} />
           <Route path="calendar" element={<TherapistCalendar />} />
           <Route path="schedule" element={<TherapistSchedule />} />
+          <Route path="pending-booking" element={<TherapistPendingBooking />} />
         </Route>
       </Routes>
     </Router>
