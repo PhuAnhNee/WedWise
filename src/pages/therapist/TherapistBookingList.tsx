@@ -10,6 +10,8 @@ interface Booking {
   createdAt: string;
   meetUrl?: string; 
   hasFeedback?: boolean; 
+  scheduleId?: string;
+  scheduleDate?: string;
 }
 
 const TherapistBookingList = () => {
@@ -37,19 +39,48 @@ const TherapistBookingList = () => {
             },
           }
         );
-        const data = await response.json();
-        setBookings(data);
+        let data: Booking[] = await response.json();
+    
+        // Lọc chỉ lấy những booking có status = 1 (Pending)
+        data = data.filter((booking) => booking.status === 1);
+    
+        const bookingsWithSchedule = await Promise.all(
+          data.map(async (booking) => {
+            if (booking.scheduleId) {
+              try {
+                const scheduleResponse = await fetch(
+                  `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Get_Schedule_By_Id?id=${booking.scheduleId}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                    },
+                  }
+                );
+                const scheduleData = await scheduleResponse.json();
+                return { ...booking, scheduleDate: scheduleData[0]?.date || '' };
+              } catch (error) {
+                console.error('Lỗi khi lấy lịch trình:', error);
+                return { ...booking, scheduleDate: '' };
+              }
+            }
+            return booking;
+          })
+        );
+    
+        setBookings(bookingsWithSchedule);
       } catch (error) {
         console.error('Lỗi khi lấy danh sách booking:', error);
         toast.error('Đã xảy ra lỗi khi lấy danh sách booking!');
       }
     };
+    
 
     fetchBookings();
   }, [therapistId, token]);
 
   const handleStartConsultation = async (bookingId: string) => {
-    console.log('Đang gửi yêu cầu bắt đầu tư vấn với Booking ID:', bookingId); // Log dữ liệu
+    console.log('Đang gửi yêu cầu bắt đầu tư vấn với Booking ID:', bookingId); 
     try {
       const response = await fetch(
         `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id?id=${therapistId}`,
@@ -110,7 +141,7 @@ const TherapistBookingList = () => {
     console.log('Đang gửi yêu cầu kết thúc tư vấn với Booking ID:', bookingId); // Log dữ liệu
     try {
       const response = await fetch(
-        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Close_Booking?id=${bookingId}`,
+        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/?id=${bookingId}`,
         {
           method: 'POST',
           headers: {
@@ -155,7 +186,7 @@ const TherapistBookingList = () => {
       toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại!');
     }
   };
-  
+
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
@@ -169,7 +200,7 @@ const TherapistBookingList = () => {
             <p><strong>Trạng thái:</strong> {booking.status === 1 ? 'Đã xác nhận' : 'Chưa xác nhận'}</p>
             <p><strong>Phí:</strong> {booking.fee ? `${booking.fee} VND` : 'Miễn phí'}</p>
             <p><strong>Ngày tạo:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
-
+            <p><strong>Ngày Booking:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleString() : 'Chưa có thông tin'}</p>
             {booking.meetUrl && (
               <div>
                 <p><strong>Link tư vấn:</strong> <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer">Join meeting</a></p>
@@ -208,6 +239,7 @@ const TherapistBookingList = () => {
 
 
           </div>
+         
         ))}
       </div>
     </div>
