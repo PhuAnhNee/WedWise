@@ -44,7 +44,7 @@ const HomePage: React.FC = () => {
                  alt="Quiz" className="w-24 h-24 rounded-lg object-cover mr-4" />
             <div>
               <h4 className="text-lg font-bold">Will He Leave His Wife for Me Quiz</h4>
-              <a className="text-blue-500 mt-2 inline-block hover:underline" href="#">Take Quiz</a>
+              <a className="text-blue-500 mt-2 inline-block hover:underline" href="home/quizzes">Take Quiz</a>
             </div>
           </div>
           <div className="bg-white shadow-lg rounded-lg p-4">
