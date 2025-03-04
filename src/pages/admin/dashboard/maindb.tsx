@@ -9,6 +9,7 @@ import {
     AppstoreOutlined,
     FileDoneOutlined,
     FileProtectOutlined,
+    CarryOutOutlined,
     AuditOutlined,
     QuestionOutlined,
     LogoutOutlined,
@@ -21,6 +22,7 @@ import SalesReport from "../sales-report";
 import Settings from "../setting";
 import QuizManage from "../quiz-manage";
 import AnswerManage from "../answer-manage";
+import BookingManage from "../booking-manage";
 import QuestionManage from "../question-manage";
 import Feedback from "../feedback";
 import Manage from "../manage/index";
@@ -43,6 +45,8 @@ const Dashboard: React.FC = () => {
                 return <DashboardHome />;
             case "withdraw":
                 return <WithDraw />;
+            case "booking-manage":
+                return <BookingManage />;
             case "salesreport":
                 return <SalesReport />;
             case "manage":
@@ -109,6 +113,9 @@ const Dashboard: React.FC = () => {
                     </Menu.Item>
                     <Menu.Item key="withdraw" icon={<BarChartOutlined />}>
                         Withdraw
+                    </Menu.Item>
+                    <Menu.Item key="booking-manage" icon={<CarryOutOutlined />}>
+                        Booking Manage
                     </Menu.Item>
                     <Menu.Item key="manage" icon={<FormOutlined />}>
                         Manage
