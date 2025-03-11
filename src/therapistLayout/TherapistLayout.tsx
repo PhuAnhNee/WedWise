@@ -63,6 +63,13 @@ const TherapistLayout = () => {
               }`}
             >
               Pending Booking 
+            </Link><Link
+              to="/therapist/wallets"
+              className={`block p-2 rounded ${
+                location.pathname === "/therapist/wallets" ? "bg-blue-500" : "hover:bg-blue-500"
+              }`}
+            >
+              Wallets 
             </Link>
           </nav>
         </div>

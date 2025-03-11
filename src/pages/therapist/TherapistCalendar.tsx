@@ -65,24 +65,24 @@ const TherapistCalendar = () => {
     setError("");
     setShowModal(false);
   
-    // Tạo một bản sao của selectedDate và cộng thêm 1 ngày
+    
     const dateToSend = new Date(selectedDate);
     dateToSend.setDate(dateToSend.getDate() + 1);
   
-    // In ngày đã được cộng thêm 1 ngày để kiểm tra
+    
     console.log("Ngày sau khi cộng thêm 1 ngày:", dateToSend);
   
-    // Đảm bảo ngày được chọn đúng
+    
     const requestData = [
       {
-        therapistId: therapistId, // Sử dụng therapistId từ người dùng hiện tại
-        date: dateToSend.toISOString(), // Định dạng ISO string với ngày giờ đúng
-        slot: selectedSlot, // Khung giờ được chọn
+        therapistId: therapistId, 
+        date: dateToSend.toISOString(), 
+        slot: selectedSlot, 
         isAvailable: true,
       }
     ];
   
-    // Log dữ liệu gửi đi
+    
     console.log("Dữ liệu gửi đi:", JSON.stringify(requestData, null, 2));
   
     try {
@@ -142,7 +142,7 @@ const TherapistCalendar = () => {
               return (
                 <button
                   key={i}
-                  onClick={() => handleDateChange(currentDate)}  // Cập nhật selectedDate khi chọn ngày
+                  onClick={() => handleDateChange(currentDate)}  
                   className={`p-2 rounded ${currentDate.toDateString() === selectedDate.toDateString() ? "bg-blue-600 text-white" : "hover:bg-gray-200"}`}
                 >
                   {i + 1}
