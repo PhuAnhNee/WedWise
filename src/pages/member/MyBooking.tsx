@@ -17,9 +17,62 @@ interface Booking {
   bookingDate: string;
   createdAt: string;
   notes?: string;
-  hasFeedback?: boolean; // Thêm trường này để theo dõi xem booking đã có feedback chưa
+  hasFeedback?: boolean;
+  // Add these new properties
+  feedback?: Feedback;
+  schedule?: Schedule;
+  therapist?: Therapist;
 }
 
+// Interface for Feedback
+interface Feedback {
+  feedbackId: string;
+  bookingId: string;
+  rating: number;
+  feedbackTitle: string;
+  feedbackContent: string;
+  isSatisfied: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdUser?: any;
+  updatedUser?: any;
+  booking?: any;
+}
+
+// Interface for Schedule
+interface Schedule {
+  scheduleId: string;
+  therapistId: string;
+  date: string;
+  slot: number;
+  isAvailable: boolean;
+  therapist?: any;
+  bookings?: any;
+}
+
+// Interface for Therapist
+interface Therapist {
+  therapistId: string;
+  therapistName: string;
+  avatar: string;
+  status: boolean;
+  description: string;
+  consultationFee: number;
+  meetUrl: string;
+  schedules?: any[];
+  specialty?: any;
+  certificates?: any;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdUser?: any;
+  updatedUser?: any;
+}
+
+// Keep your existing FeedbackData interface for submitting feedback
 interface FeedbackData {
   bookingId: string;
   rating: number;
@@ -240,10 +293,13 @@ const MyBooking: React.FC = () => {
         return { text: "Đã hủy", color: "text-red-500" };
       case 3:
         return { text: "Đã hoàn thành", color: "text-blue-500" };
+        case 4:
+        return { text: "Đã đóng", color: "text-gray-500" };
       default:
         return { text: "Không xác định", color: "text-gray-500" };
     }
   };
+// Handle Update feedback
 
   return (
     <>{contextHolder} 
@@ -255,41 +311,57 @@ const MyBooking: React.FC = () => {
       ) : bookings.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {bookings.map((booking) => {
-            const statusInfo = getStatusText(booking.status);
-            // Only show cancel button for pending or confirmed bookings
-            // const canCancel = booking.status === 0 || booking.status === 1;
-            
-            return (
-              <div 
-                key={booking.bookingId}
-                className="p-4 border rounded-lg shadow-lg bg-white hover:bg-gray-50 cursor-pointer"
-                onClick={() => {
-                  console.log("Selected booking:", booking);
-                  setSelectedBooking(booking);
-                  setIsModalVisible(true);
-                }}
-              >
-                <h3 className="text-lg font-semibold">{booking.therapistName}</h3>
-                <p className={`font-semibold ${statusInfo.color}`}>{statusInfo.text}</p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Ngày hẹn:</span> {formatDate(booking.bookingDate)}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Ngày tạo:</span> {formatDate(booking.createdAt)}
-                </p>
-                
-                {booking.status === 3 && booking.hasFeedback && (
-                  <div className="mt-2">
-                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Đã đánh giá</span>
-                  </div>
-                )}
-                
-                <div className="mt-4 text-right">
-                  <span className="text-sm text-gray-500">Nhấn để xem chi tiết</span>
-                </div>
-              </div>
-            );
-          })}
+  const statusInfo = getStatusText(booking.status);
+  
+  return (
+    <div 
+      key={booking.bookingId}
+      className="p-4 border rounded-lg shadow-lg bg-white hover:bg-gray-50 cursor-pointer"
+      onClick={() => {
+        console.log("Selected booking:", booking);
+        setSelectedBooking(booking);
+        setIsModalVisible(true);
+      }}
+    >
+      {/* Display therapist avatar */}
+      {booking.therapist && booking.therapist.avatar && (
+        <div className="mb-3">
+          <img 
+            src={booking.therapist.avatar} 
+            alt={booking.therapist.therapistName || "Therapist"} 
+            className="w-16 h-16 rounded-full object-cover"
+          />
+        </div>
+      )}
+      
+      {/* Display therapist name */}
+      <h3 className="text-lg font-semibold">
+        {booking.therapist ? booking.therapist.therapistName || "Chuyên gia tư vấn" : booking.therapistName}
+      </h3>
+      
+      <p className={`font-semibold ${statusInfo.color}`}>{statusInfo.text}</p>
+      
+      {/* Display schedule date instead of booking date */}
+      <p className="text-gray-600">
+        <span className="font-medium">Ngày hẹn:</span> {
+          booking.schedule && booking.schedule.date 
+            ? formatDate(booking.schedule.date) 
+            : formatDate(booking.bookingDate)
+        }
+      </p>
+      
+      {booking.status === 3 && (booking.hasFeedback || booking.feedback) && (
+  <div className="mt-2">
+    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Đã đánh giá</span>
+  </div>
+)}
+      
+      <div className="mt-4 text-right">
+        <span className="text-sm text-gray-500">Nhấn để xem chi tiết</span>
+      </div>
+    </div>
+  );
+})}
         </div>
       ) : (
         <div className="text-center bg-gray-50 p-8 rounded-lg">
@@ -336,30 +408,59 @@ const MyBooking: React.FC = () => {
         ) : null}
       >
         {selectedBooking && (
-          <div className="space-y-3">
-            <div className="border-b pb-2">
-              <p className="text-lg font-semibold">{selectedBooking.therapistName}</p>
-              <p className={`font-medium ${getStatusText(selectedBooking.status).color}`}>
-                {getStatusText(selectedBooking.status).text}
-              </p>
-            </div>
-            
-            <p>
-              <span className="font-medium">Mã đặt lịch:</span> {selectedBooking.bookingId}
-            </p>
-            <p>
-              <span className="font-medium">Ngày giờ hẹn:</span> {formatDate(selectedBooking.bookingDate)}
-            </p>
-            <p>
-              <span className="font-medium">Ngày tạo lịch hẹn:</span> {formatDate(selectedBooking.createdAt)}
-            </p>
-            
-            {selectedBooking.notes && (
-              <div className="mt-4">
-                <p className="font-medium">Ghi chú:</p>
-                <p className="bg-gray-50 p-3 rounded">{selectedBooking.notes}</p>
-              </div>
-            )}
+  <div className="space-y-3">
+    <div className="border-b pb-2 flex items-center gap-3">
+      {/* Show therapist avatar in the modal */}
+      {selectedBooking.therapist && selectedBooking.therapist.avatar && (
+        <img 
+          src={selectedBooking.therapist.avatar} 
+          alt={selectedBooking.therapist.therapistName || "Therapist"} 
+          className="w-12 h-12 rounded-full object-cover"
+        />
+      )}
+      <div>
+        {/* Display therapist name from therapist object if available */}
+        <p className="text-lg font-semibold">
+          {selectedBooking.therapist ? selectedBooking.therapist.therapistName || "Chuyên gia tư vấn" : selectedBooking.therapistName}
+        </p>
+        <p className={`font-medium ${getStatusText(selectedBooking.status).color}`}>
+          {getStatusText(selectedBooking.status).text}
+        </p>
+      </div>
+    </div>
+    
+    <p>
+      <span className="font-medium">Mã đặt lịch:</span> {selectedBooking.bookingId}
+    </p>
+    <p>
+      <span className="font-medium">Ngày giờ hẹn:</span> {
+        selectedBooking.schedule && selectedBooking.schedule.date 
+          ? formatDate(selectedBooking.schedule.date) 
+          : formatDate(selectedBooking.bookingDate)
+      }
+    </p>
+    
+    {/* Add meet URL if available */}
+    {selectedBooking.therapist && selectedBooking.therapist.meetUrl && (
+      <p>
+        <span className="font-medium">Link cuộc hẹn:</span> 
+        <a 
+          href={selectedBooking.therapist.meetUrl} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-600 hover:underline ml-1"
+        >
+          Tham gia cuộc hẹn
+        </a>
+      </p>
+    )}
+    
+    {selectedBooking.notes && (
+      <div className="mt-4">
+        <p className="font-medium">Ghi chú:</p>
+        <p className="bg-gray-50 p-3 rounded">{selectedBooking.notes}</p>
+      </div>
+    )}
             
             {selectedBooking.status === 0 && (
               <div className="bg-yellow-50 p-3 rounded mt-4">

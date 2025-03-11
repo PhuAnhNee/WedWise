@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Card, Radio, Typography, Spin, notification, Empty } from "antd";
+import { Button, Card, Radio, Typography, Spin, notification, Empty, Tag, Progress } from "antd";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 import axios from "axios";
 import AuthService from "../service/AuthService";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 interface Answer {
   answerId: string;
@@ -50,9 +50,22 @@ interface QuizAnswer {
   answerId: string;
 }
 
-// Interface for the API response format
+// Interface for detailed quiz result
+interface QuizResult {
+  quizResultId: string;
+  quizId: string;
+  description: string;
+  level: number; // Changed from string to number
+  title: string;
+  score: number;
+}
+
+// Enhanced response interface to include quiz results
 interface SuggestionResponse {
-  [quizId: string]: TherapistSuggestion[];
+  therapists: {
+    [quizId: string]: TherapistSuggestion[];
+  };
+  quizResult?: QuizResult;
 }
 
 const QuizSubmission: React.FC = () => {
@@ -67,6 +80,8 @@ const QuizSubmission: React.FC = () => {
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [suggestedTherapists, setSuggestedTherapists] = useState<TherapistSuggestion[]>([]);
   const [showResults, setShowResults] = useState(false);
+  // New state for quiz result
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   useEffect(() => {
     if (!quizId) {
@@ -130,6 +145,38 @@ const QuizSubmission: React.FC = () => {
     });
   };
 
+  // Function to determine level color
+  const getLevelColor = (level: number | string): string => {
+    // Handle numeric levels
+    if (typeof level === 'number') {
+      switch (level) {
+        case 3: return 'red';    // High
+        case 2: return 'orange'; // Medium
+        case 1: return 'green';  // Low
+        default: return 'blue';
+      }
+    }
+    
+    // Fallback for string levels (if you still want to support them)
+    if (typeof level === 'string') {
+      switch (level.toLowerCase()) {
+        case 'cao':
+        case 'high':
+          return 'red';
+        case 'trung bình':
+        case 'medium':
+          return 'orange';
+        case 'thấp':
+        case 'low': 
+          return 'green';
+        default:
+          return 'blue';
+      }
+    }
+    
+    return 'blue'; // Default fallback
+  };
+
   const handleSubmit = async () => {
     const decodedToken = AuthService.getDecodedToken();
     
@@ -170,16 +217,28 @@ const QuizSubmission: React.FC = () => {
       
       // Extract therapists from the response
       let therapists: TherapistSuggestion[] = [];
-      if (responseData && typeof responseData === 'object') {
-        // Extract all therapist arrays from each quiz result
-        Object.keys(responseData).forEach(key => {
-          if (Array.isArray(responseData[key])) {
-            therapists = [...therapists, ...responseData[key]];
-          }
-        });
+if (responseData && typeof responseData === 'object') {
+  // Check if therapists is an array (which it is in your response)
+  if (Array.isArray(responseData.therapists)) {
+    therapists = responseData.therapists;
+  } 
+  // Keep your existing logic as a fallback
+  else if (responseData.therapists && typeof responseData.therapists === 'object') {
+    Object.keys(responseData.therapists).forEach(key => {
+      if (Array.isArray(responseData.therapists[key])) {
+        therapists = [...therapists, ...responseData.therapists[key]];
+      }
+    });
+  }
+}
+      
+      // Extract quiz result from the response
+      if (responseData.quizResult) {
+        setQuizResult(responseData.quizResult);
       }
       
       console.log("Extracted therapists:", therapists);
+      console.log("Quiz result:", responseData.quizResult);
       setSuggestedTherapists(therapists);
       setShowResults(true);
     } catch (error: any) {
@@ -263,6 +322,34 @@ const QuizSubmission: React.FC = () => {
         ) : (
           <Card className="shadow-lg">
             <Title level={2} className="text-center">Kết quả trắc nghiệm</Title>
+            
+            {/* Quiz result section */}
+            {quizResult && (
+              <Card className="mb-6 border-2 shadow-md">
+                <div className="text-center mb-4">
+                  <Tag color={getLevelColor(quizResult.level)} className="px-3 py-1 text-base mb-4">
+                    Mức độ: {quizResult.level}
+                  </Tag>
+                  
+                  <div className="mb-4">
+                    <Text strong className="text-lg">Điểm số của bạn</Text>
+                    <Progress 
+                      type="circle" 
+                      percent={quizResult.score} 
+                      format={percent => `${percent}%`}
+                      strokeColor={getLevelColor(quizResult.level)}
+                      className="my-4"
+                    />
+                  </div>
+                  
+                  <Card bordered={false} className="bg-gray-50">
+                    <Title level={4} className="mb-3">Nhận xét</Title>
+                    <Paragraph className="text-left">{quizResult.description}</Paragraph>
+                  </Card>
+                </div>
+              </Card>
+            )}
+            
             <Text className="block mb-6 text-center">
               Dựa trên câu trả lời của bạn, chúng tôi gợi ý các chuyên gia sau đây:
             </Text>
