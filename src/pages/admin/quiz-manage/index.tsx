@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Modal, Input, Button, Form, Select, message, Popconfirm, List } from "antd";
+import { Table, Modal, Input, Button, Form, Select, message, Popconfirm } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import axios, { AxiosError } from "axios";
 
@@ -7,7 +7,7 @@ const API_BASE_URL =
     "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Quiz";
 
 interface Category {
-    categoryId: string; // Đổi từ id thành categoryId
+    categoryId: string;
     name: string;
 }
 
@@ -17,17 +17,14 @@ interface Quiz {
     name: string;
     description?: string;
     status: number;
-    questions?: string[];
 }
 
 const AdminQuiz: React.FC = () => {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
     const [form] = Form.useForm();
-    const [questionForm] = Form.useForm();
 
     const fetchQuizzes = async () => {
         try {
@@ -86,7 +83,7 @@ const AdminQuiz: React.FC = () => {
 
     const handleEditQuiz = (quiz: Quiz) => {
         setSelectedQuiz(quiz);
-        setIsEditModalOpen(true);
+        setIsModalOpen(true);
         form.setFieldsValue({ name: quiz.name, description: quiz.description });
     };
 
@@ -147,35 +144,6 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    const handleSaveQuestion = () => {
-        questionForm.validateFields().then((values: { question: string }) => {
-            if (selectedQuiz) {
-                const newQuestions = [...(selectedQuiz.questions || []), values.question];
-                const updatedQuizzes = quizzes.map((quiz) =>
-                    quiz.quizId === selectedQuiz.quizId ? { ...quiz, questions: newQuestions } : quiz
-                );
-                setQuizzes(updatedQuizzes);
-                setSelectedQuiz({ ...selectedQuiz, questions: newQuestions });
-                message.success("Question added successfully!");
-                questionForm.resetFields();
-            }
-        });
-    };
-
-    const handleDeleteQuestion = (quizId: string, questionIndex: number) => {
-        const updatedQuizzes = quizzes.map((quiz) =>
-            quiz.quizId === quizId
-                ? { ...quiz, questions: quiz.questions?.filter((_, index) => index !== questionIndex) }
-                : quiz
-        );
-        setQuizzes(updatedQuizzes);
-        setSelectedQuiz({
-            ...selectedQuiz!,
-            questions: selectedQuiz!.questions?.filter((_, index) => index !== questionIndex),
-        });
-        message.success("Question deleted successfully!");
-    };
-
     const columns = [
         { title: "Quiz Name", dataIndex: "name", key: "name" },
         {
@@ -183,11 +151,6 @@ const AdminQuiz: React.FC = () => {
             key: "category",
             render: (_: unknown, record: Quiz) =>
                 categories.find((cat) => cat.categoryId === record.categoryId)?.name || "Unknown",
-        },
-        {
-            title: "Questions",
-            key: "questions",
-            render: (_: unknown, record: Quiz) => <span>{record.questions?.length || 0} questions</span>,
         },
         {
             title: "Actions",
@@ -232,7 +195,11 @@ const AdminQuiz: React.FC = () => {
                 okText={selectedQuiz ? "Update" : "Add"}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item name="name" label="Quiz Name" rules={[{ required: true, message: "Please enter quiz name" }]}>
+                    <Form.Item
+                        name="name"
+                        label="Quiz Name"
+                        rules={[{ required: true, message: "Please enter quiz name" }]}
+                    >
                         <Input placeholder="Enter quiz name..." />
                     </Form.Item>
                     <Form.Item name="description" label="Description">
@@ -253,57 +220,6 @@ const AdminQuiz: React.FC = () => {
                             </Select>
                         </Form.Item>
                     )}
-                </Form>
-            </Modal>
-
-            <Modal
-                title="Edit Quiz & Questions"
-                open={isEditModalOpen}
-                onCancel={() => setIsEditModalOpen(false)}
-                footer={[
-                    <Button key="submit" type="primary" onClick={handleSubmit}>
-                        Save Changes
-                    </Button>,
-                ]}
-            >
-                <Form form={form} layout="vertical">
-                    <Form.Item name="name" label="Quiz Name" rules={[{ required: true, message: "Please enter quiz name" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="description" label="Description">
-                        <Input />
-                    </Form.Item>
-                </Form>
-
-                <h3 className="text-lg font-semibold">Questions</h3>
-                <List
-                    dataSource={selectedQuiz?.questions || []}
-                    renderItem={(question, index) => (
-                        <List.Item
-                            key={`${selectedQuiz?.quizId || "unknown"}-question-${index}`}
-                            actions={[
-                                <Popconfirm
-                                    title="Delete this question?"
-                                    onConfirm={() => handleDeleteQuestion(selectedQuiz!.quizId, index)}
-                                    okText="Yes"
-                                    cancelText="No"
-                                >
-                                    <Button danger icon={<DeleteOutlined />} />
-                                </Popconfirm>,
-                            ]}
-                        >
-                            {question}
-                        </List.Item>
-                    )}
-                />
-
-                <Form form={questionForm} layout="vertical" className="mt-4">
-                    <Form.Item name="question" label="Add Question" rules={[{ required: true, message: "Enter a question" }]}>
-                        <Input.TextArea placeholder="Enter question..." />
-                    </Form.Item>
-                    <Button type="primary" onClick={handleSaveQuestion}>
-                        Add Question
-                    </Button>
                 </Form>
             </Modal>
         </div>

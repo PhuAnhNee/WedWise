@@ -95,7 +95,7 @@ const FeedbackManagement: React.FC = () => {
         try {
             setLoading(true);
             const response = await axios.get<Feedback[]>(
-                `${API_BASE_URL}/Feedback/Get_Feedback_By_User_Id?id=${userId}`, // Giả sử có API này
+                `${API_BASE_URL}/Feedback/Get_Feedback_By_User_Id?id=${userId}`,
                 { headers: getAuthHeaders() }
             );
             const feedbackData = response.data;
@@ -122,12 +122,15 @@ const FeedbackManagement: React.FC = () => {
         }
     }, []);
 
+    // Fixed closeBooking function to address the 400 error
     const closeBooking = async (bookingId: string): Promise<void> => {
         try {
             setLoading(true);
+
+            // Send the ID in the request body instead of as a query parameter
             const response = await axios.post(
-                `${API_BASE_URL}/Booking/Close_Booking?id=${bookingId}`,
-                {},
+                `${API_BASE_URL}/Booking/Close_Booking`,
+                { id: bookingId },
                 { headers: getAuthHeaders() }
             );
 
@@ -141,7 +144,14 @@ const FeedbackManagement: React.FC = () => {
             }
         } catch (error: unknown) {
             console.error("Error closing booking:", error);
-            message.error("Failed to close booking!");
+
+            // Enhanced error logging to provide more details
+            if (axios.isAxiosError(error) && error.response) {
+                console.error("API Error Response:", error.response.data);
+                message.error(`Failed to close booking: ${error.response.data?.message || 'Server returned an error'}`);
+            } else {
+                message.error("Failed to close booking!");
+            }
         } finally {
             setLoading(false);
             setSelectedFeedback(null);

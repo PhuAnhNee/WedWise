@@ -24,6 +24,7 @@ import QuizManage from "../quiz-manage";
 import AnswerManage from "../answer-manage";
 import BookingManage from "../booking-manage";
 import QuestionManage from "../question-manage";
+import Result from "../result";
 import Feedback from "../feedback";
 import Manage from "../manage/index";
 
@@ -53,6 +54,8 @@ const Dashboard: React.FC = () => {
                 return <Manage />;
             case "quiz-manage":
                 return <QuizManage />;
+            case "result":
+                return <Result />;
             case "answer-manage":
                 return <AnswerManage />;
             case "question-manage":
@@ -112,7 +115,7 @@ const Dashboard: React.FC = () => {
                         Dashboard
                     </Menu.Item>
                     <Menu.Item key="withdraw" icon={<BarChartOutlined />}>
-                        Withdraw
+                        Therapist Management
                     </Menu.Item>
                     <Menu.Item key="booking-manage" icon={<CarryOutOutlined />}>
                         Booking Manage
@@ -128,6 +131,9 @@ const Dashboard: React.FC = () => {
                     </Menu.Item>
                     <Menu.Item key="answer-manage" icon={<FileProtectOutlined />}>
                         Answer Manage
+                    </Menu.Item>
+                    <Menu.Item key="result" icon={<FileProtectOutlined />}>
+                        Quiz Result
                     </Menu.Item>
                     <Menu.Item key="feedback" icon={<AuditOutlined />}>
                         Feedback
