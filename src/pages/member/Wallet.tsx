@@ -92,9 +92,9 @@ const Wallet: React.FC = () => {
 
         alert("Thanh toán thành công! Số dư sẽ được cập nhật.");
         fetchWalletData();
-
         // Xóa tham số URL và điều hướng về trang ví
         window.history.replaceState(null, "", "https://wed-wise-mu.vercel.app/home/wallet");
+
       } catch (error) {
         console.error("Lỗi khi xử lý thanh toán:", error);
       }
