@@ -292,12 +292,28 @@ const showErrorNotification = (errorMessage: string) => {
       <Card className="shadow-lg">
         <Title level={4}>Chọn ngày</Title>
         <DatePicker 
-          className="w-full" 
-          onChange={(date) => handleDateChange(date)} 
-          value={selectedDate}
-          disabledDate={(date) => date.isBefore(dayjs().startOf('day'))}
-          placeholder="Chọn ngày tư vấn"
-        />
+  className="w-full"
+  onChange={handleDateChange} 
+  value={selectedDate}
+  disabledDate={(date) => date.isBefore(dayjs().startOf("day"))}
+  placeholder="Chọn ngày tư vấn"
+  dateRender={(current) => {
+    const isScheduled = therapist?.schedules?.some((s: any) => 
+      dayjs(s.date).format("YYYY-MM-DD") === current.format("YYYY-MM-DD") && s.isAvailable
+    );
+
+    return (
+      <div className="relative">
+        <div className="ant-picker-cell-inner">{current.date()}</div>
+        {isScheduled && (
+          <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-green-500 rounded-full"></span>
+        )}
+      </div>
+    );
+  }}
+/>
+
+
         
         {selectedDate && (
           <>
@@ -314,7 +330,7 @@ const showErrorNotification = (errorMessage: string) => {
                     value={schedule}
                     className="text-center"
                   >
-                    {dayjs(schedule.date).format("HH:mm")} - Khung giờ {schedule.slot}
+                    {dayjs(schedule.date).format("HH:mm")} - Slot {schedule.slot}
                   </Radio.Button>
                 ))}
               </Radio.Group>
