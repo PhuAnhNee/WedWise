@@ -33,11 +33,11 @@ const TherapistSchedule = () => {
                         }
                     }
                 );
-                
+
                 if (!response.ok) {
                     throw new Error(`Lỗi: ${response.statusText}`);
                 }
-                
+
                 const data: Schedule[] = await response.json();
                 setSchedule(data);
             } catch (error) {
@@ -48,7 +48,7 @@ const TherapistSchedule = () => {
         fetchSchedule();
     }, []);
 
-    const formatDate = (date: Date) => date.toISOString().split('T')[0]; // Lấy phần ngày thôi (YYYY-MM-DD)
+    const formatDate = (date: Date) => date.toISOString().split('T')[0]; // Lấy phần ngày (YYYY-MM-DD)
     const markedDates = schedule.map(slot => formatDate(new Date(slot.date))); // Lọc ngày từ dữ liệu API
 
     const handleDelete = async (scheduleItem: Schedule) => {
@@ -110,7 +110,11 @@ const TherapistSchedule = () => {
                 <div className="bg-gray-50 p-5 rounded-xl shadow-md mt-4">
                     <h3 className="text-xl font-semibold mb-4 text-center">Lịch làm việc ngày {selectedDate.toLocaleDateString()}</h3>
                     <ul>
-                        {schedule.filter(slot => formatDate(new Date(slot.date)) === formatDate(selectedDate)).map((slot) => (
+                        {schedule.filter(slot => {
+                            const scheduleDate = new Date(slot.date);
+                            scheduleDate.setDate(scheduleDate.getDate() - 1); 
+                            return formatDate(scheduleDate) === formatDate(selectedDate);
+                        }).map((slot) => (
                             <li key={slot.scheduleId} className="p-4 bg-white rounded-lg shadow-md mb-3 flex justify-between items-center border border-gray-200">
                                 <span><strong>Slot:</strong> {slot.slot} | <strong> Tình trạng:</strong> {slot.isAvailable ? 'Còn trống' : 'Đã đặt'}</span>
                                 <button 

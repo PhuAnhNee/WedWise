@@ -10,6 +10,8 @@ interface Booking {
   createdAt: string;
   meetUrl?: string; 
   hasFeedback?: boolean; 
+  scheduleId?: string;
+  scheduleDate?: string;
 }
 
 const TherapistBookingList = () => {
@@ -19,7 +21,11 @@ const TherapistBookingList = () => {
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
   const token = AuthService.getToken();
-
+  const statusMap: Record<number, string> = {
+    1: "Đang chờ tư vấn",
+    2: "Đã hủy",
+    3: "Đã hoàn thành tư vấn",
+  };
   useEffect(() => {
     if (!therapistId || !token) {
       setError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
@@ -37,19 +43,48 @@ const TherapistBookingList = () => {
             },
           }
         );
-        const data = await response.json();
-        setBookings(data);
+        let data: Booking[] = await response.json();
+    
+        // Lọc chỉ lấy những booking có status = 1 (Pending)
+        data = data.filter((booking) => booking.status === 1);
+    
+        const bookingsWithSchedule = await Promise.all(
+          data.map(async (booking) => {
+            if (booking.scheduleId) {
+              try {
+                const scheduleResponse = await fetch(
+                  `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Get_Schedule_By_Id?id=${booking.scheduleId}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                    },
+                  }
+                );
+                const scheduleData = await scheduleResponse.json();
+                return { ...booking, scheduleDate: scheduleData[0]?.date || '' };
+              } catch (error) {
+                console.error('Lỗi khi lấy lịch trình:', error);
+                return { ...booking, scheduleDate: '' };
+              }
+            }
+            return booking;
+          })
+        );
+    
+        setBookings(bookingsWithSchedule);
       } catch (error) {
         console.error('Lỗi khi lấy danh sách booking:', error);
         toast.error('Đã xảy ra lỗi khi lấy danh sách booking!');
       }
     };
+    
 
     fetchBookings();
   }, [therapistId, token]);
 
   const handleStartConsultation = async (bookingId: string) => {
-    console.log('Đang gửi yêu cầu bắt đầu tư vấn với Booking ID:', bookingId); // Log dữ liệu
+    console.log('Đang gửi yêu cầu bắt đầu tư vấn với Booking ID:', bookingId); 
     try {
       const response = await fetch(
         `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id?id=${therapistId}`,
@@ -70,47 +105,11 @@ const TherapistBookingList = () => {
       toast.error('Đã xảy ra lỗi khi bắt đầu tư vấn!');
     }
   };
-  
-  const handleGiveFeedback = async (bookingId: string) => {
-    const feedbackDescription = prompt('Nhập đánh giá buổi tư vấn');
-    console.log('Đang gửi đánh giá với Booking ID:', bookingId, 'Nội dung đánh giá:', feedbackDescription); // Log dữ liệu
-    if (!feedbackDescription) return;
-  
-    try {
-      const response = await fetch(
-        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/BookingResult/Create_Booking_Result',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            bookingId: bookingId,
-            description: feedbackDescription,
-          }),
-        }
-      );
-  
-      if (response.ok) {
-        toast.success('Đánh giá thành công!');
-        const updatedBookings = bookings.map((booking) =>
-          booking.bookingId === bookingId ? { ...booking, hasFeedback: true } : booking
-        );
-        setBookings(updatedBookings);
-      } else {
-        throw new Error('Đã xảy ra lỗi khi gửi đánh giá!');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại!');
-    }
-  };
-  
   const handleEndConsultation = async (bookingId: string) => {
     console.log('Đang gửi yêu cầu kết thúc tư vấn với Booking ID:', bookingId); // Log dữ liệu
     try {
       const response = await fetch(
-        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Close_Booking?id=${bookingId}`,
+        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Finish_Booking/?id=${bookingId}`,
         {
           method: 'POST',
           headers: {
@@ -155,7 +154,7 @@ const TherapistBookingList = () => {
       toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại!');
     }
   };
-  
+
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
@@ -166,10 +165,10 @@ const TherapistBookingList = () => {
           <div key={booking.bookingId} className="border p-4 rounded-lg shadow-sm relative">
             <h3 className="font-semibold">Booking ID: {booking.bookingId}</h3>
             <p><strong>Member ID:</strong> {booking.memberId}</p>
-            <p><strong>Trạng thái:</strong> {booking.status === 1 ? 'Đã xác nhận' : 'Chưa xác nhận'}</p>
+            <p><strong>Trạng thái:</strong> {statusMap[booking.status] || "Không xác định"}</p>
             <p><strong>Phí:</strong> {booking.fee ? `${booking.fee} VND` : 'Miễn phí'}</p>
-            <p><strong>Ngày tạo:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
-
+            <p><strong>Ngày Booking:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
+            <p><strong>Ngày tư ván:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleString() : 'Chưa có thông tin'}</p>
             {booking.meetUrl && (
               <div>
                 <p><strong>Link tư vấn:</strong> <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer">Join meeting</a></p>
@@ -184,12 +183,7 @@ const TherapistBookingList = () => {
                         Bắt đầu tư vấn
                       </button>
 
-                      <button
-                        onClick={() => handleGiveFeedback(booking.bookingId)}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                      >
-                        Đánh giá tư vấn
-                      </button>
+                      
 
                       <button
                         onClick={() => handleEndConsultation(booking.bookingId)}
@@ -208,6 +202,7 @@ const TherapistBookingList = () => {
 
 
           </div>
+         
         ))}
       </div>
     </div>

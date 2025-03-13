@@ -191,171 +191,125 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Other quizzes with enhanced hover effects */}
-            <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-              <div className="p-6 bg-blue-50">
-                <h4 className="text-lg font-bold text-gray-800 mb-3">Other Popular Quizzes</h4>
-                <div className="h-px w-full bg-gradient-to-r from-blue-200 to-transparent mb-3"></div>
+            {/* Popular Quizzes Section */}
+            <div className="mb-12">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Popular Quizzes</h3>
+                <a className="text-blue-500 font-medium hover:underline" href="#">View all</a>
               </div>
-              <div className="divide-y divide-gray-100">
-                {quizzes.slice(1).map((quiz, index) => (
-                  <div
-                    key={index}
-                    className={`flex p-4 transition-all duration-300 ${hoveredQuiz === index
-                      ? 'bg-blue-50'
-                      : 'bg-white'
-                      }`}
-                    onMouseEnter={() => setHoveredQuiz(index)}
-                    onMouseLeave={() => setHoveredQuiz(null)}
-                  >
-                    <div className="relative overflow-hidden rounded-lg w-20 h-20 flex-shrink-0">
-                      <img
-                        src={quiz.src}
-                        alt={quiz.title}
-                        className={`w-full h-full object-cover transition-transform duration-500 ${hoveredQuiz === index ? 'scale-110' : 'scale-100'
-                          }`}
-                      />
-                      <div className={`absolute inset-0 bg-blue-500/20 transition-opacity duration-300 ${hoveredQuiz === index ? 'opacity-100' : 'opacity-0'
-                        }`}></div>
-                    </div>
-                    <div className="ml-4 flex flex-col justify-between">
-                      <div>
-                        <h4 className={`font-semibold transition-colors duration-300 ${hoveredQuiz === index ? 'text-blue-600' : 'text-gray-800'
-                          }`}>
-                          {quiz.title}
-                        </h4>
-                        <p className={`text-xs text-gray-500 mt-1 transition-opacity duration-300 ${hoveredQuiz === index ? 'opacity-100' : 'opacity-70'
-                          }`}>
-                          {quiz.desc}
-                        </p>
-                      </div>
-                      <a
-                        href="#"
-                        className={`text-sm font-medium flex items-center mt-2 transition-colors duration-300 ${hoveredQuiz === index ? 'text-blue-600' : 'text-blue-500'
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="bg-white shadow-lg rounded-lg p-4 flex">
+                  <img src="https://storage.googleapis.com/a1aa/image/6MkNmKPd-tap0mEzFHEYlVT_EZymea5Ms60dIJoN0hY.jpg"
+                    alt="Quiz" className="w-24 h-24 rounded-lg object-cover mr-4" />
+                  <div>
+                    <h4 className="text-lg font-bold">Will He Leave His Wife for Me Quiz</h4>
+                    <a className="text-blue-500 mt-2 inline-block hover:underline" href="#">Take Quiz</a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Reads Section with category filter */}
+              <div>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
+                  <div className="relative">
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800">
+                      Top Reads
+                    </h3>
+                    <div className="absolute -bottom-2 left-0 w-16 h-1 bg-blue-500 rounded-full"></div>
+                  </div>
+                  <div className="flex space-x-2 overflow-x-auto pb-2 mt-4 md:mt-0">
+                    {categories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => setActiveCategory(category)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all duration-300 ${activeCategory === category
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           }`}
                       >
-                        Take Quiz
-                        <svg
-                          className={`w-4 h-4 ml-1 transition-transform duration-300 ${hoveredQuiz === index ? 'translate-x-1' : 'translate-x-0'
-                            }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                        </svg>
-                      </a>
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white shadow-xl rounded-xl overflow-hidden mb-10 transform hover:shadow-2xl transition-all duration-300">
+                  <div className="relative">
+                    <img
+                      src="https://storage.googleapis.com/a1aa/image/QGOt77OvH8Bv2txQqbksWXxGv_yjJPnd0orP5mhvUdw.jpg"
+                      alt="Wedding couple holding hands"
+                      className="w-full h-72 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <span className="absolute top-4 left-4 bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
+                      Relationship
+                    </span>
+                  </div>
+
+                  <div className="p-8">
+                    <h4 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 hover:text-blue-500 transition-colors duration-300">
+                      Wedding Letter: For A Newly Married Couple
+                    </h4>
+                    <p className="text-gray-600 leading-relaxed text-base">
+                      To the Happy Couple, Your wedding day...the nervous excitement and
+                      the frantic last minute details is one of the wonderful and
+                      precious milestones of life. As you embark on this journey of...
+                    </p>
+
+                    <div className="flex items-center mt-6 border-t pt-6 border-gray-100">
+                      <img
+                        src="https://storage.googleapis.com/a1aa/image/nXnEBfO0IwvaQqvD0nT59UK-bmYP8e2fSYs0u9dwW-I.jpg"
+                        alt="Theresa K. Cooke"
+                        className="w-12 h-12 rounded-full object-cover mr-3 border-2 border-blue-300"
+                      />
+                      <div>
+                        <p className="text-gray-800 font-bold text-sm md:text-base">
+                          By Theresa K. Cooke
+                        </p>
+                        <p className="text-gray-600 text-xs md:text-sm">
+                          Psychologist
+                        </p>
+                      </div>
+                      <button className="ml-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-300">
+                        Read More
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Reads Section with category filter */}
-        <div>
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
-            <div className="relative">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-800">
-                Top Reads
-              </h3>
-              <div className="absolute -bottom-2 left-0 w-16 h-1 bg-blue-500 rounded-full"></div>
-            </div>
-            <div className="flex space-x-2 overflow-x-auto pb-2 mt-4 md:mt-0">
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => setActiveCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all duration-300 ${activeCategory === category
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white shadow-xl rounded-xl overflow-hidden mb-10 transform hover:shadow-2xl transition-all duration-300">
-            <div className="relative">
-              <img
-                src="https://storage.googleapis.com/a1aa/image/QGOt77OvH8Bv2txQqbksWXxGv_yjJPnd0orP5mhvUdw.jpg"
-                alt="Wedding couple holding hands"
-                className="w-full h-72 object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <span className="absolute top-4 left-4 bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
-                Relationship
-              </span>
-            </div>
-
-            <div className="p-8">
-              <h4 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 hover:text-blue-500 transition-colors duration-300">
-                Wedding Letter: For A Newly Married Couple
-              </h4>
-              <p className="text-gray-600 leading-relaxed text-base">
-                To the Happy Couple, Your wedding day...the nervous excitement and
-                the frantic last minute details is one of the wonderful and
-                precious milestones of life. As you embark on this journey of...
-              </p>
-
-              <div className="flex items-center mt-6 border-t pt-6 border-gray-100">
-                <img
-                  src="https://storage.googleapis.com/a1aa/image/nXnEBfO0IwvaQqvD0nT59UK-bmYP8e2fSYs0u9dwW-I.jpg"
-                  alt="Theresa K. Cooke"
-                  className="w-12 h-12 rounded-full object-cover mr-3 border-2 border-blue-300"
-                />
-                <div>
-                  <p className="text-gray-800 font-bold text-sm md:text-base">
-                    By Theresa K. Cooke
-                  </p>
-                  <p className="text-gray-600 text-xs md:text-sm">
-                    Psychologist
-                  </p>
                 </div>
-                <button className="ml-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-300">
-                  Read More
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* Grid of Additional Reads with filtering and hover effects */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {filteredArticles.map((article, index) => (
-              <div
-                key={index}
-                className="bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group"
-              >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={article.src}
-                    alt={article.title}
-                    className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                </div>
-                <div className="p-4">
-                  <span className="text-xs font-semibold text-blue-500 capitalize">
-                    {article.category}
-                  </span>
-                  <h4 className="text-base md:text-lg font-bold mt-2 text-gray-800 group-hover:text-blue-500 transition-colors duration-300">
-                    {article.title}
-                  </h4>
-                  <div className="mt-3 flex justify-end">
-                    <button className="text-blue-500 hover:text-blue-700 text-sm font-medium transition-colors duration-300">Read Article →</button>
-                  </div>
+                {/* Grid of Additional Reads with filtering and hover effects */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                  {filteredArticles.map((article, index) => (
+                    <div
+                      key={index}
+                      className="bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                    >
+                      <div className="relative overflow-hidden">
+                        <img
+                          src={article.src}
+                          alt={article.title}
+                          className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                      </div>
+                      <div className="p-4">
+                        <span className="text-xs font-semibold text-blue-500 capitalize">
+                          {article.category}
+                        </span>
+                        <h4 className="text-base md:text-lg font-bold mt-2 text-gray-800 group-hover:text-blue-500 transition-colors duration-300">
+                          {article.title}
+                        </h4>
+                        <div className="mt-3 flex justify-end">
+                          <button className="text-blue-500 hover:text-blue-700 text-sm font-medium transition-colors duration-300">Read Article →</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
+          );
 };
 
-export default HomePage;
+          export default HomePage;
