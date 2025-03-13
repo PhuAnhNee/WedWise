@@ -3,11 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaSearch, FaUserCircle, FaWallet } from "react-icons/fa";
 import { Dropdown, Menu } from "antd";
 import AuthService from "../pages/service/AuthService";
+import axios from "axios";
+
+
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string>("User");
   const [userAvatar, setUserAvatar] = useState<string>("");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   useEffect(() => {
     // Get user data when component mounts
@@ -15,8 +19,32 @@ const Navbar: React.FC = () => {
     if (userData) {
       setUserName(userData.Name || "User");
       setUserAvatar(userData.Avatar || "");
+      
+      // Fetch wallet balance
+      fetchWalletBalance();
     }
   }, []);
+
+  const fetchWalletBalance = async () => {
+    try {
+      const API_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/GetWallet";
+      const response = await axios.get(API_URL, {
+        headers: {
+          Authorization: `Bearer ${AuthService.getToken()}`
+        }
+      });
+  
+      // Kiểm tra nếu response trả về dữ liệu hợp lệ
+      if (response.data && response.data.wallet) {
+        setWalletBalance(response.data.wallet.balance);
+      } else {
+        console.error("Invalid wallet data format", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+    }
+  };
+  
 
   const handleLogout = () => {
     AuthService.logout();
@@ -83,13 +111,14 @@ const Navbar: React.FC = () => {
             <FaSearch className="absolute left-3 top-3 text-gray-500" />
           </div>
 
-          {/* Wallet Icon */}
-          <button
+          {/* Wallet Icon with Balance */}
+          <div 
             onClick={() => navigate("/home/wallet")}
-            className="text-gray-700 hover:text-blue-600 transition"
+            className="flex items-center space-x-2 cursor-pointer text-gray-700 hover:text-blue-600 transition"
           >
             <FaWallet className="text-2xl" />
-          </button>
+            <span className="font-medium">${walletBalance}</span>
+          </div>
 
           {/* User Info with Dropdown */}
           <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
