@@ -15,30 +15,86 @@ interface Feedback {
     isSatisfied: boolean;
 }
 
+interface Booking {
+    bookingId: string;
+    memberId: string;
+    therapistId: string;
+    scheduleId: string;
+    status: number;
+}
+
+interface Therapist {
+    therapistId: string;
+    therapistName: string;
+}
+
 const FeedbackDisplay: React.FC = () => {
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+    const [therapistNames, setTherapistNames] = useState<Record<string, string>>({}); // Lưu therapistName theo bookingId
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
 
     // Fetch danh sách feedback từ API
     const fetchFeedbacks = async () => {
         try {
+            const accessToken = localStorage.getItem("accessToken");
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
+
             const response = await axios.get<Feedback[]>(`${API_BASE_URL}/Feedback/Get_All_Feedbacks`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`, // Thêm token xác thực
-                },
+                headers: { Authorization: `Bearer ${accessToken}` },
             });
             console.log("Feedbacks from API:", response.data);
-            setFeedbacks(
-                response.data.map((feedback) => ({
-                    ...feedback,
-                    key: feedback.feedbackId, // Gán key cho Table
-                }))
+
+            const feedbacksWithKeys = response.data.map((feedback) => ({
+                ...feedback,
+                key: feedback.feedbackId,
+            }));
+            setFeedbacks(feedbacksWithKeys);
+
+            // Fetch therapist names cho từng feedback
+            const therapistMap: Record<string, string> = {};
+            await Promise.all(
+                feedbacksWithKeys.map(async (feedback) => {
+                    try {
+                        // Gọi API Booking để lấy therapistId
+                        const bookingResponse = await axios.get<Booking[]>(
+                            `${API_BASE_URL}/Booking/Get_Booking_By_Id?id=${feedback.bookingId}`,
+                            { headers: { Authorization: `Bearer ${accessToken}` } }
+                        );
+                        console.log(`Booking for ${feedback.bookingId}:`, bookingResponse.data);
+                        const booking = bookingResponse.data[0]; // Lấy booking đầu tiên (API trả về mảng)
+                        if (booking?.therapistId) {
+                            // Gọi API Therapist để lấy therapistName
+                            const therapistResponse = await axios.get<Therapist>(
+                                `${API_BASE_URL}/Therapist/Get_Therapist_By_Id?id=${booking.therapistId}`,
+                                { headers: { Authorization: `Bearer ${accessToken}` } }
+                            );
+                            console.log(`Therapist for ${booking.therapistId}:`, therapistResponse.data);
+                            therapistMap[feedback.bookingId] = therapistResponse.data.therapistName || "Unknown";
+                        } else {
+                            therapistMap[feedback.bookingId] = "Unknown";
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching details for booking ${feedback.bookingId}:`, error);
+                        therapistMap[feedback.bookingId] = "Unknown";
+                    }
+                })
             );
+            setTherapistNames(therapistMap);
         } catch (error) {
-            const err = error as AxiosError<{ message?: string }>;
+            const err = error as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;
             console.error("Error fetching feedbacks:", err.response?.data || err.message);
-            message.error("Failed to load feedbacks!");
+            const errorMessage =
+                err.response?.data?.message ||
+                (err.response?.data?.errors
+                    ? Object.values(err.response.data.errors)
+                        .flat()
+                        .join(", ")
+                    : "Failed to load feedbacks!");
+            message.error(errorMessage);
         }
     };
 
@@ -49,26 +105,31 @@ const FeedbackDisplay: React.FC = () => {
     // Cột bảng
     const columns: ColumnsType<Feedback> = [
         {
-            title: "Booking ID",
+            title: "Therapist Name",
             dataIndex: "bookingId",
-            key: "bookingId",
+            key: "therapistName",
+            render: (bookingId: string) => (
+                <span className="text-gray-800">{therapistNames[bookingId] || "Loading..."}</span>
+            ),
         },
         {
             title: "Title",
             dataIndex: "feedbackTitle",
             key: "feedbackTitle",
+            render: (text: string) => <span className="font-medium text-gray-800">{text}</span>,
         },
         {
             title: "Content",
             dataIndex: "feedbackContent",
             key: "feedbackContent",
+            render: (text: string) => <span className="text-gray-600">{text}</span>,
         },
         {
             title: "Rating",
             dataIndex: "rating",
             key: "rating",
             render: (rating: number) => (
-                <Rate disabled defaultValue={rating} count={5} /> // Hiển thị sao theo rating
+                <Rate disabled defaultValue={rating} count={5} className="text-yellow-500" />
             ),
         },
         {
@@ -82,22 +143,27 @@ const FeedbackDisplay: React.FC = () => {
     ];
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Feedback Display</h2>
-            <Table
-                columns={columns}
-                dataSource={feedbacks.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
-                pagination={false}
-                bordered
-            />
-            <div className="flex justify-between items-center mt-4">
-                <Pagination
-                    current={currentPage}
-                    pageSize={pageSize}
-                    total={feedbacks.length}
-                    onChange={(page) => setCurrentPage(page)}
-                    showSizeChanger={false}
+        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+            <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-3xl font-bold text-gray-800 mb-6">Feedback Display</h2>
+                <Table
+                    columns={columns}
+                    dataSource={feedbacks.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+                    pagination={false}
+                    bordered
+                    className="shadow-sm rounded-lg overflow-hidden"
+                    rowClassName="hover:bg-gray-100"
                 />
+                <div className="flex justify-between items-center mt-6">
+                    <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={feedbacks.length}
+                        onChange={(page) => setCurrentPage(page)}
+                        showSizeChanger={false}
+                        className="text-gray-700"
+                    />
+                </div>
             </div>
         </div>
     );

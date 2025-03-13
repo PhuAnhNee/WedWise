@@ -10,6 +10,7 @@ import Manage from "./pages/admin/manage/index";
 import QuizManage from "./pages/admin/quiz-manage/index";
 import AnswerManage from "./pages/admin/answer-manage/index";
 import QuestionManage from "./pages/admin/question-manage/index";
+import BookingManage from "./pages/admin/booking-manage/index";
 import Feedback from "./pages/admin/feedback/index";
 import ProfileAdmin from "./pages/admin/profile";
 // import DashboardLayout from "./component/dashboard";
@@ -31,6 +32,7 @@ import Wallet from "./pages/member/Wallet";
 import TherapistSchedule from "./pages/therapist/TherapistSchedule";
 import TherapistBookingList from "./pages/therapist/TherapistBookingList";
 import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPage";
+import TherapistCompleteBooking from "./pages/therapist/TherapistCompleteBooking";
 const App: React.FC = () => {
   return (
     <Router>
@@ -46,6 +48,7 @@ const App: React.FC = () => {
         <Route path="quiz-manage" element={<QuizManage />} />
         <Route path="question-manage" element={<QuestionManage />} />
         <Route path="answer-manage" element={<AnswerManage />} />
+        <Route path="booking-manage" element={<BookingManage />} />
         <Route path="feedback" element={<Feedback />} />
         <Route path="/home" element={<Layout />}>
           <Route index element={<HomePage />} />
@@ -66,6 +69,8 @@ const App: React.FC = () => {
           <Route path="schedule" element={<TherapistSchedule />} />
           <Route path="pending-booking" element={<TherapistPendingBooking />} />
           <Route path="wallets" element={<Wallet />} />
+          <Route path="complete-booking" element={<TherapistCompleteBooking />} />
+
         </Route>
       </Routes>
     </Router>
