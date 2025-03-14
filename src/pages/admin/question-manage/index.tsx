@@ -26,6 +26,11 @@ interface Question {
     questionStatus: number;
 }
 
+interface Answer {
+    answerContent: string;
+    score: number;
+}
+
 const AdminQuiz: React.FC = () => {
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -33,6 +38,7 @@ const AdminQuiz: React.FC = () => {
     const [isAnswerModalOpen, setIsAnswerModalOpen] = useState(false);
     const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+    const [answers, setAnswers] = useState<Answer[]>([{ answerContent: "", score: 0 }]);
     const [form] = Form.useForm();
 
     // Fetch danh sách quiz
@@ -82,7 +88,8 @@ const AdminQuiz: React.FC = () => {
     // Mở modal để xem/thêm câu hỏi
     const handleViewAnswers = (quiz: Quiz) => {
         setSelectedQuiz(quiz);
-        setEditingQuestion(null); // Reset editing state
+        setEditingQuestion(null);
+        setAnswers([{ answerContent: "", score: 0 }]); // Reset answers khi mở modal
         form.resetFields();
         setIsAnswerModalOpen(true);
     };
@@ -115,6 +122,7 @@ const AdminQuiz: React.FC = () => {
                 const payload = {
                     quizId: selectedQuiz!.quizId,
                     questionContent: values.questionContent,
+                    answers: answers.filter((ans) => ans.answerContent.trim() !== ""), // Chỉ gửi các câu trả lời không rỗng
                 };
                 const response = await axios.post(`${API_BASE_URL}/Question/Create_Question`, payload, { headers });
                 console.log("Create Question Response:", response.data);
@@ -122,6 +130,7 @@ const AdminQuiz: React.FC = () => {
             }
 
             form.resetFields();
+            setAnswers([{ answerContent: "", score: 0 }]); // Reset answers sau khi thêm/cập nhật
             setEditingQuestion(null);
             fetchQuestions(); // Cập nhật danh sách câu hỏi
         } catch (error) {
@@ -137,7 +146,19 @@ const AdminQuiz: React.FC = () => {
         form.setFieldsValue({ questionContent: question.questionContent });
     };
 
-    // Cột bảng quiz (không có ID)
+    // Thêm trường câu trả lời mới
+    const addAnswerField = () => {
+        setAnswers([...answers, { answerContent: "", score: 0 }]);
+    };
+
+    // Cập nhật nội dung hoặc điểm của câu trả lời
+    const handleAnswerChange = (index: number, field: "answerContent" | "score", value: string | number) => {
+        const newAnswers = [...answers];
+        newAnswers[index][field] = value as never; // Type assertion để đơn giản hóa
+        setAnswers(newAnswers);
+    };
+
+    // Cột bảng quiz
     const columns = [
         { title: "Quiz Title", dataIndex: "name", key: "name" },
         {
@@ -171,6 +192,7 @@ const AdminQuiz: React.FC = () => {
                 onCancel={() => {
                     setIsAnswerModalOpen(false);
                     setEditingQuestion(null);
+                    setAnswers([{ answerContent: "", score: 0 }]);
                     form.resetFields();
                 }}
                 footer={null}
@@ -202,6 +224,32 @@ const AdminQuiz: React.FC = () => {
                     >
                         <Input.TextArea placeholder="Enter question..." />
                     </Form.Item>
+
+                    {/* Chỉ hiển thị phần nhập câu trả lời khi thêm câu hỏi mới */}
+                    {!editingQuestion && (
+                        <>
+                            <h4 className="font-semibold mb-2">Answers</h4>
+                            {answers.map((answer, index) => (
+                                <div key={index} className="flex gap-2 mb-2">
+                                    <Input
+                                        placeholder="Answer content"
+                                        value={answer.answerContent}
+                                        onChange={(e) => handleAnswerChange(index, "answerContent", e.target.value)}
+                                    />
+                                    <Input
+                                        type="number"
+                                        placeholder="Score"
+                                        value={answer.score}
+                                        onChange={(e) => handleAnswerChange(index, "score", Number(e.target.value))}
+                                    />
+                                </div>
+                            ))}
+                            <Button type="dashed" onClick={addAnswerField} block className="mb-4">
+                                Add Answer
+                            </Button>
+                        </>
+                    )}
+
                     <Button type="primary" onClick={handleAddOrUpdateQuestion}>
                         {editingQuestion ? "Update Question" : "Add Question"}
                     </Button>

@@ -53,7 +53,7 @@ const FeedbackManagement: React.FC = () => {
                 `${API_BASE_URL}/Booking/Get_Booking_By_Id?id=${bookingId}`,
                 { headers: getAuthHeaders() }
             );
-            return response.data[0]; // API trả về mảng, lấy phần tử đầu tiên
+            return response.data[0];
         } catch (error: unknown) {
             console.error(`Error fetching booking ${bookingId}:`, error);
             return null;
@@ -69,7 +69,6 @@ const FeedbackManagement: React.FC = () => {
             );
             const feedbackData = response.data;
 
-            // Lấy thông tin booking cho từng feedback
             const enhancedFeedbacks = await Promise.all(
                 feedbackData.map(async (feedback) => {
                     const booking = await fetchBookingById(feedback.bookingId);
@@ -100,7 +99,6 @@ const FeedbackManagement: React.FC = () => {
             );
             const feedbackData = response.data;
 
-            // Lấy thông tin booking cho từng feedback
             const enhancedFeedbacks = await Promise.all(
                 feedbackData.map(async (feedback) => {
                     const booking = await fetchBookingById(feedback.bookingId);
@@ -122,17 +120,31 @@ const FeedbackManagement: React.FC = () => {
         }
     }, []);
 
-    // Fixed closeBooking function to address the 400 error
     const closeBooking = async (bookingId: string): Promise<void> => {
         try {
             setLoading(true);
 
-            // Send the ID in the request body instead of as a query parameter
+            const accessToken = localStorage.getItem("accessToken");
+            console.log("Access Token:", accessToken);
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
+
+            const headers = {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+                Accept: "*/*",
+            };
+
+            console.log("Closing booking with ID:", bookingId);
             const response = await axios.post(
-                `${API_BASE_URL}/Booking/Close_Booking`,
-                { id: bookingId },
-                { headers: getAuthHeaders() }
+                `${API_BASE_URL}/Booking/Close_Booking?id=${bookingId}`,
+                null,
+                { headers }
             );
+
+            console.log("API Response:", response.data);
 
             if (response.status === 200) {
                 message.success("Booking closed successfully!");
@@ -144,13 +156,17 @@ const FeedbackManagement: React.FC = () => {
             }
         } catch (error: unknown) {
             console.error("Error closing booking:", error);
-
-            // Enhanced error logging to provide more details
             if (axios.isAxiosError(error) && error.response) {
                 console.error("API Error Response:", error.response.data);
-                message.error(`Failed to close booking: ${error.response.data?.message || 'Server returned an error'}`);
+                const errorMessage = error.response.data?.message || "Server returned an error";
+                message.error(`Failed to close booking: ${errorMessage}`);
+                if (error.response.status === 401) {
+                    message.error("Session expired. Please log in again.");
+                    // Có thể thêm logic chuyển hướng đến trang login
+                    // window.location.href = "/login";
+                }
             } else {
-                message.error("Failed to close booking!");
+                message.error("Failed to close booking: Unknown error");
             }
         } finally {
             setLoading(false);
@@ -206,7 +222,7 @@ const FeedbackManagement: React.FC = () => {
             title: "Status",
             key: "status",
             render: (_: unknown, record: EnhancedFeedback) => {
-                const isClosed = record.status === 4;
+                const isClosed = record.status === 4; // Giả sử 4 là trạng thái "Closed"
                 const isProcessing = !isClosed && record.status !== 3;
 
                 if (isClosed) {
