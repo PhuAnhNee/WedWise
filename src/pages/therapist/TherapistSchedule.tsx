@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AuthService from '../service/AuthService';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import toast from 'react-hot-toast';
 
 interface Schedule {
     scheduleId: string;
@@ -14,7 +15,7 @@ interface Schedule {
 const TherapistSchedule = () => {
     const [schedule, setSchedule] = useState<Schedule[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-
+    
     useEffect(() => {
         const fetchSchedule = async () => {
             const token = AuthService.getToken();
@@ -48,8 +49,8 @@ const TherapistSchedule = () => {
         fetchSchedule();
     }, []);
 
-    const formatDate = (date: Date) => date.toISOString().split('T')[0]; // Lấy phần ngày (YYYY-MM-DD)
-    const markedDates = schedule.map(slot => formatDate(new Date(slot.date))); // Lọc ngày từ dữ liệu API
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    const markedDates = new Set(schedule.map(slot => formatDate(new Date(slot.date))));
 
     const handleDelete = async (scheduleItem: Schedule) => {
         const token = AuthService.getToken();
@@ -65,8 +66,6 @@ const TherapistSchedule = () => {
             slot: scheduleItem.slot,
             isAvailable: false
         }];
-
-        console.log('Dữ liệu gửi đi:', JSON.stringify(requestData, null, 2));
 
         try {
             const response = await fetch(
@@ -88,8 +87,10 @@ const TherapistSchedule = () => {
             setSchedule(prevSchedule => prevSchedule.map(slot =>
                 slot.scheduleId === scheduleItem.scheduleId ? { ...slot, isAvailable: false } : slot
             ));
+            toast.success("Xóa lịch thành công!");
         } catch (error) {
             console.error('Lỗi khi cập nhật lịch:', error);
+            toast.error("Không thể xóa lịch, vui lòng thử lại!");
         }
     };
 
@@ -101,7 +102,7 @@ const TherapistSchedule = () => {
                     onChange={(value) => setSelectedDate(value as Date | null)} 
                     value={selectedDate} 
                     tileClassName={({ date }) => 
-                        markedDates.includes(formatDate(date)) ? 'bg-green-300 text-white font-bold rounded-lg' : 'hover:bg-gray-200 rounded-lg'
+                        markedDates.has(formatDate(date)) ? 'bg-green-300 text-white font-bold rounded-lg' : 'hover:bg-gray-200 rounded-lg'
                     }
                     className="mb-6 border rounded-xl shadow-md p-2"
                 />
@@ -110,20 +111,19 @@ const TherapistSchedule = () => {
                 <div className="bg-gray-50 p-5 rounded-xl shadow-md mt-4">
                     <h3 className="text-xl font-semibold mb-4 text-center">Lịch làm việc ngày {selectedDate.toLocaleDateString()}</h3>
                     <ul>
-                        {schedule.filter(slot => {
-                            const scheduleDate = new Date(slot.date);
-                            scheduleDate.setDate(scheduleDate.getDate() - 1); 
-                            return formatDate(scheduleDate) === formatDate(selectedDate);
-                        }).map((slot) => (
-                            <li key={slot.scheduleId} className="p-4 bg-white rounded-lg shadow-md mb-3 flex justify-between items-center border border-gray-200">
-                                <span><strong>Slot:</strong> {slot.slot} | <strong> Tình trạng:</strong> {slot.isAvailable ? 'Còn trống' : 'Đã đặt'}</span>
-                                <button 
-                                    onClick={() => handleDelete(slot)} 
-                                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
-                                >
-                                    Delete
-                                </button>
-                            </li>
+                        {schedule.filter(slot => formatDate(new Date(slot.date)) === formatDate(selectedDate))
+                            .map((slot) => (
+                                <li key={slot.scheduleId} className="p-4 bg-white rounded-lg shadow-md mb-3 flex justify-between items-center border border-gray-200">
+                                    <span><strong>Slot:</strong> {slot.slot} | <strong> Tình trạng:</strong> {slot.isAvailable ? 'Còn trống' : 'Đã đặt'}</span>
+                                    {slot.isAvailable && (
+                                        <button 
+                                            onClick={() => handleDelete(slot)} 
+                                            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
+                                        >
+                                            Xóa
+                                        </button>
+                                    )}
+                                </li>
                         ))}
                     </ul>
                 </div>
