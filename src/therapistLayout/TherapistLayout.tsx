@@ -18,7 +18,7 @@ const TherapistLayout = () => {
     { path: "/therapist/calendar", label: "Calendar", icon: "📅" },
     { path: "/therapist/booking-list", label: "Booking List", icon: "📋" },
     { path: "/therapist/pending-booking", label: "Pending Booking", icon: "⏳" },
-    { path: "/therapist/wallets", label: "Wallets", icon: "💰" },
+    { path: "/therapist/therapist-wallets", label: "Wallets", icon: "💰" },
     { path: "/therapist/complete-booking", label: "Complete Booking", icon: "✅" },
   ];
 
