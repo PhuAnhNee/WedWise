@@ -42,9 +42,23 @@ const TherapistDetail: React.FC = () => {
     if (!therapist?.schedules) return [];
     return therapist.schedules.filter((s: any) => {
       const scheduleDate = dayjs(s.date).format("YYYY-MM-DD");
-      return scheduleDate === date.format("YYYY-MM-DD") && s.isAvailable;
+      // Change this line to check status === 0 (available) instead of isAvailable
+      return scheduleDate === date.format("YYYY-MM-DD") && s.status === 0;
     });
   };
+  // Add this function to get the time range based on slot number
+const getTimeRangeBySlot = (slot: number) => {
+  switch (slot) {
+    case 1: return "7:30 - 9:00";
+    case 2: return "9:30 - 11:00";
+    case 3: return "11:30 - 13:00";
+    case 4: return "13:30 - 15:00";
+    case 5: return "15:30 - 17:00";
+    case 6: return "17:30 - 19:00";
+    case 7: return "19:30 - 21:00";
+    default: return `Slot ${slot}`;
+  }
+};
 
   const handleDateChange = (date: Dayjs | null) => {
     setSelectedDate(date);
@@ -313,27 +327,26 @@ const showErrorNotification = (errorMessage: string) => {
   }}
 />
 
-
         
         {selectedDate && (
           <>
             <Title level={4} className="mt-4">Chọn giờ</Title>
             {filterSchedulesByDate(selectedDate).length > 0 ? (
               <Radio.Group 
-                className="w-full grid grid-cols-1 md:grid-cols-2 gap-2" 
-                value={selectedSchedule}
-                onChange={(e) => setSelectedSchedule(e.target.value)}
-              >
-                {filterSchedulesByDate(selectedDate).map((schedule: any) => (
-                  <Radio.Button 
-                    key={schedule.scheduleId} 
-                    value={schedule}
-                    className="text-center"
-                  >
-                    {dayjs(schedule.date).format("HH:mm")} - Slot {schedule.slot}
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
+              className="w-full grid grid-cols-1 md:grid-cols-2 gap-2" 
+              value={selectedSchedule}
+              onChange={(e) => setSelectedSchedule(e.target.value)}
+            >
+              {filterSchedulesByDate(selectedDate).map((schedule: any) => (
+                <Radio.Button 
+                  key={schedule.scheduleId} 
+                  value={schedule}
+                  className="text-center"
+                >
+                  {getTimeRangeBySlot(schedule.slot)}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
             ) : (
               <div className="text-center text-red-500 my-4 p-4 border border-red-200 rounded-md bg-red-50">
                 Không có lịch trống cho ngày này. Vui lòng chọn ngày khác.
