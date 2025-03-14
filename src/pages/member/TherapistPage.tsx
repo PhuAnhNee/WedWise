@@ -25,7 +25,7 @@ const TherapistPage: React.FC = () => {
 
   const fetchTherapists = async () => {
     try {
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = localStorage.getItem("token");
       if (!accessToken) {
         console.error("Unauthorized: No access token found.");
         return;
