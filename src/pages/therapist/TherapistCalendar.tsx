@@ -17,7 +17,7 @@ interface Schedule {
   therapistId: string;
   date: string;
   slot: number;
-  isAvailable: boolean;
+  status: number; 
 }
 const TherapistCalendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -147,7 +147,7 @@ const TherapistCalendar = () => {
         therapistId: therapistId, 
         date: dateToSend.toISOString(), 
         slot: selectedSlot, 
-        isAvailable: true,
+        status: 0, // 0 means available
       }
     ];
   
@@ -188,7 +188,7 @@ const TherapistCalendar = () => {
       therapistId: scheduleItem.therapistId,
       date: scheduleItem.date,
       slot: scheduleItem.slot,
-      isAvailable: false
+      status: 2 // 2 means unavailable
     }];
     try {
       const response = await fetch(
@@ -223,17 +223,18 @@ const TherapistCalendar = () => {
     });
   };
   // Check if a slot is scheduled for the selected date
-  const isSlotScheduled = (slotId: number) => {
-    return getSchedulesForSelectedDate().some(
-      schedule => schedule.slot === slotId && schedule.isAvailable
-    );
-  };
-  // Get schedule item by slot ID
-  const getScheduleBySlot = (slotId: number) => {
-    return getSchedulesForSelectedDate().find(
-      schedule => schedule.slot === slotId && schedule.isAvailable
-    );
-  };
+const isSlotScheduled = (slotId: number) => {
+  return getSchedulesForSelectedDate().some(
+    schedule => schedule.slot === slotId && schedule.status === 0
+  );
+};
+
+// Get schedule item by slot ID
+const getScheduleBySlot = (slotId: number) => {
+  return getSchedulesForSelectedDate().find(
+    schedule => schedule.slot === slotId && schedule.status === 0
+  );
+};
   const daysInMonth = getDaysInMonth(selectedDate);
   const startDay = startOfMonth(selectedDate).getDay();
   const schedulesForSelectedDate = getSchedulesForSelectedDate();
@@ -294,7 +295,7 @@ const TherapistCalendar = () => {
               const hasSchedule = schedule.some(slot => {
                 const scheduleDate = new Date(slot.date);
                 scheduleDate.setDate(scheduleDate.getDate() - 1);
-                return formatDate(scheduleDate) === formatDate(currentDate) && slot.isAvailable;
+                return formatDate(scheduleDate) === formatDate(currentDate) && slot.status === 0;
               });
               return (
                 <button
