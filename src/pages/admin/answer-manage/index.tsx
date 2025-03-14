@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Modal, Input, Button, List, message } from "antd";
+import { Table, Modal, Input, Button, List, message, InputNumber } from "antd";
 import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import axios, { AxiosError } from "axios";
 
@@ -42,10 +42,11 @@ const AdminQuiz: React.FC = () => {
     const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
     const [editingAnswer, setEditingAnswer] = useState<Answer | null>(null);
     const [editContent, setEditContent] = useState<string>("");
+    const [editScore, setEditScore] = useState<number>(0);
     const [addingAnswerForQuestion, setAddingAnswerForQuestion] = useState<string | null>(null);
     const [newAnswerContent, setNewAnswerContent] = useState<string>("");
+    const [newAnswerScore, setNewAnswerScore] = useState<number>(0);
 
-    // Fetch danh sách quiz
     const fetchQuizzes = async () => {
         try {
             const response = await axios.get<Quiz[]>(`${API_BASE_URL}/Quiz/Get_All_Quiz`);
@@ -57,7 +58,6 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    // Fetch danh sách category
     const fetchCategories = async () => {
         try {
             const response = await axios.get<Category[]>(`${API_BASE_URL}/Category/Get_All_Categories`);
@@ -71,7 +71,6 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    // Fetch danh sách câu hỏi
     const fetchQuestions = async () => {
         try {
             const response = await axios.get<Question[]>(`${API_BASE_URL}/Question/Get_All_Question`);
@@ -83,7 +82,6 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    // Fetch danh sách câu trả lời
     const fetchAnswers = async () => {
         try {
             const response = await axios.get<Answer[]>(`${API_BASE_URL}/Answer/Get_All_Answer`);
@@ -102,23 +100,23 @@ const AdminQuiz: React.FC = () => {
         fetchAnswers();
     }, []);
 
-    // Mở modal để xem câu hỏi và câu trả lời
     const handleViewAnswers = (quiz: Quiz) => {
         setSelectedQuiz(quiz);
         setEditingAnswer(null);
         setEditContent("");
+        setEditScore(0);
         setAddingAnswerForQuestion(null);
         setNewAnswerContent("");
+        setNewAnswerScore(0);
         setIsAnswerModalOpen(true);
     };
 
-    // Bật chế độ thêm câu trả lời cho câu hỏi cụ thể
     const handleStartAddingAnswer = (questionId: string) => {
         setAddingAnswerForQuestion(questionId);
         setNewAnswerContent("");
+        setNewAnswerScore(0);
     };
 
-    // Thêm câu trả lời mới
     const handleAddAnswer = async (questionId: string) => {
         try {
             const accessToken = localStorage.getItem("accessToken");
@@ -135,15 +133,16 @@ const AdminQuiz: React.FC = () => {
             const payload = {
                 questionId: questionId,
                 answerContent: newAnswerContent,
-                score: 0, // Giá trị mặc định
+                score: newAnswerScore,
             };
 
             const response = await axios.post(`${API_BASE_URL}/Answer/Create_Answer`, payload, { headers });
             console.log("Create Answer Response:", response.data);
             message.success("Answer added successfully!");
             setNewAnswerContent("");
-            setAddingAnswerForQuestion(null); // Ẩn form sau khi thêm
-            fetchAnswers(); // Cập nhật danh sách câu trả lời
+            setNewAnswerScore(0);
+            setAddingAnswerForQuestion(null);
+            fetchAnswers();
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error details:", err.response?.data || err.message);
@@ -151,7 +150,6 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    // Cập nhật câu trả lời
     const handleUpdateAnswer = async (answer: Answer) => {
         try {
             const accessToken = localStorage.getItem("accessToken");
@@ -165,7 +163,7 @@ const AdminQuiz: React.FC = () => {
                 answerId: answer.answerId,
                 questionId: answer.questionId,
                 answerContent: editContent || answer.answerContent,
-                score: answer.score || 0,
+                score: editScore,
             };
 
             const response = await axios.post(`${API_BASE_URL}/Answer/Update_Answer`, payload, { headers });
@@ -173,7 +171,8 @@ const AdminQuiz: React.FC = () => {
             message.success("Answer updated successfully!");
             setEditingAnswer(null);
             setEditContent("");
-            fetchAnswers(); // Cập nhật danh sách câu trả lời
+            setEditScore(0);
+            fetchAnswers();
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error details:", err.response?.data || err.message);
@@ -181,13 +180,12 @@ const AdminQuiz: React.FC = () => {
         }
     };
 
-    // Chọn câu trả lời để chỉnh sửa
     const handleEditAnswer = (answer: Answer) => {
         setEditingAnswer(answer);
         setEditContent(answer.answerContent);
+        setEditScore(answer.score);
     };
 
-    // Cột bảng quiz (không có ID)
     const columns = [
         { title: "Quiz Title", dataIndex: "name", key: "name" },
         {
@@ -214,7 +212,6 @@ const AdminQuiz: React.FC = () => {
 
             <Table dataSource={quizzes} columns={columns} rowKey="quizId" pagination={{ pageSize: 5 }} />
 
-            {/* Modal xem và chỉnh sửa câu trả lời */}
             <Modal
                 title={`Answers for ${selectedQuiz?.name}`}
                 open={isAnswerModalOpen}
@@ -222,8 +219,10 @@ const AdminQuiz: React.FC = () => {
                     setIsAnswerModalOpen(false);
                     setEditingAnswer(null);
                     setEditContent("");
+                    setEditScore(0);
                     setAddingAnswerForQuestion(null);
                     setNewAnswerContent("");
+                    setNewAnswerScore(0);
                 }}
                 footer={null}
                 width={800}
@@ -253,15 +252,29 @@ const AdminQuiz: React.FC = () => {
                                                 ]}
                                             >
                                                 {editingAnswer?.answerId === answer.answerId ? (
-                                                    <Input.TextArea
-                                                        value={editContent}
-                                                        onChange={(e) => setEditContent(e.target.value)}
-                                                        onPressEnter={() => handleUpdateAnswer(answer)}
-                                                        onBlur={() => handleUpdateAnswer(answer)}
-                                                        autoFocus
-                                                    />
+                                                    <div style={{ width: "100%" }}>
+                                                        <Input.TextArea
+                                                            value={editContent}
+                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                            style={{ marginBottom: "10px" }}
+                                                        />
+                                                        <InputNumber
+                                                            value={editScore}
+                                                            onChange={(value) => setEditScore(value ?? 0)}
+                                                            style={{ marginBottom: "10px", width: "100px" }}
+                                                        />
+                                                        <Button
+                                                            type="primary"
+                                                            onClick={() => handleUpdateAnswer(answer)}
+                                                            style={{ marginLeft: "10px" }}
+                                                        >
+                                                            Save
+                                                        </Button>
+                                                    </div>
                                                 ) : (
-                                                    answer.answerContent
+                                                    <div>
+                                                        {answer.answerContent} (Score: {answer.score})
+                                                    </div>
                                                 )}
                                             </List.Item>
                                         )}
@@ -275,6 +288,12 @@ const AdminQuiz: React.FC = () => {
                                                         value={newAnswerContent}
                                                         onChange={(e) => setNewAnswerContent(e.target.value)}
                                                         style={{ marginBottom: "10px" }}
+                                                    />
+                                                    <InputNumber
+                                                        placeholder="Score"
+                                                        value={newAnswerScore}
+                                                        onChange={(value) => setNewAnswerScore(value ?? 0)}
+                                                        style={{ marginBottom: "10px", width: "100px" }}
                                                     />
                                                     <Button
                                                         type="primary"
