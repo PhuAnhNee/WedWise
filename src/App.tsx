@@ -70,7 +70,6 @@ const App: React.FC = () => {
           <Route path="pending-booking" element={<TherapistPendingBooking />} />
           <Route path="wallets" element={<Wallet />} />
           <Route path="complete-booking" element={<TherapistCompleteBooking />} />
-
         </Route>
       </Routes>
     </Router>
