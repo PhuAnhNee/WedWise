@@ -266,21 +266,33 @@ const MyBooking: React.FC = () => {
     setIsModalVisible(false); // Hide the booking details modal
   };
 
-  // Function to format date for display
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
+ // Add this function to get the time range based on slot number
+const getTimeRangeBySlot = (slot: number) => {
+  switch (slot) {
+    case 1: return "7:30 - 9:00";
+    case 2: return "9:30 - 11:00";
+    case 3: return "11:30 - 13:00";
+    case 4: return "13:30 - 15:00";
+    case 5: return "15:30 - 17:00";
+    case 6: return "17:30 - 19:00";
+    case 7: return "19:30 - 21:00";
+    default: return `Slot ${slot}`;
+  }
+};
+
+// Function to format date for display
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    return dateString;
+  }
+};
 
   // Get status text based on the status code
   const getStatusText = (status: number) => {
@@ -343,12 +355,19 @@ const MyBooking: React.FC = () => {
       
       {/* Display schedule date instead of booking date */}
       <p className="text-gray-600">
-        <span className="font-medium">Ngày hẹn:</span> {
-          booking.schedule && booking.schedule.date 
-            ? formatDate(booking.schedule.date) 
-            : formatDate(booking.bookingDate)
-        }
-      </p>
+  <span className="font-medium">Ngày hẹn:</span> {
+    booking.schedule && booking.schedule.date 
+      ? formatDate(booking.schedule.date) 
+      : formatDate(booking.bookingDate)
+  }
+</p>
+<p className="text-gray-600">
+  <span className="font-medium">Giờ hẹn:</span> {
+    booking.schedule && booking.schedule.slot 
+      ? getTimeRangeBySlot(booking.schedule.slot) 
+      : "Không có thông tin"
+  }
+</p>
       
       {booking.status === 3 && (booking.hasFeedback || booking.feedback) && (
   <div className="mt-2">
@@ -429,16 +448,23 @@ const MyBooking: React.FC = () => {
       </div>
     </div>
     
-    <p>
+    {/* <p>
       <span className="font-medium">Mã đặt lịch:</span> {selectedBooking.bookingId}
-    </p>
+    </p> */}
     <p>
-      <span className="font-medium">Ngày giờ hẹn:</span> {
-        selectedBooking.schedule && selectedBooking.schedule.date 
-          ? formatDate(selectedBooking.schedule.date) 
-          : formatDate(selectedBooking.bookingDate)
-      }
-    </p>
+  <span className="font-medium">Ngày hẹn:</span> {
+    selectedBooking.schedule && selectedBooking.schedule.date 
+      ? formatDate(selectedBooking.schedule.date) 
+      : formatDate(selectedBooking.bookingDate)
+  }
+</p>
+<p>
+  <span className="font-medium">Giờ hẹn:</span> {
+    selectedBooking.schedule && selectedBooking.schedule.slot 
+      ? getTimeRangeBySlot(selectedBooking.schedule.slot)
+      : "Không có thông tin"
+  }
+</p>
     
     {/* Add meet URL if available */}
     {selectedBooking.therapist && selectedBooking.therapist.meetUrl && (
