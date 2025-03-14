@@ -30,7 +30,7 @@ import TherapistProfile from "./pages/therapist/TherapistProfile";
 import TherapistCalendar from "./pages/therapist/TherapistCalendar";
 import TherapistLayout from "./therapistLayout/TherapistLayout";
 import Wallet from "./pages/member/Wallet";
-import TherapistSchedule from "./pages/therapist/TherapistSchedule";
+// import TherapistSchedule from "./pages/therapist/TherapistSchedule";
 import TherapistBookingList from "./pages/therapist/TherapistBookingList";
 import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPage";
 import TherapistCompleteBooking from "./pages/therapist/TherapistCompleteBooking";
@@ -68,7 +68,7 @@ const App: React.FC = () => {
           <Route path="profile" element={<TherapistProfile />} />
           <Route path="booking-list" element={<TherapistBookingList />} />
           <Route path="calendar" element={<TherapistCalendar />} />
-          <Route path="schedule" element={<TherapistSchedule />} />
+          {/* <Route path="schedule" element={<TherapistSchedule />} /> */}
           <Route path="pending-booking" element={<TherapistPendingBooking />} />
           <Route path="wallets" element={<Wallet />} />
           <Route path="complete-booking" element={<TherapistCompleteBooking />} />
