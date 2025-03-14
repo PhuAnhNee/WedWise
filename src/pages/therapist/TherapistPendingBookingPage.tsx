@@ -137,13 +137,13 @@ const TherapistPendingBooking = () => {
             <p><strong>Member ID:</strong> {booking.memberId}</p>
             <p><strong>Trạng thái:</strong> {statusMap[booking.status] || "Không xác định"}</p>
             <p><strong>Phí:</strong> {booking.fee ? `${booking.fee} VND` : 'Miễn phí'}</p>
-            <p><strong>Ngày Booking:</strong> {new Date(booking.createdAt).toLocaleString()}</p>
+            {/* <p><strong>Ngày Booking:</strong> {new Date(booking.createdAt).toLocaleString()}</p> */}
             <p><strong>Ngày tư vấn:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleString() : 'Chưa có thông tin'}</p>
-            {booking.meetUrl && (
+            {/* {booking.meetUrl && (
               <div>
                 <p><strong>Link tư vấn:</strong> <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer">Join meeting</a></p>
               </div>
-            )}
+            )} */}
 
                     <div className="flex space-x-4 mt-4 justify-between">
                       
