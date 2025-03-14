@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, Avatar, Spin, Button, Form, Input, Switch, notification } from "antd";
-import { EditOutlined, SaveOutlined, CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+import { EditOutlined, SaveOutlined, CheckCircleFilled, CloseCircleFilled, UserOutlined, DollarOutlined, LinkOutlined } from "@ant-design/icons";
 import axios from "axios";
 import AuthService from "../service/AuthService";
 
@@ -40,7 +40,6 @@ const Profile = () => {
         setLoading(false);
         return;
       }
-
       try {
         const { data } = await axios.get<TherapistProfile>(
           "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
@@ -58,9 +57,8 @@ const Profile = () => {
         setLoading(false);
       }
     };
-
     fetchProfile();
-  }, [therapistId]);
+  }, [therapistId, form]);
 
   const handleUpdate = async (values: Partial<TherapistProfile>) => {
     const token = AuthService.getToken();
@@ -68,7 +66,6 @@ const Profile = () => {
       showNotification("error", "Lỗi", "Bạn chưa đăng nhập hoặc token không hợp lệ");
       return;
     }
-
     try {
       await axios.post(
         "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
@@ -83,49 +80,184 @@ const Profile = () => {
     }
   };
 
-  if (loading) return <Spin size="large" className="flex justify-center items-center h-screen" />;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <>
       {contextHolder}
-      <div className="flex justify-center items-center h-full bg-gray-100 p-6">
-        <Card className="max-w-lg w-full" hoverable>
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 p-6">
+        <Card 
+          className="max-w-lg w-full" 
+          style={{ 
+            background: "#ffffff", 
+            borderRadius: "12px",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)" 
+          }}
+        >
           {editing ? (
-            <Form layout="vertical" form={form} onFinish={handleUpdate}>
-              <Form.Item label="Tên trị liệu viên" name="therapistName">
-                <Input />
+            <Form 
+              layout="vertical" 
+              form={form} 
+              onFinish={handleUpdate}
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Chỉnh sửa hồ sơ</h2>
+              </div>
+              
+              <Form.Item 
+                label={<span className="text-gray-700">Tên trị liệu viên</span>} 
+                name="therapistName"
+                rules={[{ required: true, message: 'Vui lòng nhập tên' }]}
+              >
+                <Input style={{ borderColor: "#d9d9d9" }} />
               </Form.Item>
-              <Form.Item label="Avatar URL" name="avatar">
-                <Input />
+              
+              <Form.Item 
+                label={<span className="text-gray-700">Avatar URL</span>} 
+                name="avatar"
+              >
+                <Input style={{ borderColor: "#d9d9d9" }} />
               </Form.Item>
-              <Form.Item label="Description" name="description">
-                <Input.TextArea maxLength={100} />
+              
+              <Form.Item 
+                label={<span className="text-gray-700">Mô tả</span>} 
+                name="description"
+              >
+                <Input.TextArea 
+                  maxLength={100} 
+                  style={{ borderColor: "#d9d9d9" }} 
+                />
               </Form.Item>
-              <Form.Item label="Consultation Fee" name="consultationFee">
-                <Input type="number" />
+              
+              <Form.Item 
+                label={<span className="text-gray-700">Phí tư vấn</span>} 
+                name="consultationFee"
+                rules={[{ required: true, message: 'Vui lòng nhập phí tư vấn' }]}
+              >
+                <Input 
+                  type="number" 
+                  prefix="$" 
+                  style={{ borderColor: "#d9d9d9" }} 
+                />
               </Form.Item>
-              <Form.Item label="Meet URL" name="meetUrl">
-                <Input />
+              
+              <Form.Item 
+                label={<span className="text-gray-700">URL cuộc họp</span>} 
+                name="meetUrl"
+              >
+                <Input style={{ borderColor: "#d9d9d9" }} />
               </Form.Item>
-              <Form.Item label="Status" name="status" valuePropName="checked">
+              
+              <Form.Item 
+                label={<span className="text-gray-700">Trạng thái</span>} 
+                name="status" 
+                valuePropName="checked"
+              >
                 <Switch />
               </Form.Item>
-              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>Lưu</Button>
+              
+              <div className="flex space-x-4 justify-center mt-6">
+                <Button 
+                  onClick={() => setEditing(false)} 
+                  style={{ borderColor: "#d9d9d9" }}
+                >
+                  Hủy
+                </Button>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  icon={<SaveOutlined />}
+                  style={{ background: "#595959", borderColor: "#595959" }}
+                >
+                  Lưu
+                </Button>
+              </div>
             </Form>
           ) : (
             <>
               <div className="text-center">
-                <Avatar size={100} src={profile?.avatar} />
-                <h2 className="text-2xl font-bold mt-4">{profile?.therapistName}</h2>
-                <p className="text-gray-600 mt-2">{profile?.description}</p>
+                <div className="relative inline-block">
+                  <Avatar 
+                    size={120} 
+                    src={profile?.avatar} 
+                    style={{ border: "4px solid #f0f0f0" }}
+                    icon={!profile?.avatar ? <UserOutlined /> : undefined}
+                  />
+                  <div 
+                    className="absolute bottom-0 right-0"
+                    style={{ 
+                      width: "20px", 
+                      height: "20px", 
+                      borderRadius: "50%", 
+                      background: profile?.status ? "#52c41a" : "#ff4d4f",
+                      border: "2px solid #ffffff"
+                    }}
+                  />
+                </div>
+                <h2 className="text-2xl font-bold mt-4 text-gray-800">{profile?.therapistName}</h2>
+                <p className="text-gray-500 mt-2">{profile?.description}</p>
               </div>
-              <div className="mt-6">
-                <p><strong>Trạng thái:</strong> {profile?.status ? "Hoạt động" : "Không hoạt động"}</p>
-                <p><strong>Phí tư vấn:</strong> ${profile?.consultationFee}</p>
-                <p><strong>Meet URL:</strong> <a href={profile?.meetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500">Tham gia cuộc họp</a></p>
+              
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center p-3" style={{ background: "#f5f5f5", borderRadius: "8px" }}>
+                  <DollarOutlined style={{ fontSize: "20px", marginRight: "10px", color: "#595959" }} />
+                  <div>
+                    <p className="text-gray-500 text-sm">Phí tư vấn</p>
+                    <p className="text-gray-800 text-lg">${profile?.consultationFee}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-3" style={{ background: "#f5f5f5", borderRadius: "8px" }}>
+                  <LinkOutlined style={{ fontSize: "20px", marginRight: "10px", color: "#595959" }} />
+                  <div>
+                    <p className="text-gray-500 text-sm">Link cuộc họp</p>
+                    <a 
+                      href={profile?.meetUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-600 hover:text-blue-700 break-all text-lg"
+                    >
+                      {profile?.meetUrl || "Chưa thiết lập"}
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-3" style={{ background: "#f5f5f5", borderRadius: "8px" }}>
+                  <div style={{ 
+                    width: "20px", 
+                    height: "20px", 
+                    borderRadius: "50%", 
+                    background: profile?.status ? "#52c41a" : "#ff4d4f",
+                    marginRight: "10px"
+                  }} />
+                  <div>
+                    <p className="text-gray-500 text-sm">Trạng thái</p>
+                    <p className="text-gray-800 text-lg">{profile?.status ? "Đang hoạt động" : "Không hoạt động"}</p>
+                  </div>
+                </div>
               </div>
-              <div className="mt-6 text-center">
-                <Button type="primary" icon={<EditOutlined />} onClick={() => setEditing(true)}>Chỉnh sửa hồ sơ</Button>
+              
+              <div className="mt-8 text-center">
+                <Button 
+                  icon={<EditOutlined />} 
+                  onClick={() => setEditing(true)}
+                  style={{ 
+                    background: "#595959", 
+                    color: "#ffffff", 
+                    borderColor: "#595959", 
+                    fontWeight: "bold",
+                    padding: "0 24px",
+                    height: "40px"
+                  }}
+                >
+                  Chỉnh sửa hồ sơ
+                </Button>
               </div>
             </>
           )}
