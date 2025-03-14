@@ -225,7 +225,7 @@ const TherapistCalendar = () => {
   // Check if a slot is scheduled for the selected date
 const isSlotScheduled = (slotId: number) => {
   return getSchedulesForSelectedDate().some(
-    schedule => schedule.slot === slotId && schedule.status === 0
+    schedule => schedule.slot === slotId && (schedule.status === 0 || schedule.status === 1)
   );
 };
 
@@ -295,7 +295,7 @@ const getScheduleBySlot = (slotId: number) => {
               const hasSchedule = schedule.some(slot => {
                 const scheduleDate = new Date(slot.date);
                 scheduleDate.setDate(scheduleDate.getDate() - 1);
-                return formatDate(scheduleDate) === formatDate(currentDate) && slot.status === 0;
+                return formatDate(scheduleDate) === formatDate(currentDate) && slot.status === 0 ;
               });
               return (
                 <button
