@@ -1,10 +1,7 @@
-// 
-
 import { useState, useEffect } from "react";
-import { format, addMonths, subMonths, startOfMonth, getDaysInMonth, isAfter, startOfToday } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, getDaysInMonth, isAfter, startOfToday, subDays } from "date-fns";
 import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
-
 // Time slot definitions
 const slots = [
   { id: 1, time: "7:30-9:00" },
@@ -15,7 +12,6 @@ const slots = [
   { id: 6, time: "17:30-19:00" },
   { id: 7, time: "19:30-21:00" },
 ];
-
 interface Schedule {
   scheduleId: string;
   therapistId: string;
@@ -23,7 +19,6 @@ interface Schedule {
   slot: number;
   isAvailable: boolean;
 }
-
 const TherapistCalendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -36,7 +31,6 @@ const TherapistCalendar = () => {
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
   const today = startOfToday();
-
   // Fetch therapist's schedule on component mount and whenever selectedDate changes
   useEffect(() => {
     fetchSchedule();
@@ -50,14 +44,12 @@ const TherapistCalendar = () => {
     
     return () => clearInterval(timer);
   }, []);
-
   const fetchSchedule = async () => {
     const token = AuthService.getToken();
     if (!token) {
       console.error('Người dùng chưa đăng nhập hoặc thiếu quyền truy cập.');
       return;
     }
-
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -69,11 +61,9 @@ const TherapistCalendar = () => {
           }
         }
       );
-
       if (!response.ok) {
         throw new Error(`Lỗi: ${response.statusText}`);
       }
-
       const data: Schedule[] = await response.json();
       setSchedule(data);
     } catch (error) {
@@ -83,7 +73,6 @@ const TherapistCalendar = () => {
       setIsLoading(false);
     }
   };
-
   const handlePrevMonth = () => {
     const newDate = subMonths(selectedDate, 1);
     // Only allow going to previous month if it's not before current month
@@ -93,7 +82,6 @@ const TherapistCalendar = () => {
   };
   
   const handleNextMonth = () => setSelectedDate(addMonths(selectedDate, 1));
-
   const handleDateChange = (date: Date) => {
     // Only allow selecting dates that are today or in the future
     if (isAfter(date, subDays(today, 1))) {
@@ -103,14 +91,7 @@ const TherapistCalendar = () => {
       toast.error("Không thể chọn ngày trong quá khứ!");
     }
   };
-
-  // Helper function to subtract days
-  const subDays = (date: Date, days: number) => {
-    const result = new Date(date);
-    result.setDate(result.getDate() - days);
-    return result;
-  };
-
+  
   // Check if a date is before the current month
   const isBeforeCurrentMonth = (date: Date) => {
     const currentMonth = new Date();
@@ -118,16 +99,13 @@ const TherapistCalendar = () => {
            (date.getFullYear() === currentMonth.getFullYear() && 
             date.getMonth() < currentMonth.getMonth());
   };
-
   // Check if a date is in the past
   const isDateInPast = (date: Date) => {
     return !isAfter(date, subDays(today, 1));
   };
-
   const toggleSlot = (id: number) => {
     setSelectedSlot((prev) => (prev === id ? null : id));
   };
-
   const openConfirmModal = () => {
     const token = AuthService.getToken();
     if (!therapistId || !token) {
@@ -136,11 +114,9 @@ const TherapistCalendar = () => {
     }
     setShowModal(true);
   };
-
   const closeConfirmModal = () => {
     setShowModal(false);
   };
-
   const handleConfirm = async () => {
     const token = AuthService.getToken();
   
@@ -201,14 +177,12 @@ const TherapistCalendar = () => {
       toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
     }
   };
-
   const handleDelete = async (scheduleItem: Schedule) => {
     const token = AuthService.getToken();
     if (!token) {
       toast.error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
       return;
     }
-
     const requestData = [{
       scheduleId: scheduleItem.scheduleId,
       therapistId: scheduleItem.therapistId,
@@ -216,7 +190,6 @@ const TherapistCalendar = () => {
       slot: scheduleItem.slot,
       isAvailable: false
     }];
-
     try {
       const response = await fetch(
         'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Update_Schedule',
@@ -229,11 +202,9 @@ const TherapistCalendar = () => {
           body: JSON.stringify(requestData)
         }
       );
-
       if (!response.ok) {
         throw new Error(`Lỗi: ${response.statusText}`);
       }
-
       toast.success('Đã xóa lịch trống thành công!');
       fetchSchedule(); // Refresh schedule after successful deletion
     } catch (error) {
@@ -241,10 +212,8 @@ const TherapistCalendar = () => {
       toast.error('Không thể xóa lịch. Vui lòng thử lại sau.');
     }
   };
-
   // Format date for comparison
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
   // Get schedules for selected date
   const getSchedulesForSelectedDate = () => {
     return schedule.filter(slot => {
@@ -253,21 +222,18 @@ const TherapistCalendar = () => {
       return formatDate(scheduleDate) === formatDate(selectedDate);
     });
   };
-
   // Check if a slot is scheduled for the selected date
   const isSlotScheduled = (slotId: number) => {
     return getSchedulesForSelectedDate().some(
       schedule => schedule.slot === slotId && schedule.isAvailable
     );
   };
-
   // Get schedule item by slot ID
   const getScheduleBySlot = (slotId: number) => {
     return getSchedulesForSelectedDate().find(
       schedule => schedule.slot === slotId && schedule.isAvailable
     );
   };
-
   const daysInMonth = getDaysInMonth(selectedDate);
   const startDay = startOfMonth(selectedDate).getDay();
   const schedulesForSelectedDate = getSchedulesForSelectedDate();
@@ -289,8 +255,6 @@ const TherapistCalendar = () => {
     return format(date, "EEEE, MMMM d, yyyy");
   };
   
-  // Now the line causing the error should work:
-  <h3 className="text-lg font-semibold">{formatDateWithDayName(selectedDate)}</h3>
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
       <Toaster position="top-center" />
@@ -300,8 +264,7 @@ const TherapistCalendar = () => {
           <span className="mr-2">⏰</span>
           <span>Giờ Hà Nội (UTC+7): {formatHanoiTime(currentTime)}</span>
         </div>
-              </div>
-
+      </div>
       <div className="flex flex-col md:flex-row gap-8">
         {/* Calendar section */}
         <div className="w-full md:w-1/2">
@@ -333,7 +296,6 @@ const TherapistCalendar = () => {
                 scheduleDate.setDate(scheduleDate.getDate() - 1);
                 return formatDate(scheduleDate) === formatDate(currentDate) && slot.isAvailable;
               });
-
               return (
                 <button
                   key={i}
@@ -355,7 +317,6 @@ const TherapistCalendar = () => {
             })}
           </div>
         </div>
-
         {/* Slots selection section */}
         <div className="w-full md:w-1/2 space-y-4">
           <h3 className="text-lg font-semibold">{formatDateWithDayName(selectedDate)}</h3>
@@ -375,7 +336,6 @@ const TherapistCalendar = () => {
                       onClick={() => scheduleItem && handleDelete(scheduleItem)} 
                       className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
                     >
-                      
                       Xóa
                     </button>
                   ) : (
@@ -407,7 +367,6 @@ const TherapistCalendar = () => {
           )}
         </div>
       </div>
-
       {/* Schedule summary section */}
       {schedulesForSelectedDate.length > 0 && (
         <div className="mt-8 bg-gray-50 p-5 rounded-xl shadow-md">
@@ -432,7 +391,6 @@ const TherapistCalendar = () => {
           </ul>
         </div>
       )}
-
       {/* Confirmation modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-300 bg-opacity-50 backdrop-blur-sm z-50">
@@ -448,7 +406,6 @@ const TherapistCalendar = () => {
           </div>
         </div>
       )}
-
       {/* Loading indicator */}
       {isLoading && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-30 flex items-center justify-center z-50">
@@ -465,5 +422,4 @@ const TherapistCalendar = () => {
     </div>
   );
 };
-
 export default TherapistCalendar;
