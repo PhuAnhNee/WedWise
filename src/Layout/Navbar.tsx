@@ -54,7 +54,7 @@ const Navbar: React.FC = () => {
   const userMenu = (
     <Menu>
       <Menu.Item key="profile">
-        <Link to="/profile">Profile</Link>
+        <Link to="/home/profile">Profile</Link>
       </Menu.Item>
       <Menu.Item key="settings">
         <Link to="/settings">Settings</Link>
@@ -70,24 +70,22 @@ const Navbar: React.FC = () => {
     <header className="bg-white shadow-md">
       <div className="container mx-auto flex justify-between items-center p-4">
         {/* Logo */}
+        <div className="flex items-center gap-5">
+          <div className="pt-3">
         <h1 className="text-2xl font-bold text-blue-600">
-          <Link to="/">WedWise</Link>
+          <Link to="/home">WedWise</Link>
         </h1>
-
+        </div>
         {/* Navbar */}
-        <nav className="hidden md:flex space-x-6">
+        <nav className="hidden md:flex gap-6">
           <Link to="/home" className="hover:text-blue-500 transition">
             Home
           </Link>
-          <Link to="/getting-married" className="hover:text-blue-500 transition">
-            Getting Married
-          </Link>
+          
           <Link to="/home/quizzes" className="hover:text-blue-500 transition">
             Quizzes
           </Link>
-          <Link to="/counseling" className="hover:text-blue-500 transition">
-            Counseling
-          </Link>
+          
           <Link to="/help" className="hover:text-blue-500 transition">
             Help
           </Link>
@@ -98,7 +96,7 @@ const Navbar: React.FC = () => {
             My Booking
           </Link>
         </nav>
-
+        </div>
         {/* Search & User Info */}
         <div className="flex items-center space-x-4">
           {/* Search Bar */}
