@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { HomeOutlined } from "@ant-design/icons";
+import Marquee from "react-fast-marquee";
+
 const Header: React.FC = () => {
   const navigate = useNavigate(); 
   return (
@@ -11,9 +13,12 @@ const Header: React.FC = () => {
           onClick={() => navigate("/")}
         >
           <HomeOutlined className="text-3xl hover:text-yellow-300 transition duration-300" />
+          <Marquee>
           <h1 className="r text-blue-600 text-2xl font-bold hover:text-gray-200 transition duration-300">
             WedWise.com
           </h1>
+          </Marquee>
+          
         </div>
 
       
