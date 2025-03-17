@@ -129,7 +129,7 @@ const Profile = () => {
     e.preventDefault();
     setIsLoading(true);
     setMessage({ text: '', type: '' });
-
+  
     try {
       const token = AuthService.getToken();
       
@@ -141,8 +141,6 @@ const Profile = () => {
         isActive: profileData.isActive
       };
       
-      console.log("Sending profile update data:", updateData);
-      
       const response = await axios.post<ProfileResponse>(
         'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/Update_Profile',
         updateData,
@@ -153,9 +151,7 @@ const Profile = () => {
           }
         }
       );
-
-      console.log("Profile update response:", response.data);
-      
+  
       if (response.data) {
         setProfileData({
           userId: response.data.userId,
@@ -165,30 +161,30 @@ const Profile = () => {
           avatarUrl: response.data.avatarUrl,
           isActive: response.data.isActive
         });
+  
+        localStorage.setItem("decodedToken", JSON.stringify({
+          ...AuthService.getDecodedToken(),
+          UserId: response.data.userId,
+          Name: response.data.fullName,
+          Phone: response.data.phone,
+          Email: response.data.email,
+          Avatar: response.data.avatarUrl,
+          Role: response.data.role.toString()
+        }));
         
-        const userData = AuthService.getDecodedToken();
-        if (userData) {
-          const updatedUserData = {
-            ...userData,
-            UserId: response.data.userId,
-            Name: response.data.fullName,
-            Phone: response.data.phone,
-            Email: response.data.email,
-            Avatar: response.data.avatarUrl,
-            Role: response.data.role.toString()
-          };
-          localStorage.setItem("decodedToken", JSON.stringify(updatedUserData));
-        }
+        setMessage({ text: 'Profile updated successfully!', type: 'success' });
+        setIsEditing(false);
+  
+        // Reload lại trang sau 1 giây để hiển thị thông báo trước khi reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
-      
-      setMessage({ text: 'Profile updated successfully!', type: 'success' });
-      setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
       let errorMessage = 'Failed to update profile. Please try again later.';
-      
+  
       if (axios.isAxiosError(error) && error.response) {
-        console.error('Error response data:', error.response.data);
         errorMessage = error.response.data.message || errorMessage;
       }
       
@@ -197,6 +193,7 @@ const Profile = () => {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="p-4 max-w-2xl mx-auto">

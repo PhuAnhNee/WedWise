@@ -18,11 +18,17 @@ interface User {
 }
 
 interface Withdrawal {
-    withdrawId?: string;
-    userId: string;
-    amount?: number;
-    status?: string;
-    date?: string;
+    id: string;
+    customerId: string;
+    money: number;
+    status: number; // Changed to number to match API response
+    customer: null | string;
+    createdBy: string;
+    updatedBy: string;
+    createdAt: string;
+    updatedAt: string;
+    createdUser: null | string;
+    updatedUser: null | string;
 }
 
 const lineChartData = [
@@ -50,6 +56,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
     const pageSize = 10;
 
     const getHeaders = () => ({
@@ -89,6 +96,55 @@ const Dashboard = () => {
         }
     };
 
+    const updateWithdrawalStatus = async (withdrawalId: string, newStatus: number) => {
+        setUpdatingWithdrawal(withdrawalId);
+        try {
+            await axios.post(`${API_BASE_URL}/Withdraw/Update_Withdraw`,
+                {
+                    id: withdrawalId,
+                    status: newStatus
+                },
+                {
+                    headers: getHeaders()
+                }
+            );
+            if (selectedUser) {
+                await fetchWithdrawals(selectedUser);
+            }
+        } catch (error) {
+            const err = error as AxiosError;
+            console.error("Error updating withdrawal:", err.response?.data || err.message);
+        } finally {
+            setUpdatingWithdrawal(null);
+        }
+    };
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
+    const getStatusDisplay = (status: number) => {
+        switch (status) {
+            case 0:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
+            case 1:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Accepted</span>;
+            case 2:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>;
+            default:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Unknown</span>;
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -104,7 +160,6 @@ const Dashboard = () => {
         { title: "Withdrawals", value: withdrawals.length.toString(), icon: ShoppingCart, color: "from-amber-500 to-orange-600", percentage: "+0%" },
     ];
 
-    // Pagination logic
     const paginatedUsers = users.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize
@@ -120,7 +175,6 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Stat Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {cardsData.map((card, index) => (
                         <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -148,7 +202,6 @@ const Dashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    {/* Line Chart */}
                     <div className="bg-white p-6 rounded-xl shadow-md">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-800">Sales Performance</h3>
@@ -188,7 +241,6 @@ const Dashboard = () => {
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Pie Chart */}
                     <div className="bg-white p-6 rounded-xl shadow-md">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-800">Traffic Sources</h3>
@@ -231,7 +283,6 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Users Section with Pagination */}
                 <div className="bg-white p-6 rounded-xl shadow-md">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">User Management</h3>
                     {loading && !selectedUser ? (
@@ -286,7 +337,6 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                {/* Withdrawals Modal */}
                 <Modal
                     title={`Withdrawals for ${selectedUser?.fullName}`}
                     open={modalVisible}
@@ -307,20 +357,57 @@ const Dashboard = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {withdrawals.map((withdrawal, index) => (
                                         <tr key={index}>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.withdrawId || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.amount || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.status || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.date || 'N/A'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                ${withdrawal.money.toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {getStatusDisplay(withdrawal.status)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                {formatDate(withdrawal.updatedAt)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {withdrawal.status === 0 && (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => updateWithdrawalStatus(withdrawal.id, 1)}
+                                                            disabled={updatingWithdrawal === withdrawal.id}
+                                                            className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''
+                                                                }`}
+                                                        >
+                                                            {updatingWithdrawal === withdrawal.id ? (
+                                                                <Spin size="small" />
+                                                            ) : (
+                                                                'Accept'
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateWithdrawalStatus(withdrawal.id, 2)}
+                                                            disabled={updatingWithdrawal === withdrawal.id}
+                                                            className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''
+                                                                }`}
+                                                        >
+                                                            {updatingWithdrawal === withdrawal.id ? (
+                                                                <Spin size="small" />
+                                                            ) : (
+                                                                'Reject'
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                     {withdrawals.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                                            <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                                                 No withdrawals found for this user
                                             </td>
                                         </tr>
