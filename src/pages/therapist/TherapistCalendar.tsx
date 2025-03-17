@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, startOfToday, subDays, isAfter } from "date-fns";
+import { format, startOfToday, subDays, isAfter, addHours } from "date-fns";
 import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
 import Calendar from "./therapistComponent/Calendar";
 import SlotList from "./therapistComponent/SlotList";
 import Modal from "./therapistComponent/Modal";
 import ScheduleSummary from "./therapistComponent/ScheduleSummary";
-
 
 interface Schedule {
   scheduleId: string;
@@ -47,27 +46,28 @@ const TherapistCalendar = () => {
   const fetchSchedule = useCallback(async () => {
     const token = AuthService.getToken();
     if (!token) {
-      console.error('Người dùng chưa đăng nhập hoặc thiếu quyền truy cập.');
+      console.error("Người dùng chưa đăng nhập hoặc thiếu quyền truy cập.");
       return;
     }
     try {
       const response = await fetch(
-        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Get_Schedule_By_TherapistId',
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Get_Schedule_By_TherapistId",
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
       if (!response.ok) {
         throw new Error(`Lỗi: ${response.statusText}`);
       }
       const data: Schedule[] = await response.json();
+      console.log("Fetched schedules:", data); // Debug log
       setSchedule(data);
     } catch (error) {
-      console.error('Lỗi khi lấy lịch trình:', error);
-      toast.error('Không thể tải lịch trình. Vui lòng thử lại sau.');
+      console.error("Lỗi khi lấy lịch trình:", error);
+      toast.error("Không thể tải lịch trình. Vui lòng thử lại sau.");
     }
   }, []);
 
@@ -90,17 +90,22 @@ const TherapistCalendar = () => {
     }
   }, [selectedDate, currentMonth, fetchSchedule]);
 
-  const isBeforeCurrentMonth = (date: Date) => {
-    const currentMonth = new Date();
-    return (
-      date.getFullYear() < currentMonth.getFullYear() ||
-      (date.getFullYear() === currentMonth.getFullYear() && date.getMonth() < currentMonth.getMonth())
-    );
+  const adjustToHanoiTime = (date: Date) => {
+    return addHours(date, 7); // Thêm 7 giờ cho múi giờ Hà Nội
   };
 
   const isDateInPast = (date: string) => {
-    const parsedDate = new Date(date);
-    return !isAfter(parsedDate, subDays(today, 1));
+    const parsedDate = adjustToHanoiTime(new Date(date));
+    return !isAfter(parsedDate, subDays(adjustToHanoiTime(today), 1));
+  };
+
+  const isBeforeCurrentMonth = (date: Date) => {
+    const hanoiDate = adjustToHanoiTime(date);
+    const currentMonth = adjustToHanoiTime(new Date());
+    return (
+      hanoiDate.getFullYear() < currentMonth.getFullYear() ||
+      (hanoiDate.getFullYear() === currentMonth.getFullYear() && hanoiDate.getMonth() < currentMonth.getMonth())
+    );
   };
 
   const openConfirmModal = () => {
@@ -133,8 +138,7 @@ const TherapistCalendar = () => {
     setError("");
     setShowModal(false);
 
-    const dateToSend = new Date(selectedDate);
-    dateToSend.setDate(dateToSend.getDate() + 1);
+    const dateToSend = adjustToHanoiTime(new Date(selectedDate));
 
     const requestData = [
       {
@@ -152,7 +156,7 @@ const TherapistCalendar = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(requestData),
         }
@@ -161,15 +165,9 @@ const TherapistCalendar = () => {
       if (!response.ok) {
         throw new Error(responseText || "Lỗi không xác định khi tạo lịch.");
       }
-      const newScheduleItem: Schedule = {
-        scheduleId: Date.now().toString(),
-        therapistId: therapistId,
-        date: dateToSend.toISOString(),
-        slot: selectedSlot,
-        status: 0,
-      };
-      setSchedule((prev) => [...prev, newScheduleItem]);
       toast.success("Lịch đã được tạo thành công!");
+      setSelectedSlot(null); // Reset selectedSlot sau khi tạo
+      await fetchSchedule(); // Làm mới dữ liệu từ API
     } catch (error) {
       console.error("Lỗi khi gửi request:", error);
       toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
@@ -179,7 +177,7 @@ const TherapistCalendar = () => {
   const handleUpdateStatus = async (scheduleItem: Schedule, status: number) => {
     const token = AuthService.getToken();
     if (!token) {
-      toast.error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
+      toast.error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
       return;
     }
     const requestData = [
@@ -193,12 +191,12 @@ const TherapistCalendar = () => {
     ];
     try {
       const response = await fetch(
-        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Update_Schedule',
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Update_Schedule",
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(requestData),
         }
@@ -206,58 +204,58 @@ const TherapistCalendar = () => {
       if (!response.ok) {
         throw new Error(`Lỗi: ${response.statusText}`);
       }
-      setSchedule((prev) =>
-        prev.map((item) =>
-          item.scheduleId === scheduleItem.scheduleId ? { ...item, status } : item
-        )
-      );
-      toast.success('Cập nhật trạng thái thành công!');
+      toast.success("Cập nhật trạng thái thành công!");
+      await fetchSchedule(); // Làm mới dữ liệu từ API
     } catch (error) {
-      console.error('Lỗi khi cập nhật lịch:', error);
-      toast.error('Không thể cập nhật trạng thái. Vui lòng thử lại sau.');
+      console.error("Lỗi khi cập nhật lịch:", error);
+      toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại sau.");
     }
   };
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
-  const getSchedulesForSelectedDate = (): Schedule[] =>
-    schedule.filter((slot) => {
-      const scheduleDate = new Date(slot.date);
-      scheduleDate.setDate(scheduleDate.getDate() - 1);
-      return formatDate(scheduleDate) === formatDate(selectedDate);
+  const getSchedulesForSelectedDate = (): Schedule[] => {
+    const filteredSchedules = schedule.filter((slot) => {
+      const scheduleDate = adjustToHanoiTime(new Date(slot.date));
+      const formattedScheduleDate = formatDate(scheduleDate);
+      const formattedSelectedDate = formatDate(selectedDate);
+      console.log(
+        `Comparing dates - Schedule: ${formattedScheduleDate}, Selected: ${formattedSelectedDate}`
+      ); // Debug log
+      return formattedScheduleDate === formattedSelectedDate;
     });
+    console.log("Filtered schedules for selected date:", filteredSchedules); // Debug log
+    return filteredSchedules;
+  };
 
   const isSlotScheduled = (slotId: number) =>
     getSchedulesForSelectedDate().some(
       (schedule) => schedule.slot === slotId && (schedule.status === 0 || schedule.status === 1 || schedule.status === 2)
     );
 
-  const getScheduleBySlot = (slotId: number): Schedule | null =>
-    getSchedulesForSelectedDate().find((schedule) => schedule.slot === slotId && schedule.status === 0) || null;
+  const getScheduleBySlot = (slotId: number): Schedule | null => {
+    const scheduleItem = getSchedulesForSelectedDate().find((schedule) => schedule.slot === slotId) || null;
+    console.log(`Schedule for slot ${slotId}:`, scheduleItem); // Debug log
+    return scheduleItem;
+  };
 
   const formatHanoiTime = (date: Date) => {
-    const utcDate = new Date(date);
-    const utcTime = utcDate.getTime() + utcDate.getTimezoneOffset() * 60000;
-    const hanoiTime = new Date(utcTime + 7 * 60 * 60 * 1000);
+    const hanoiTime = adjustToHanoiTime(date);
     return format(hanoiTime, "HH:mm:ss");
   };
 
   return (
-    
-    <div className="relative min-h-screen  p-6">
-      
+    <div className="relative min-h-screen p-6">
       <Toaster position="top-center" />
-      
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-center">Quản lý lịch làm việc</h2>
           <div className="flex flex-col items-end space-y-4">
-              
-              <div className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center">
-                <span className="mr-2">⏰</span>
-                <span>HoChiMinh: {formatHanoiTime(currentTime)}</span>
-              </div>
+            <div className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center">
+              <span className="mr-2">⏰</span>
+              <span>HoChiMinh: {formatHanoiTime(currentTime)}</span>
             </div>
+          </div>
         </div>
         <div className="flex flex-col md:flex-row gap-8">
           <Calendar
