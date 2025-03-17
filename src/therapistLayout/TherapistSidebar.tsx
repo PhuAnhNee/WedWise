@@ -68,14 +68,14 @@ const TherapistSidebar = ({
   }, [therapistId]);
 
   const navItems = [
-    { path: "/therapist", label: "Tổng quan", icon: <DashboardOutlined /> },
-    { path: "/therapist/profile", label: "Hồ sơ", icon: <UserOutlined /> },
+    { path: "/therapist", label: "DashBoard", icon: <DashboardOutlined /> },
+    { path: "/therapist/profile", label: "Profile", icon: <UserOutlined /> },
     { path: "/therapist/certificate", label: "Chứng chỉ", icon: <SafetyCertificateOutlined /> },
-    { path: "/therapist/calendar", label: "Lịch hẹn", icon: <CalendarOutlined /> },
-    { path: "/therapist/booking-list", label: "Danh sách đặt hẹn", icon: <FileTextOutlined /> },
-    { path: "/therapist/pending-booking", label: "Chờ xác nhận", icon: <HourglassOutlined /> },
-    { path: "/therapist/therapist-wallets", label: "Ví của tôi", icon: <WalletOutlined /> },
-    { path: "/therapist/complete-booking", label: "Phiên đã hoàn thành", icon: <CheckCircleOutlined /> },
+    { path: "/therapist/calendar", label: "Schedule", icon: <CalendarOutlined /> },
+    { path: "/therapist/therapist-wallets", label: "Wallet", icon: <WalletOutlined /> },
+    { path: "/therapist/booking-list", label: "Booking", icon: <FileTextOutlined /> },
+    { path: "/therapist/pending-booking", label: "On-Going Booking ", icon: <HourglassOutlined /> },
+    { path: "/therapist/complete-booking", label: "Complete Booking", icon: <CheckCircleOutlined /> },
   ];
 
   return (

@@ -27,7 +27,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
   slots,
   handleUpdateStatus,
 }) => {
-  // Filter schedules for the selected date
+ 
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
   const schedulesForSelectedDate = schedules.filter((slot) => {
     const scheduleDate = new Date(slot.date);
@@ -59,6 +59,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
                 className="px-3 py-1 rounded border border-gray-300"
               >
                 <option value={0}>Đang hoạt động</option>
+                <option value={1}>Booked</option>
                 <option value={2}>Không khả dụng</option>
               </select>
             </li>

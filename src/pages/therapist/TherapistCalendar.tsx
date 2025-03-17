@@ -255,7 +255,7 @@ const TherapistCalendar = () => {
               
               <div className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center">
                 <span className="mr-2">⏰</span>
-                <span>Giờ Hà Nội (UTC+7): {formatHanoiTime(currentTime)}</span>
+                <span>HoChiMinh: {formatHanoiTime(currentTime)}</span>
               </div>
             </div>
         </div>
