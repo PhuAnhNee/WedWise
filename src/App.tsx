@@ -15,7 +15,6 @@ import Specification from "./pages/admin/specification/index";
 import Result from "./pages/admin/result/index";
 import Feedback from "./pages/admin/feedback/index";
 import ProfileAdmin from "./pages/admin/profile";
-// import DashboardLayout from "./component/dashboard";
 import DashboardAdmin from "./pages/admin/dashboard/maindb";
 import TherapistPage from "./pages/member/TherapistPage";
 import TherapistDetail from "./pages/member/TherrapistDetail";
@@ -31,7 +30,6 @@ import TherapistProfile from "./pages/therapist/TherapistProfile";
 import TherapistCalendar from "./pages/therapist/TherapistCalendar";
 import TherapistLayout from "./therapistLayout/TherapistLayout";
 import Wallet from "./pages/member/Wallet";
-// import TherapistSchedule from "./pages/therapist/TherapistSchedule";
 import TherapistBookingList from "./pages/therapist/TherapistBookingList";
 import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPage";
 import TherapistCompleteBooking from "./pages/therapist/TherapistCompleteBooking";
@@ -58,7 +56,7 @@ const App: React.FC = () => {
         <Route path="/home" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="therapist" element={<TherapistPage />} />
-          <Route path="therapist/:id" element={<TherapistDetail />} /> {/* Sửa lỗi nested route */}
+          <Route path="therapist/:id" element={<TherapistDetail />} /> 
           <Route path="my-booking" element={<MyBooking />} />
           <Route path="quizzes" element={<QuizPage />} />
           <Route path="quiz/:quizId" element={<QuizDetail />} />
@@ -71,7 +69,6 @@ const App: React.FC = () => {
           <Route path="profile" element={<TherapistProfile />} />
           <Route path="booking-list" element={<TherapistBookingList />} />
           <Route path="calendar" element={<TherapistCalendar />} />
-          {/* <Route path="schedule" element={<TherapistSchedule />} /> */}
           <Route path="pending-booking" element={<TherapistPendingBooking />} />
           <Route path="therapist-wallets" element={<TherapistWallets />} />
           <Route path="complete-booking" element={<TherapistCompleteBooking />} />

@@ -11,7 +11,7 @@ import {
   CheckCircleOutlined,
   LogoutOutlined,
   SettingOutlined,
-  SafetyCertificateOutlined,
+ 
 } from "@ant-design/icons";
 import { Avatar, Button } from "antd";
 import axios from "axios";
@@ -70,7 +70,6 @@ const TherapistSidebar = ({
   const navItems = [
     { path: "/therapist", label: "DashBoard", icon: <DashboardOutlined /> },
     { path: "/therapist/profile", label: "Profile", icon: <UserOutlined /> },
-    { path: "/therapist/certificate", label: "Chứng chỉ", icon: <SafetyCertificateOutlined /> },
     { path: "/therapist/calendar", label: "Schedule", icon: <CalendarOutlined /> },
     { path: "/therapist/therapist-wallets", label: "Wallet", icon: <WalletOutlined /> },
     { path: "/therapist/booking-list", label: "Booking", icon: <FileTextOutlined /> },
