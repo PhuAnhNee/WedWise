@@ -4,13 +4,13 @@ import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
 // Time slot definitions
 const slots = [
-  { id: 1, time: "7:30-9:00" },
-  { id: 2, time: "9:30-11:00" },
-  { id: 3, time: "11:30-13:00" },
-  { id: 4, time: "13:30-15:00" },
-  { id: 5, time: "15:30-17:00" },
-  { id: 6, time: "17:30-19:00" },
-  { id: 7, time: "19:30-21:00" },
+  { id: 1, time: "Bắt đầu 7:30 - Kết thúc 9:00" },
+  { id: 2, time: "Bắt đầu 9:30 - Kết thúc 11:00" },
+  { id: 3, time: "Bắt đầu 11:30 - Kết thúc 13:00" },
+  { id: 4, time: "Bắt đầu 13:30 - Kết thúc 15:00" },
+  { id: 5, time: "Bắt đầu 15:30 - Kết thúc 17:00" },
+  { id: 6, time: "Bắt đầu 17:30 - Kết thúc 19:00" },
+  { id: 7, time: "Bắt đầu 19:30 - Kết thúc 21:00" },
 ];
 interface Schedule {
   scheduleId: string;
@@ -177,41 +177,46 @@ const TherapistCalendar = () => {
       toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
     }
   };
-  const handleDelete = async (scheduleItem: Schedule) => {
+  const handleUpdateStatus = async (scheduleItem: Schedule, status: number) => {
     const token = AuthService.getToken();
     if (!token) {
-      toast.error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
-      return;
+        toast.error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
+        return;
     }
+
     const requestData = [{
-      scheduleId: scheduleItem.scheduleId,
-      therapistId: scheduleItem.therapistId,
-      date: scheduleItem.date,
-      slot: scheduleItem.slot,
-      status: 2 // 2 means unavailable
+        scheduleId: scheduleItem.scheduleId,
+        therapistId: scheduleItem.therapistId,
+        date: scheduleItem.date,
+        slot: scheduleItem.slot,
+        status: status // Truyền status động
     }];
+
     try {
-      const response = await fetch(
-        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Update_Schedule',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData)
+        const response = await fetch(
+            'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Schedule/Update_Schedule',
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Lỗi: ${response.statusText}`);
         }
-      );
-      if (!response.ok) {
-        throw new Error(`Lỗi: ${response.statusText}`);
-      }
-      toast.success('Đã xóa lịch trống thành công!');
-      fetchSchedule(); // Refresh schedule after successful deletion
+
+        toast.success(`Cập nhật trạng thái thành công!`);
+        fetchSchedule(); // Refresh schedule sau khi cập nhật thành công
     } catch (error) {
-      console.error('Lỗi khi cập nhật lịch:', error);
-      toast.error('Không thể xóa lịch. Vui lòng thử lại sau.');
+        console.error('Lỗi khi cập nhật lịch:', error);
+        toast.error('Không thể cập nhật trạng thái. Vui lòng thử lại sau.');
     }
-  };
+};
+
   // Format date for comparison
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
   // Get schedules for selected date
@@ -320,37 +325,41 @@ const getScheduleBySlot = (slotId: number) => {
         </div>
         {/* Slots selection section */}
         <div className="w-full md:w-1/2 space-y-4">
-          <h3 className="text-lg font-semibold">{formatDateWithDayName(selectedDate)}</h3>
-          <div className="border rounded-lg">
-            {slots.map((slot) => {
-              const isScheduled = isSlotScheduled(slot.id);
-              const scheduleItem = getScheduleBySlot(slot.id);
-              
-              return (
-                <div key={slot.id} className={`flex items-center justify-between p-3 border-b last:border-b-0 ${
-                  isScheduled ? 'bg-green-100' : ''
-                }`}>
-                  <span>{`Slot ${slot.id}`}</span>
-                  <span>{slot.time}</span>
-                  {isScheduled ? (
-                    <button 
-                      onClick={() => scheduleItem && handleDelete(scheduleItem)} 
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                    >
-                      Xóa
-                    </button>
-                  ) : (
-                    <input 
-                      type="radio" 
-                      checked={selectedSlot === slot.id} 
-                      onChange={() => toggleSlot(slot.id)} 
-                      className="w-5 h-5"
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+  <h3 className="text-lg font-semibold">{formatDateWithDayName(selectedDate)}</h3>
+  <div className="border rounded-lg">
+    {slots.map((slot) => {
+      const isScheduled = isSlotScheduled(slot.id);
+      const scheduleItem = getScheduleBySlot(slot.id);
+      
+      return (
+        <div key={slot.id} className={`flex items-center justify-between p-3 border-b last:border-b-0 ${
+          isScheduled ? 'bg-green-100' : ''
+        }`}>
+          <span>{`Slot ${slot.id}`}</span>
+          <span>{slot.time}</span>
+          {isScheduled && scheduleItem ? (
+            <select
+              value={scheduleItem.status}
+              onChange={(e) => handleUpdateStatus(scheduleItem, Number(e.target.value))}
+              className="px-3 py-1 rounded border border-gray-300"
+            >
+              <option value="0">Đang hoạt động</option>
+              <option value="2">Không khả dụng</option>
+            </select>
+          ) : (
+            <input 
+              type="radio" 
+              checked={selectedSlot === slot.id} 
+              onChange={() => toggleSlot(slot.id)} 
+              className="w-5 h-5"
+            />
+          )}
+        </div>
+      );
+    })}
+  </div>
+
+
           {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(selectedDate) && (
             <div className="flex gap-4 mt-4">
               <button 
@@ -380,12 +389,13 @@ const getScheduleBySlot = (slotId: number) => {
                   <span>
                     <strong>Slot {schedule.slot}:</strong> {matchingSlot?.time || ''}
                   </span>
-                  <button 
-                    onClick={() => handleDelete(schedule)} 
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-all"
+                  <select 
+                      className="px-3 py-1 rounded border border-gray-300"
+                      onChange={(e) => handleUpdateStatus(schedule, Number(e.target.value))}
                   >
-                    Xóa
-                  </button>
+                      <option value="0">Đang hoạt động</option>
+                      <option value="2">Không khả dụng</option>
+                  </select>
                 </li>
               );
             })}
