@@ -60,6 +60,7 @@ interface Slot {
                     className="px-3 py-1 rounded border border-gray-300"
                   >
                     <option value={0}>Đang hoạt động</option>
+                    <option value={1}>Booked</option>
                     <option value={2}>Không khả dụng</option>
                   </select>
                 ) : (
