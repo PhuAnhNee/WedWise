@@ -1,386 +1,361 @@
-import { useEffect, useState } from "react";
-import { Card, Avatar, Spin, Button, Form, Input, Upload, notification, message, Switch } from "antd"; // Added Switch import
-import {
-  EditOutlined,
-  SaveOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
-  UserOutlined,
-  DollarOutlined,
-  LinkOutlined,
-  UpSquareOutlined,
-} from "@ant-design/icons";
-import axios from "axios";
-import AuthService from "../service/AuthService";
-import type { UploadChangeParam } from "antd/es/upload";
-import type { RcFile, UploadFile } from "antd/es/upload/interface";
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import AuthService from '../service/AuthService';
 
-interface TherapistProfile {
-  therapistName: string;
-  avatar: string;
-  description: string;
-  consultationFee: number;
-  meetUrl: string;
-  status: boolean;
+interface ProfileResponse {
+  userId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  avatarUrl: string;
+  isActive: boolean;
+  role: number;
+}
+
+interface UploadResponse {
+  url: string;
+  message: string;
 }
 
 const Profile = () => {
-  const [profile, setProfile] = useState<TherapistProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [api, contextHolder] = notification.useNotification();
-  const [form] = Form.useForm();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [profileData, setProfileData] = useState({
+    userId: '',
+    fullName: '',
+    phone: '',
+    email: '',
+    avatarUrl: '',
+    isActive: true
+  });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentUser = AuthService.getCurrentUser();
-  const therapistId = currentUser?.UserId;
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
 
-  const showNotification = (type: "success" | "error", message: string, description: string) => {
-    api[type]({
-      message,
-      description,
-      icon: type === "success" ? <CheckCircleFilled style={{ color: "#52c41a" }} /> : <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
-      placement: "topRight",
-      duration: 3,
+  const loadUserProfile = () => {
+    const userData = AuthService.getCurrentUser();
+    if (userData) {
+      setProfileData({
+        userId: userData.UserId,
+        fullName: userData.Name,
+        phone: userData.Phone,
+        email: userData.Email,
+        avatarUrl: userData.Avatar || '',
+        isActive: true
+      });
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileData({
+      ...profileData,
+      [name]: value
     });
   };
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!therapistId) {
-        showNotification("error", "Lỗi", "Không tìm thấy UserId");
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data } = await axios.get<TherapistProfile>(
-          "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
-          { params: { id: therapistId } }
-        );
-        if (data) {
-          setProfile(data);
-          form.setFieldsValue(data);
-        } else {
-          showNotification("error", "Lỗi", "Không tìm thấy hồ sơ");
-        }
-      } catch (error) {
-        showNotification("error", "Lỗi", "Không thể tải hồ sơ");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [therapistId, form]);
+  const handleAvatarClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
-  const handleUpload = async (file: RcFile) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Kiểm tra kích thước file (giới hạn ở 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ text: 'File size exceeds 5MB limit', type: 'error' });
+      return;
+    }
+
+    // Kiểm tra loại file
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setMessage({ text: 'Only JPEG, JPG, PNG, and GIF files are allowed', type: 'error' });
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage({ text: '', type: '' });
 
     try {
-      const token = AuthService.getToken();
-      if (!token) {
-        showNotification("error", "Lỗi", "Bạn chưa đăng nhập hoặc token không hợp lệ");
-        return null;
-      }
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const response = await axios.post(
-        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Storage/upload",
+      const token = AuthService.getToken();
+      const response = await axios.post<UploadResponse>(
+        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Storage/upload',
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          }
         }
       );
 
-      if (response.data.message === "Image uploaded successfully") {
-        return response.data.url; // Return the uploaded image URL
-      } else {
-        showNotification("error", "Lỗi", "Tải ảnh lên thất bại");
-        return null;
+      console.log("Upload response:", response.data);
+      
+      if (response.data.url) {
+        setProfileData(prev => ({
+          ...prev,
+          avatarUrl: response.data.url
+        }));
+        setMessage({ text: 'Image uploaded successfully', type: 'success' });
       }
     } catch (error) {
-      showNotification("error", "Lỗi", "Không thể tải ảnh lên");
-      return null;
+      console.error('Error uploading image:', error);
+      let errorMessage = 'Failed to upload image. Please try again later.';
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response data:', error.response.data);
+        errorMessage = error.response.data.message || errorMessage;
+      }
+      
+      setMessage({ text: errorMessage, type: 'error' });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleUpdate = async (values: Partial<TherapistProfile>) => {
-    const token = AuthService.getToken();
-    if (!token) {
-      showNotification("error", "Lỗi", "Bạn chưa đăng nhập hoặc token không hợp lệ");
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage({ text: '', type: '' });
+  
     try {
-      await axios.post(
-        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Update_Therapist",
-        { therapistId, ...values },
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      const token = AuthService.getToken();
+      
+      const updateData = {
+        userId: profileData.userId,
+        fullName: profileData.fullName,
+        phone: profileData.phone,
+        avatarUrl: profileData.avatarUrl,
+        isActive: profileData.isActive
+      };
+      
+      const response = await axios.post<ProfileResponse>(
+        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/Update_Profile',
+        updateData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
-      // Re-fetch profile to get the updated status from the server
-      const { data: updatedProfile } = await axios.get<TherapistProfile>(
-        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
-        { params: { id: therapistId } }
-      );
-      setProfile(updatedProfile);
-      form.setFieldsValue(updatedProfile);
-      showNotification("success", "Cập nhật thành công", "Thông tin hồ sơ đã được cập nhật!");
-      setEditing(false);
-    } catch (error) {
-      showNotification("error", "Lỗi", "Không thể cập nhật hồ sơ");
-    }
-  };
-
-  const handleUploadChange = (info: UploadChangeParam<UploadFile>) => {
-    if (info.file.status === "done") {
-      const url = info.file.response?.url || (info.file.response as any)?.url; // Handle API response format
-      if (url) {
-        form.setFieldsValue({ avatar: url }); // Update form field with the uploaded URL
-        message.success("Tải ảnh lên thành công!");
+  
+      if (response.data) {
+        setProfileData({
+          userId: response.data.userId,
+          fullName: response.data.fullName,
+          phone: response.data.phone,
+          email: response.data.email,
+          avatarUrl: response.data.avatarUrl,
+          isActive: response.data.isActive
+        });
+  
+        localStorage.setItem("decodedToken", JSON.stringify({
+          ...AuthService.getDecodedToken(),
+          UserId: response.data.userId,
+          Name: response.data.fullName,
+          Phone: response.data.phone,
+          Email: response.data.email,
+          Avatar: response.data.avatarUrl,
+          Role: response.data.role.toString()
+        }));
+        
+        setMessage({ text: 'Profile updated successfully!', type: 'success' });
+        setIsEditing(false);
+  
+        // Reload lại trang sau 1 giây để hiển thị thông báo trước khi reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
-    } else if (info.file.status === "error") {
-      showNotification("error", "Lỗi", "Tải ảnh lên thất bại");
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      let errorMessage = 'Failed to update profile. Please try again later.';
+  
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data.message || errorMessage;
+      }
+      
+      setMessage({ text: errorMessage, type: 'error' });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-gray-100 to-gray-200">
-        <Spin size="large" />
-      </div>
-    );
-  }
+  
 
   return (
-    <>
-      {contextHolder}
-      <div className="flex justify-center items-center min-h-screen p-6 bg-gradient-to-r from-gray-100 to-gray-200">
-        <Card
-          className="w-full max-w-2xl"
-          style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-            padding: "24px",
-          }}
-        >
-          {editing ? (
-            <Form layout="vertical" form={form} onFinish={handleUpdate} className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-extrabold text-gray-900">Chỉnh sửa hồ sơ</h2>
-              </div>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h2 className="text-2xl font-semibold mb-6">My Profile</h2>
+      
+      {message.text && (
+        <div className={`p-4 mb-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {message.text}
+        </div>
+      )}
 
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Họ và Tên</span>}
-                name="therapistName"
-                rules={[{ required: true, message: "Vui lòng nhập tên" }]}
-              >
-                <Input
-                  size="large"
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Nhập tên trị liệu viên"
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
+            <div 
+              className={`w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-4 ${isEditing ? 'cursor-pointer relative' : ''}`} 
+              onClick={handleAvatarClick}
+            >
+              {isUploading ? (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                </div>
+              ) : null}
+              
+              {profileData.avatarUrl ? (
+                <img src={profileData.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-3xl text-gray-400">{profileData.fullName.charAt(0)}</span>
+              )}
+              
+              {isEditing && (
+                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <span className="text-white text-xs">Change Photo</span>
+                </div>
+              )}
+              
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*" 
+                onChange={handleFileChange}
+              />
+            </div>
+            <div>
+              <h3 className="text-xl font-medium">{profileData.fullName}</h3>
+              <p className="text-gray-500">{profileData.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            {isEditing ? 'Cancel' : 'Edit Profile'}
+          </button>
+        </div>
+
+        {isEditing ? (
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={profileData.fullName}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Ảnh đại diện</span>}
-                name="avatar"
-              >
-                <Input.Group compact>
-                  <Form.Item name="avatarUrl" noStyle>
-                    <Input
-                      size="large"
-                      style={{ width: "70%", borderColor: "#d9d9d9", borderRadius: "8px 0 0 8px" }}
-                      placeholder="Nhập URL avatar"
-                      onChange={(e) => form.setFieldsValue({ avatar: e.target.value })} // Sync manual input to avatar field
-                    />
-                  </Form.Item>
-                  <Upload
-                    name="avatar"
-                    customRequest={async ({ file, onSuccess, onError }) => {
-                      const url = await handleUpload(file as RcFile);
-                      if (url) {
-                        onSuccess?.({ url }); // Call onSuccess with the URL
-                      } else {
-                        onError?.(new Error("Upload failed"));
-                      }
-                    }}
-                    onChange={handleUploadChange}
-                    showUploadList={false}
-                    accept="image/*"
-                    beforeUpload={() => false} // Prevent default upload behavior
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={profileData.phone}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    name="avatarUrl"
+                    value={profileData.avatarUrl}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-gray-300 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/avatar.jpg"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAvatarClick}
+                    className="px-4 py-2 bg-gray-200 rounded-r hover:bg-gray-300 transition"
                   >
-                    <Button
-                      size="large"
-                      style={{
-                        width: "30%",
-                        borderColor: "#d9d9d9",
-                        borderRadius: "0 8px 8px 0",
-                        background: "#f0f0f0",
-                        color: "#595959",
-                      }}
-                    >
-                      <UpSquareOutlined />
-                    </Button>
-                  </Upload>
-                </Input.Group>
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Mô tả chuyên môn</span>}
-                name="description"
-              >
-                <Input.TextArea
-                  size="large"
-                  maxLength={100}
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Nhập mô tả"
-                  autoSize={{ minRows: 3, maxRows: 6 }}
+                    Browse
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Click on your avatar image or the Browse button to upload a new photo</p>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  name="isActive"
+                  checked={profileData.isActive}
+                  onChange={(e) => setProfileData({...profileData, isActive: e.target.checked})}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Phí tư vấn</span>}
-                name="consultationFee"
-                rules={[{ required: true, message: "Vui lòng nhập phí tư vấn" }]}
-              >
-                <Input
-                  size="large"
-                  type="number"
-                  prefix="$"
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Nhập phí tư vấn"
-                />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">URL cuộc họp</span>}
-                name="meetUrl"
-              >
-                <Input
-                  size="large"
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Nhập URL cuộc họp"
-                />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Trạng thái</span>}
-                name="status"
-                valuePropName="checked"
-              >
-                <Switch disabled /> {/* Disabled to prevent accidental changes unless intended */}
-              </Form.Item>
-
-              <div className="flex justify-center space-x-6 mt-8">
-                <Button
-                  size="large"
-                  onClick={() => setEditing(false)}
-                  style={{ borderColor: "#d9d9d9", color: "#595959" }}
+                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+                  Active Account
+                </label>
+              </div>
+              
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
-                  Hủy
-                </Button>
-                <Button
-                  size="large"
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SaveOutlined />}
-                  style={{ background: "#595959", borderColor: "#595959" }}
-                >
-                  Lưu
-                </Button>
+                  {isLoading ? 'Updating...' : 'Save Changes'}
+                </button>
               </div>
-            </Form>
-          ) : (
-            <>
-              <div className="text-center mb-8">
-                <div className="relative inline-block">
-                  <Avatar
-                    size={150}
-                    src={profile?.avatar}
-                    style={{ border: "5px solid #f0f0f0", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
-                    icon={!profile?.avatar ? <UserOutlined /> : undefined}
-                  />
-                  <div
-                    className="absolute bottom-0 right-0"
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      background: profile?.status ? "#52c41a" : "#ff4d4f",
-                      border: "3px solid #ffffff",
-                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                </div>
-                <h2 className="text-3xl font-extrabold mt-6 text-gray-900">{profile?.therapistName}</h2>
-                <p className="text-gray-600 mt-4 text-lg">{profile?.description}</p>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Full Name</p>
+                <p className="mt-1">{profileData.fullName}</p>
               </div>
-
-              <div className="mt-10 space-y-6">
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg shadow-md">
-                  <DollarOutlined style={{ fontSize: "24px", marginRight: "12px", color: "#595959" }} />
-                  <div>
-                    <p className="text-gray-500 text-base">Phí tư vấn</p>
-                    <p className="text-gray-900 text-xl font-medium">${profile?.consultationFee}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg shadow-md">
-                  <LinkOutlined style={{ fontSize: "24px", marginRight: "12px", color: "#595959" }} />
-                  <div>
-                    <p className="text-gray-500 text-base">Link cuộc họp</p>
-                    <a
-                      href={profile?.meetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 break-all text-xl font-medium"
-                    >
-                      {profile?.meetUrl || "Chưa thiết lập"}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="flex items-center p-4 bg-gray-50 rounded-lg shadow-md">
-                  <div
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      background: profile?.status ? "#52c41a" : "#ff4d4f",
-                      marginRight: "12px",
-                      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                  <div>
-                    <p className="text-gray-500 text-base">Trạng thái</p>
-                    <p className="text-gray-900 text-xl font-medium">{profile?.status ? "Đã được phê duyệt" : "Chưa được phê duyệt"}</p>
-                  </div>
-                </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Email Address</p>
+                <p className="mt-1">{profileData.email}</p>
               </div>
-
-              <div className="mt-10 text-center">
-                <Button
-                  size="large"
-                  icon={<EditOutlined />}
-                  onClick={() => setEditing(true)}
-                  style={{
-                    background: "#595959",
-                    color: "#ffffff",
-                    borderColor: "#595959",
-                    fontWeight: "bold",
-                    padding: "0 28px",
-                    height: "48px",
-                  }}
-                >
-                  Chỉnh sửa hồ sơ
-                </Button>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                <p className="mt-1">{profileData.phone || 'Not provided'}</p>
               </div>
-            </>
-          )}
-        </Card>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Account Status</p>
+                <p className="mt-1">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${profileData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {profileData.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

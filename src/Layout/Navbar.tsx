@@ -46,10 +46,7 @@ const Navbar: React.FC = () => {
   const userMenu = (
     <Menu className="rounded-lg shadow-lg border border-gray-100">
       <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
-        <Link to="/profile">Profile</Link>
-      </Menu.Item>
-      <Menu.Item key="settings" className="hover:bg-indigo-50 text-gray-900">
-        <Link to="/settings">Settings</Link>
+        <Link to="/home/profile">Profile</Link>
       </Menu.Item>
       <Menu.Divider />
       <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600">
@@ -60,9 +57,7 @@ const Navbar: React.FC = () => {
 
   const navLinks = [
     { to: "/home", label: "Home" },
-    { to: "/getting-married", label: "Getting Married" },
     { to: "/home/quizzes", label: "Quizzes" },
-    { to: "/counseling", label: "Counseling" },
     { to: "/help", label: "Help" },
     { to: "/home/therapist", label: "Find a Therapist" },
     { to: "/home/my-booking", label: "My Booking" },

@@ -21,11 +21,18 @@ interface PaymentUrlResponse {
   url: string;
 }
 
+interface WithdrawResponse {
+  success: boolean;
+  message: string;
+}
+
 const Wallet: React.FC = () => {
   const [balance, setBalance] = useState<number>(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [depositAmount, setDepositAmount] = useState<number>(100);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(100);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isWithdrawLoading, setIsWithdrawLoading] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(true);
 
   useEffect(() => {
@@ -88,9 +95,8 @@ const Wallet: React.FC = () => {
 
         if (!response.ok) throw new Error("Xác nhận thanh toán thất bại");
 
-        alert("Thanh toán thành công! Số dư sẽ được cập nhật.");
-        fetchWalletData();
-        window.history.replaceState(null, "", "https://wed-wise-mu.vercel.app/home/wallet");
+        alert("Thanh toán thành công! Trang sẽ được tải lại.");
+        window.location.href = "https://wed-wise-mu.vercel.app/home/wallet";
       } catch (error) {
         console.error("Lỗi khi xử lý thanh toán:", error);
         alert("Lỗi xử lý thanh toán. Vui lòng liên hệ hỗ trợ.");
@@ -138,7 +144,61 @@ const Wallet: React.FC = () => {
     const paymentUrl = await getPaymentUrl(depositAmount);
     if (paymentUrl) {
       window.open(paymentUrl, "_blank");
-      alert("Sau khi hoàn thành thanh toán, vui lòng tải lại trang để cập nhật số dư.");
+      alert("Sau khi hoàn thành thanh toán, trang sẽ được tải lại.");
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (withdrawAmount <= 0) {
+      alert("Vui lòng nhập số tiền hợp lệ");
+      return;
+    }
+
+    if (withdrawAmount > balance) {
+      alert("Số dư không đủ để thực hiện rút tiền");
+      return;
+    }
+
+    try {
+      setIsWithdrawLoading(true);
+      const token = AuthService.getToken();
+      if (!token) throw new Error("Vui lòng đăng nhập để thực hiện rút tiền");
+
+      const decodedToken = AuthService.getDecodedToken();
+      if (!decodedToken || !decodedToken.UserId) throw new Error("Không thể xác định thông tin người dùng");
+
+      const response = await fetch(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Withdraw/Create_Withdraw",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            customerId: decodedToken.UserId,
+            money: withdrawAmount
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Không thể rút tiền");
+      }
+
+      const data: WithdrawResponse = await response.json();
+      console.log(data);
+      
+      alert("Yêu cầu rút tiền đã được gửi thành công. Trang sẽ được tải lại.");
+      
+      // Reload trang sau khi rút tiền thành công
+      window.location.reload();
+    } catch (error) {
+      console.error("Lỗi khi thực hiện rút tiền:", error);
+      alert(error instanceof Error ? error.message : "Không thể rút tiền. Vui lòng thử lại sau.");
+    } finally {
+      setIsWithdrawLoading(false);
     }
   };
 
@@ -190,6 +250,33 @@ const Wallet: React.FC = () => {
               {isLoading ? "Đang xử lý..." : "Nạp tiền"}
             </motion.button>
           </div>
+        </div>
+
+        {/* Withdraw Section */}
+        <div className="p-6 border-t border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Rút tiền</h2>
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <motion.input
+              type="number"
+              min="1"
+              max={balance}
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+              whileFocus={{ scale: 1.02 }}
+              className="w-full sm:w-48 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all"
+              placeholder="Nhập số tiền"
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleWithdraw}
+              disabled={isWithdrawLoading || withdrawAmount > balance}
+              className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 shadow-md hover:bg-green-700"
+            >
+              {isWithdrawLoading ? "Đang xử lý..." : "Rút tiền"}
+            </motion.button>
+          </div>
+          <p className="text-sm text-gray-600 mt-2">Yêu cầu rút tiền sẽ được xử lý trong vòng 24 giờ làm việc.</p>
         </div>
 
         {/* Transactions Section */}
