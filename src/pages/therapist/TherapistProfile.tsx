@@ -24,12 +24,22 @@ interface TherapistProfile {
   status: boolean;
 }
 
+interface Certificate {
+  certificateId: string;
+  therapistId: string;
+  certificateName: string;
+  certificateUrl: string;
+}
+
 const Profile = () => {
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
+  const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingCertificate, setEditingCertificate] = useState(false);
   const [api, contextHolder] = notification.useNotification();
-  const [form] = Form.useForm();
+  const [profileForm] = Form.useForm();
+  const [certificateForm] = Form.useForm();
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId = currentUser?.UserId;
@@ -44,32 +54,55 @@ const Profile = () => {
     });
   };
 
+  const fetchProfile = async () => {
+    if (!therapistId) {
+      showNotification("error", "Error", "UserId not found");
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data } = await axios.get<TherapistProfile>(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
+        { params: { id: therapistId } }
+      );
+      setProfile(data);
+      profileForm.setFieldsValue(data);
+    } catch (error) {
+      showNotification("error", "Error", "Unable to load profile");
+    }
+  };
+
+  const fetchCertificate = async () => {
+    if (!therapistId) {
+      console.log("No therapistId available");
+      return;
+    }
+    try {
+      console.log("Fetching certificate for therapistId:", therapistId);
+      const { data } = await axios.get(
+        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Certificate/Get_Certificate_By_Therapist_Id?id=${therapistId}`,
+        { headers: { Authorization: `Bearer ${AuthService.getToken()}` } }
+      );
+      console.log("API Response:", data);
+      // Handle both array and single object responses
+      const certificateData = Array.isArray(data) ? (data.length > 0 ? data[0] : null) : data || null;
+      console.log("Processed certificate:", certificateData);
+      setCertificate(certificateData);
+    } catch (error) {
+      console.error("Error fetching certificate:", error);
+      showNotification("error", "Error", "Unable to load certificate");
+      setCertificate(null);
+    }
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!therapistId) {
-        showNotification("error", "Error", "UserId not found");
-        setLoading(false);
-        return;
-      }
-      try {
-        const { data } = await axios.get<TherapistProfile>(
-          "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id",
-          { params: { id: therapistId } }
-        );
-        if (data) {
-          setProfile(data);
-          form.setFieldsValue(data);
-        } else {
-          showNotification("error", "Error", "Profile not found");
-        }
-      } catch (error) {
-        showNotification("error", "Error", "Unable to load profile");
-      } finally {
-        setLoading(false);
-      }
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchProfile(), fetchCertificate()]);
+      setLoading(false);
     };
-    fetchProfile();
-  }, [therapistId, form]);
+    fetchData();
+  }, [therapistId]);
 
   const handleUpload = async (file: RcFile) => {
     const formData = new FormData();
@@ -95,17 +128,28 @@ const Profile = () => {
 
       if (response.data.message === "Image uploaded successfully") {
         return response.data.url;
-      } else {
-        showNotification("error", "Error", "Image upload failed");
-        return null;
       }
+      showNotification("error", "Error", "Image upload failed");
+      return null;
     } catch (error) {
       showNotification("error", "Error", "Unable to upload image");
       return null;
     }
   };
 
-  const handleUpdate = async (values: Partial<TherapistProfile>) => {
+  const handleUploadChange = (info: UploadChangeParam<UploadFile>) => {
+    if (info.file.status === "done") {
+      const url = info.file.response?.url;
+      if (url) {
+        certificateForm.setFieldsValue({ certificateUrl: url });
+        message.success("Image uploaded successfully!");
+      }
+    } else if (info.file.status === "error") {
+      showNotification("error", "Error", "Image upload failed");
+    }
+  };
+
+  const handleUpdateProfile = async (values: Partial<TherapistProfile>) => {
     const token = AuthService.getToken();
     if (!token) {
       showNotification("error", "Error", "Please log in or invalid token");
@@ -122,23 +166,46 @@ const Profile = () => {
         { params: { id: therapistId } }
       );
       setProfile(updatedProfile);
-      form.setFieldsValue(updatedProfile);
+      profileForm.setFieldsValue(updatedProfile);
       showNotification("success", "Update Successful", "Profile information has been updated!");
-      setEditing(false);
+      setEditingProfile(false);
     } catch (error) {
       showNotification("error", "Error", "Unable to update profile");
     }
   };
 
-  const handleUploadChange = (info: UploadChangeParam<UploadFile>) => {
-    if (info.file.status === "done") {
-      const url = info.file.response?.url || (info.file.response as any)?.url;
-      if (url) {
-        form.setFieldsValue({ avatar: url });
-        message.success("Image uploaded successfully!");
-      }
-    } else if (info.file.status === "error") {
-      showNotification("error", "Error", "Image upload failed");
+  const handleCreateCertificate = async (values: { certificateName: string; certificateUrl: string }) => {
+    const token = AuthService.getToken();
+    if (!token || !therapistId) return;
+    try {
+      await axios.post(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Certificate/Create_Certificate",
+        { therapistId, ...values },
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      await fetchCertificate();
+      certificateForm.resetFields();
+      setEditingCertificate(false);
+      showNotification("success", "Success", "Certificate created successfully!");
+    } catch (error) {
+      showNotification("error", "Error", "Unable to create certificate");
+    }
+  };
+
+  const handleUpdateCertificate = async (values: { certificateName: string; certificateUrl: string }) => {
+    const token = AuthService.getToken();
+    if (!token || !therapistId || !certificate?.certificateId) return;
+    try {
+      await axios.post(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Certificate/Update_Certificate",
+        { certificateId: certificate.certificateId, therapistId, ...values },
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      await fetchCertificate();
+      setEditingCertificate(false);
+      showNotification("success", "Success", "Certificate updated successfully!");
+    } catch (error) {
+      showNotification("error", "Error", "Unable to update certificate");
     }
   };
 
@@ -153,9 +220,10 @@ const Profile = () => {
   return (
     <>
       {contextHolder}
-      <div className="flex justify-center items-center min-h-screen p-6 bg-gradient-to-r from-gray-100 to-gray-200">
+      <div className="flex justify-center items-start min-h-screen p-6 bg-gradient-to-r from-gray-100 to-gray-200">
+        {/* Profile Card */}
         <Card
-          className="w-full max-w-2xl"
+          className="w-full max-w-2xl mr-6"
           style={{
             background: "#ffffff",
             borderRadius: "16px",
@@ -163,8 +231,13 @@ const Profile = () => {
             padding: "24px",
           }}
         >
-          {editing ? (
-            <Form layout="vertical" form={form} onFinish={handleUpdate} className="space-y-6">
+          {editingProfile ? (
+            <Form 
+              form={profileForm}
+              layout="vertical" 
+              onFinish={handleUpdateProfile} 
+              className="space-y-6"
+            >
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-extrabold text-gray-900">Edit Profile</h2>
               </div>
@@ -174,11 +247,7 @@ const Profile = () => {
                 name="therapistName"
                 rules={[{ required: true, message: "Please enter your name" }]}
               >
-                <Input
-                  size="large"
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Enter therapist name"
-                />
+                <Input size="large" style={{ borderColor: "#d9d9d9", borderRadius: "8px" }} placeholder="Enter therapist name" />
               </Form.Item>
 
               <Form.Item
@@ -186,12 +255,11 @@ const Profile = () => {
                 name="avatar"
               >
                 <Input.Group compact>
-                  <Form.Item name="avatarUrl" noStyle>
+                  <Form.Item name="avatar" noStyle>
                     <Input
                       size="large"
                       style={{ width: "70%", borderColor: "#d9d9d9", borderRadius: "8px 0 0 8px" }}
                       placeholder="Enter avatar URL"
-                      onChange={(e) => form.setFieldsValue({ avatar: e.target.value })}
                     />
                   </Form.Item>
                   <Upload
@@ -200,6 +268,7 @@ const Profile = () => {
                       const url = await handleUpload(file as RcFile);
                       if (url) {
                         onSuccess?.({ url });
+                        profileForm.setFieldsValue({ avatar: url });
                       } else {
                         onError?.(new Error("Upload failed"));
                       }
@@ -256,11 +325,7 @@ const Profile = () => {
                 label={<span className="text-lg text-gray-700 font-medium">Meeting URL</span>}
                 name="meetUrl"
               >
-                <Input
-                  size="large"
-                  style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
-                  placeholder="Enter meeting URL"
-                />
+                <Input size="large" style={{ borderColor: "#d9d9d9", borderRadius: "8px" }} placeholder="Enter meeting URL" />
               </Form.Item>
 
               <Form.Item
@@ -272,11 +337,7 @@ const Profile = () => {
               </Form.Item>
 
               <div className="flex justify-center space-x-6 mt-8">
-                <Button
-                  size="large"
-                  onClick={() => setEditing(false)}
-                  style={{ borderColor: "#d9d9d9", color: "#595959" }}
-                >
+                <Button size="large" onClick={() => setEditingProfile(false)} style={{ borderColor: "#d9d9d9", color: "#595959" }}>
                   Cancel
                 </Button>
                 <Button
@@ -362,7 +423,7 @@ const Profile = () => {
                 <Button
                   size="large"
                   icon={<EditOutlined />}
-                  onClick={() => setEditing(true)}
+                  onClick={() => setEditingProfile(true)}
                   style={{
                     background: "#595959",
                     color: "#ffffff",
@@ -376,6 +437,127 @@ const Profile = () => {
                 </Button>
               </div>
             </>
+          )}
+        </Card>
+
+        {/* Certificate Card */}
+        <Card
+          className="w-full max-w-md"
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+            padding: "24px",
+            height: "fit-content",
+          }}
+        >
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900 text-center">Certificate</h2>
+
+          {editingCertificate ? (
+            <Form
+              form={certificateForm}
+              layout="vertical"
+              onFinish={certificate ? handleUpdateCertificate : handleCreateCertificate}
+              initialValues={certificate || undefined}
+              className="space-y-4"
+            >
+              <Form.Item
+                label={<span className="text-md text-gray-700 font-medium">Certificate Name</span>}
+                name="certificateName"
+                rules={[{ required: true, message: "Please enter certificate name" }]}
+              >
+                <Input size="large" style={{ borderColor: "#d9d9d9", borderRadius: "8px" }} placeholder="Enter certificate name" />
+              </Form.Item>
+
+              <Form.Item
+                label={<span className="text-md text-gray-700 font-medium">Certificate URL</span>}
+                name="certificateUrl"
+                rules={[{ required: true, message: "Please enter or upload certificate URL" }]}
+              >
+                <Input.Group compact>
+                  <Form.Item name="certificateUrl" noStyle>
+                    <Input
+                      size="large"
+                      style={{ width: "70%", borderColor: "#d9d9d9", borderRadius: "8px 0 0 8px" }}
+                      placeholder="Enter certificate URL"
+                    />
+                  </Form.Item>
+                  <Upload
+                    name="certificate"
+                    customRequest={async ({ file, onSuccess, onError }) => {
+                      const url = await handleUpload(file as RcFile);
+                      if (url) {
+                        onSuccess?.({ url });
+                        certificateForm.setFieldsValue({ certificateUrl: url });
+                      } else {
+                        onError?.(new Error("Upload failed"));
+                      }
+                    }}
+                    onChange={handleUploadChange}
+                    showUploadList={false}
+                    accept="image/*"
+                    beforeUpload={() => false}
+                  >
+                    <Button
+                      size="large"
+                      style={{
+                        width: "30%",
+                        borderColor: "#d9d9d9",
+                        borderRadius: "0 8px 8px 0",
+                        background: "#f0f0f0",
+                        color: "#595959",
+                      }}
+                    >
+                      <UpSquareOutlined />
+                    </Button>
+                  </Upload>
+                </Input.Group>
+              </Form.Item>
+
+              <div className="flex justify-center space-x-6 mt-4">
+                <Button size="large" onClick={() => setEditingCertificate(false)} style={{ borderColor: "#d9d9d9", color: "#595959" }}>
+                  Cancel
+                </Button>
+                <Button size="large" type="primary" htmlType="submit" style={{ background: "#595959", borderColor: "#595959" }}>
+                  {certificate ? "Update Certificate" : "Add Certificate"}
+                </Button>
+              </div>
+            </Form>
+          ) : certificate ? (
+            <div className="text-center space-y-4">
+              <p className="text-gray-700 text-lg font-medium">{certificate.certificateName}</p>
+              <img
+                src={certificate.certificateUrl}
+                alt={certificate.certificateName}
+                style={{ maxWidth: "100%", height: "auto", borderRadius: "8px" }}
+              />
+              <Button
+                size="large"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  certificateForm.setFieldsValue(certificate);
+                  setEditingCertificate(true);
+                }}
+                style={{ background: "#595959", color: "#ffffff", borderColor: "#595959" }}
+              >
+                Update Certificate
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <p className="text-gray-500">No certificate available</p>
+              <Button
+                size="large"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  certificateForm.resetFields();
+                  setEditingCertificate(true);
+                }}
+                style={{ background: "#595959", color: "#ffffff", borderColor: "#595959" }}
+              >
+                Add Certificate
+              </Button>
+            </div>
           )}
         </Card>
       </div>
