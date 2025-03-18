@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Card, Avatar, Spin, Button, Form, Input, Upload, notification, message, Switch } from "antd";
+import { useEffect, useState, useRef } from "react";
+import { Card, Avatar, Spin, Button, Form, Input, Switch, notification } from "antd";
 import {
   EditOutlined,
   SaveOutlined,
@@ -8,12 +8,9 @@ import {
   UserOutlined,
   DollarOutlined,
   LinkOutlined,
-  UpSquareOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import AuthService from "../service/AuthService";
-import type { UploadChangeParam } from "antd/es/upload";
-import type { RcFile, UploadFile } from "antd/es/upload/interface";
 
 interface TherapistProfile {
   therapistName: string;
@@ -31,15 +28,26 @@ interface Certificate {
   certificateUrl: string;
 }
 
+interface UploadResponse {
+  url: string;
+  message: string;
+}
+
 const Profile = () => {
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingCertificate, setEditingCertificate] = useState(false);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [isUploadingCertificate, setIsUploadingCertificate] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
   const [api, contextHolder] = notification.useNotification();
   const [profileForm] = Form.useForm();
   const [certificateForm] = Form.useForm();
+
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+  const certificateFileInputRef = useRef<HTMLInputElement>(null);
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId = currentUser?.UserId;
@@ -78,16 +86,15 @@ const Profile = () => {
       return;
     }
     try {
-      console.log("Fetching certificate for therapistId:", therapistId);
       const { data } = await axios.get(
         `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Certificate/Get_Certificate_By_Therapist_Id?id=${therapistId}`,
         { headers: { Authorization: `Bearer ${AuthService.getToken()}` } }
       );
-      console.log("API Response:", data);
-      // Handle both array and single object responses
       const certificateData = Array.isArray(data) ? (data.length > 0 ? data[0] : null) : data || null;
-      console.log("Processed certificate:", certificateData);
       setCertificate(certificateData);
+      if (certificateData) {
+        certificateForm.setFieldsValue(certificateData);
+      }
     } catch (error) {
       console.error("Error fetching certificate:", error);
       showNotification("error", "Error", "Unable to load certificate");
@@ -104,48 +111,86 @@ const Profile = () => {
     fetchData();
   }, [therapistId]);
 
-  const handleUpload = async (file: RcFile) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  const handleFileUpload = async (file: File, isProfile: boolean) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ text: 'File size exceeds 5MB limit', type: 'error' });
+      return null;
+    }
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      setMessage({ text: 'Only JPEG, JPG, PNG, and GIF files are allowed', type: 'error' });
+      return null;
+    }
+
+    const setUploading = isProfile ? setIsUploadingProfile : setIsUploadingCertificate;
+    setUploading(true);
+    setMessage({ text: '', type: '' });
 
     try {
-      const token = AuthService.getToken();
-      if (!token) {
-        showNotification("error", "Error", "Please log in or invalid token");
-        return null;
-      }
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const response = await axios.post(
-        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Storage/upload",
+      const token = AuthService.getToken();
+      const response = await axios.post<UploadResponse>(
+        'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Storage/upload',
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+          }
         }
       );
 
-      if (response.data.message === "Image uploaded successfully") {
+      if (response.data.url) {
+        setMessage({ text: 'Image uploaded successfully', type: 'success' });
         return response.data.url;
       }
-      showNotification("error", "Error", "Image upload failed");
       return null;
     } catch (error) {
-      showNotification("error", "Error", "Unable to upload image");
+      console.error('Error uploading image:', error);
+      let errorMessage = 'Failed to upload image. Please try again later.';
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data.message || errorMessage;
+      }
+      setMessage({ text: errorMessage, type: 'error' });
       return null;
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleUploadChange = (info: UploadChangeParam<UploadFile>) => {
-    if (info.file.status === "done") {
-      const url = info.file.response?.url;
-      if (url) {
-        certificateForm.setFieldsValue({ certificateUrl: url });
-        message.success("Image uploaded successfully!");
-      }
-    } else if (info.file.status === "error") {
-      showNotification("error", "Error", "Image upload failed");
+  const handleProfileAvatarClick = () => {
+    if (editingProfile && profileFileInputRef.current) {
+      profileFileInputRef.current.click();
+    }
+  };
+
+  const handleCertificateClick = () => {
+    if (editingCertificate && certificateFileInputRef.current) {
+      certificateFileInputRef.current.click();
+    }
+  };
+
+  const handleProfileFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await handleFileUpload(file, true);
+    if (url) {
+      profileForm.setFieldsValue({ avatar: url });
+      setProfile((prev) => prev ? { ...prev, avatar: url } : null);
+    }
+  };
+
+  const handleCertificateFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await handleFileUpload(file, false);
+    if (url) {
+      certificateForm.setFieldsValue({ certificateUrl: url });
+      setCertificate((prev) => prev ? { ...prev, certificateUrl: url } : { certificateId: '', therapistId: therapistId || '', certificateName: '', certificateUrl: url });
     }
   };
 
@@ -220,7 +265,7 @@ const Profile = () => {
   return (
     <>
       {contextHolder}
-      <div className="flex justify-center items-start min-h-screen p-6 bg-gradient-to-r from-gray-100 to-gray-200">
+      <div className="flex justify-center items-start min-h-screen p-6 bg-gradient-to-r ">
         {/* Profile Card */}
         <Card
           className="w-full max-w-2xl mr-6"
@@ -231,6 +276,12 @@ const Profile = () => {
             padding: "24px",
           }}
         >
+          {message.text && (
+            <div className={`p-4 mb-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {message.text}
+            </div>
+          )}
+
           {editingProfile ? (
             <Form 
               form={profileForm}
@@ -242,56 +293,54 @@ const Profile = () => {
                 <h2 className="text-3xl font-extrabold text-gray-900">Edit Profile</h2>
               </div>
 
+              {/* Profile Picture at the top and centered */}
+              <Form.Item
+                label={<span className="text-lg text-gray-700 font-medium">Profile Picture</span>}
+                name="avatar"
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <div 
+                      className={`w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer relative`}
+                      onClick={handleProfileAvatarClick}
+                    >
+                      {isUploadingProfile ? (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                      ) : null}
+                      {profile?.avatar ? (
+                        <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl text-gray-400">{profile?.therapistName.charAt(0)}</span>
+                      )}
+                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs">Change Photo</span>
+                      </div>
+                    </div>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={profileFileInputRef}
+                    className="hidden"
+                    accept="image/*" 
+                    onChange={handleProfileFileChange}
+                  />
+                  <Input
+                    size="large"
+                    style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
+                    placeholder="Enter avatar URL"
+                    onChange={(e) => profileForm.setFieldsValue({ avatar: e.target.value })}
+                  />
+                </div>
+              </Form.Item>
+
               <Form.Item
                 label={<span className="text-lg text-gray-700 font-medium">Full Name</span>}
                 name="therapistName"
                 rules={[{ required: true, message: "Please enter your name" }]}
               >
                 <Input size="large" style={{ borderColor: "#d9d9d9", borderRadius: "8px" }} placeholder="Enter therapist name" />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-lg text-gray-700 font-medium">Profile Picture</span>}
-                name="avatar"
-              >
-                <Input.Group compact>
-                  <Form.Item name="avatar" noStyle>
-                    <Input
-                      size="large"
-                      style={{ width: "70%", borderColor: "#d9d9d9", borderRadius: "8px 0 0 8px" }}
-                      placeholder="Enter avatar URL"
-                    />
-                  </Form.Item>
-                  <Upload
-                    name="avatar"
-                    customRequest={async ({ file, onSuccess, onError }) => {
-                      const url = await handleUpload(file as RcFile);
-                      if (url) {
-                        onSuccess?.({ url });
-                        profileForm.setFieldsValue({ avatar: url });
-                      } else {
-                        onError?.(new Error("Upload failed"));
-                      }
-                    }}
-                    onChange={handleUploadChange}
-                    showUploadList={false}
-                    accept="image/*"
-                    beforeUpload={() => false}
-                  >
-                    <Button
-                      size="large"
-                      style={{
-                        width: "30%",
-                        borderColor: "#d9d9d9",
-                        borderRadius: "0 8px 8px 0",
-                        background: "#f0f0f0",
-                        color: "#595959",
-                      }}
-                    >
-                      <UpSquareOutlined />
-                    </Button>
-                  </Upload>
-                </Input.Group>
               </Form.Item>
 
               <Form.Item
@@ -459,59 +508,57 @@ const Profile = () => {
               layout="vertical"
               onFinish={certificate ? handleUpdateCertificate : handleCreateCertificate}
               initialValues={certificate || undefined}
-              className="space-y-4"
+              className="space-y-6"
             >
+              {/* Certificate Image at the top and centered */}
+              <Form.Item
+                label={<span className="text-md text-gray-700 font-medium">Certificate Image</span>}
+                name="certificateUrl"
+                rules={[{ required: true, message: "Please upload or enter certificate URL" }]}
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <div 
+                      className={`w-32 h-32 bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer relative`}
+                      onClick={handleCertificateClick}
+                    >
+                      {isUploadingCertificate ? (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                      ) : null}
+                      {certificate?.certificateUrl ? (
+                        <img src={certificate.certificateUrl} alt="Certificate" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl text-gray-400">C</span>
+                      )}
+                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs">Change Photo</span>
+                      </div>
+                    </div>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={certificateFileInputRef}
+                    className="hidden"
+                    accept="image/*" 
+                    onChange={handleCertificateFileChange}
+                  />
+                  <Input
+                    size="large"
+                    style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
+                    placeholder="Enter certificate URL"
+                    onChange={(e) => certificateForm.setFieldsValue({ certificateUrl: e.target.value })}
+                  />
+                </div>
+              </Form.Item>
+
               <Form.Item
                 label={<span className="text-md text-gray-700 font-medium">Certificate Name</span>}
                 name="certificateName"
                 rules={[{ required: true, message: "Please enter certificate name" }]}
               >
                 <Input size="large" style={{ borderColor: "#d9d9d9", borderRadius: "8px" }} placeholder="Enter certificate name" />
-              </Form.Item>
-
-              <Form.Item
-                label={<span className="text-md text-gray-700 font-medium">Certificate URL</span>}
-                name="certificateUrl"
-                rules={[{ required: true, message: "Please enter or upload certificate URL" }]}
-              >
-                <Input.Group compact>
-                  <Form.Item name="certificateUrl" noStyle>
-                    <Input
-                      size="large"
-                      style={{ width: "70%", borderColor: "#d9d9d9", borderRadius: "8px 0 0 8px" }}
-                      placeholder="Enter certificate URL"
-                    />
-                  </Form.Item>
-                  <Upload
-                    name="certificate"
-                    customRequest={async ({ file, onSuccess, onError }) => {
-                      const url = await handleUpload(file as RcFile);
-                      if (url) {
-                        onSuccess?.({ url });
-                        certificateForm.setFieldsValue({ certificateUrl: url });
-                      } else {
-                        onError?.(new Error("Upload failed"));
-                      }
-                    }}
-                    onChange={handleUploadChange}
-                    showUploadList={false}
-                    accept="image/*"
-                    beforeUpload={() => false}
-                  >
-                    <Button
-                      size="large"
-                      style={{
-                        width: "30%",
-                        borderColor: "#d9d9d9",
-                        borderRadius: "0 8px 8px 0",
-                        background: "#f0f0f0",
-                        color: "#595959",
-                      }}
-                    >
-                      <UpSquareOutlined />
-                    </Button>
-                  </Upload>
-                </Input.Group>
               </Form.Item>
 
               <div className="flex justify-center space-x-6 mt-4">

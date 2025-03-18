@@ -13,9 +13,9 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import AuthService from "../service/AuthService"; // Adjust the path to your AuthService file
+import AuthService from "../service/AuthService"; 
 
-// Define interfaces based on API response structures
+
 interface Transaction {
   transactionId: string;
   amount: number;
@@ -147,13 +147,13 @@ const TherapistDashboard = () => {
     feedbackData.length > 0
       ? feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0) / feedbackData.length
       : 0;
-  const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length; // Assuming status 2 means completed
+  const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length; 
 
-  // Placeholder for percentage changes (replace with actual logic if data is available)
-  const revenueChange = "+5%"; // Example, adjust based on historical data
-  const bookingsChange = "+3%"; // Example
-  const ratingChange = "+1%"; // Example
-  const pendingChange = "+0%"; // Example
+  
+  const revenueChange = "+5%"; 
+  const bookingsChange = "+3%"; 
+  const ratingChange = "+1%"; 
+  const pendingChange = "+0%"; 
 
   if (loading) {
     return <div>Loading...</div>;
@@ -170,9 +170,9 @@ const TherapistDashboard = () => {
         <span className="text-sm text-gray-500">Last Updated: {new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour12: true, hour: "2-digit", minute: "2-digit" })} PDT</span>
       </div>
 
-      {/* Analytics Cards */}
+     
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Total Revenue */}
+        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +188,7 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{revenueChange} from last month</p>
         </div>
 
-        {/* Total Bookings */}
+        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -204,7 +204,7 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{bookingsChange} from last month</p>
         </div>
 
-        {/* Average Rating */}
+        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -220,7 +220,7 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{ratingChange} from last month</p>
         </div>
 
-        {/* Pending Bookings */}
+       
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -237,7 +237,7 @@ const TherapistDashboard = () => {
         </div>
       </div>
 
-      {/* Biểu đồ doanh thu theo tháng */}
+     
       <div className="p-4 bg-gray-50 rounded-lg shadow mb-6">
         <h3 className="text-lg font-semibold mb-3">Revenue by Month</h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -251,9 +251,9 @@ const TherapistDashboard = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Hai biểu đồ trên cùng một hàng */}
+     
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Doanh thu theo ngày */}
+       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Revenue by Day</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -267,7 +267,7 @@ const TherapistDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Doanh thu theo quý */}
+       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Revenue by Quarter</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -282,9 +282,9 @@ const TherapistDashboard = () => {
         </div>
       </div>
 
-      {/* Hai biểu đồ tiếp theo trên cùng một hàng */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {/* Số lượt review */}
+        
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Review Summary</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -299,7 +299,7 @@ const TherapistDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Số lượt booking */}
+       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Bookings per Day</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -316,7 +316,7 @@ const TherapistDashboard = () => {
     </div>
   );
 
-  // Helper functions to calculate data
+  
   function calculateRevenueByDay() {
     return walletData?.transactions
       ?.reduce((acc: { day: string; revenue: number }[], transaction: Transaction) => {

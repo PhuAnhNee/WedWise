@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import AuthService from '../service/AuthService';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Slot {
   id: string;
@@ -17,7 +17,7 @@ interface Booking {
   hasFeedback?: boolean;
   scheduleId?: string;
   scheduleDate?: string;
-  slot?: number; // Thêm slot vào giao diện Booking
+  slot?: number;
   userName?: string;
   therapist?: { consultationFee: number };
   schedule?: { date: string; slot: number };
@@ -42,24 +42,27 @@ const TherapistPendingBooking = () => {
   const [error, setError] = useState<string>('');
   const [existingBookingIds, setExistingBookingIds] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [feedbackDescription, setFeedbackDescription] = useState<string>('');
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId: string | undefined = currentUser?.UserId;
   const token = AuthService.getToken();
   const statusMap: Record<number, string> = {
-    1: "Đang chờ tư vấn",
-    2: "Đã hủy",
-    3: "Đã hoàn thành tư vấn",
+    1: "Pending Consultation",
+    2: "Cancelled",
+    3: "Completed Consultation",
   };
 
   const slots: Slot[] = [
-    { id: "1", time: "Bắt đầu 7:30 - Kết thúc 9:00" },
-    { id: "2", time: "Bắt đầu 9:30 - Kết thúc 11:00" },
-    { id: "3", time: "Bắt đầu 11:30 - Kết thúc 13:00" },
-    { id: "4", time: "Bắt đầu 13:30 - Kết thúc 15:00" },
-    { id: "5", time: "Bắt đầu 15:30 - Kết thúc 17:00" },
-    { id: "6", time: "Bắt đầu 17:30 - Kết thúc 19:00" },
-    { id: "7", time: "Bắt đầu 19:30 - Kết thúc 21:00" },
+    { id: "1", time: "7:30 - 9:00" },
+    { id: "2", time: "9:30 - 11:00" },
+    { id: "3", time: "11:30 - 13:00" },
+    { id: "4", time: "13:30 - 15:00" },
+    { id: "5", time: "15:30 - 17:00" },
+    { id: "6", time: "17:30 - 19:00" },
+    { id: "7", time: "19:30 - 21:00" },
   ];
 
   const fetchUsers = async () => {
@@ -75,14 +78,13 @@ const TherapistPendingBooking = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Không thể lấy danh sách người dùng');
+        throw new Error('Unable to fetch user list');
       }
 
       const data: User[] = await response.json();
       setUsers(data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách người dùng:', error);
-      toast.error('Đã xảy ra lỗi khi lấy danh sách người dùng!');
+      toast.error('Error fetching user list!');
     }
   };
 
@@ -99,15 +101,14 @@ const TherapistPendingBooking = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Không thể lấy dữ liệu kết quả booking');
+        throw new Error('Unable to fetch booking results');
       }
 
       const data: BookingResult[] = await response.json();
       const bookingIds = data.map((result) => result.bookingId);
       setExistingBookingIds(bookingIds);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách kết quả booking:', error);
-      toast.error('Đã xảy ra lỗi khi lấy danh sách kết quả booking!');
+      toast.error('Error fetching booking results!');
     }
   };
 
@@ -121,7 +122,7 @@ const TherapistPendingBooking = () => {
 
   useEffect(() => {
     if (!therapistId || !token) {
-      setError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!');
+      setError('You are not logged in or your session has expired!');
       return;
     }
 
@@ -137,8 +138,6 @@ const TherapistPendingBooking = () => {
           }
         );
         const data: Booking[] = await response.json();
-        console.log('Raw API response for bookings:', data);
-
         const filteredBookings = data.filter((booking) => booking.status === 3);
 
         const bookingsWithScheduleAndUser = filteredBookings.map((booking) => {
@@ -147,26 +146,37 @@ const TherapistPendingBooking = () => {
             ...booking,
             consultationFee: booking.therapist?.consultationFee || null,
             scheduleDate: booking.schedule?.date || '',
-            slot: booking.schedule?.slot || 0, // Lấy slot từ schedule
+            slot: booking.schedule?.slot || 0,
             userName: user ? user.fullName : booking.memberId,
           };
         });
 
-        console.log('Transformed bookings:', bookingsWithScheduleAndUser);
         bookingsWithScheduleAndUser.sort((a, b) => new Date(b.scheduleDate).getTime() - new Date(a.scheduleDate).getTime());
         setBookings(bookingsWithScheduleAndUser);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách booking:', error);
-        toast.error('Đã xảy ra lỗi khi lấy danh sách booking!');
+        toast.error('Error fetching bookings!');
       }
     };
 
     fetchBookings();
   }, [therapistId, token, users]);
 
-  const handleGiveFeedback = async (bookingId: string) => {
-    const feedbackDescription = prompt('Nhập đánh giá buổi tư vấn');
-    if (!feedbackDescription) return;
+  const openFeedbackModal = (bookingId: string) => {
+    setSelectedBookingId(bookingId);
+    setFeedbackDescription('');
+    setShowFeedbackModal(true);
+  };
+
+  const closeFeedbackModal = () => {
+    setShowFeedbackModal(false);
+    setSelectedBookingId(null);
+  };
+
+  const handleGiveFeedback = async () => {
+    if (!selectedBookingId || !feedbackDescription.trim()) {
+      toast.error('Please enter feedback before submitting!');
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -178,67 +188,107 @@ const TherapistPendingBooking = () => {
             'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
-            bookingId: bookingId,
+            bookingId: selectedBookingId,
             description: feedbackDescription,
           }),
         }
       );
 
       if (response.ok) {
-        toast.success('Đánh giá thành công!');
-        setExistingBookingIds([...existingBookingIds, bookingId]);
+        toast.success('Feedback submitted successfully!');
+        setExistingBookingIds([...existingBookingIds, selectedBookingId]);
         const updatedBookings = bookings.map((booking) =>
-          booking.bookingId === bookingId ? { ...booking, hasFeedback: true } : booking
+          booking.bookingId === selectedBookingId ? { ...booking, hasFeedback: true } : booking
         );
         setBookings(updatedBookings);
+        closeFeedbackModal();
       } else {
-        throw new Error('Đã xảy ra lỗi khi gửi đánh giá!');
+        throw new Error('Error submitting feedback!');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi, vui lòng thử lại!');
+      toast.error(error instanceof Error ? error.message : 'Error occurred, please try again!');
     }
   };
 
-  // Hàm để ánh xạ slot với khoảng thời gian
   const getSlotTime = (slot: number) => {
     const slotData = slots.find((s) => s.id === slot.toString());
-    return slotData ? slotData.time : 'Không xác định';
+    return slotData ? slotData.time : 'Unknown';
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-lg font-semibold mb-4">Danh sách các Booking</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <div className="space-y-4">
-        {bookings.map((booking) => (
-          <div key={booking.bookingId} className="border p-4 rounded-lg shadow-sm relative">
-            <h3 className="font-semibold">Booking ID: {booking.bookingId}</h3>
-            <p><strong>User Name:</strong> {booking.userName || 'Không tìm thấy tên'}</p>
-            <p><strong>Trạng thái:</strong> {statusMap[booking.status] || "Không xác định"}</p>
-            <p><strong>Phí:</strong> {booking.consultationFee !== null && booking.consultationFee !== undefined ? `${booking.consultationFee} VND` : 'Miễn phí'}</p>
-            <p><strong>Ngày tư vấn:</strong> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'Chưa có thông tin'}</p>
-            <p><strong>Khoảng thời gian:</strong> {getSlotTime(booking.slot || 0)}</p>
+    <div className="min-h-screen p-6">
+      <Toaster position="top-center" reverseOrder={false} />
+      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-xl p-8">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Pending Feedback Bookings</h2>
+        {error && (
+          <p className="text-red-500 mb-6 text-center bg-red-100 p-3 rounded-lg">{error}</p>
+        )}
+        {bookings.length === 0 ? (
+          <p className="text-gray-500 text-center py-6">No bookings pending feedback found.</p>
+        ) : (
+          <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+            {bookings.map((booking) => (
+              <div
+                key={booking.bookingId}
+                className={`border p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out ${
+                  existingBookingIds.includes(booking.bookingId) ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                }`}
+              >
+                <h3 className="text-lg font-semibold text-blue-700 mb-2">Booking ID: {booking.bookingId}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                  <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
+                  <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
+                  <p><span className="font-medium">Fee:</span> {booking.consultationFee !== null && booking.consultationFee !== undefined ? `${booking.consultationFee.toLocaleString('en-US')} VND` : 'Free'}</p>
+                  <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
+                  <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
+                </div>
+                <div className="flex space-x-4 mt-4 justify-end">
+                  {existingBookingIds.includes(booking.bookingId) ? (
+                    <button className="bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed" disabled>
+                      Feedback Completed
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openFeedbackModal(booking.bookingId)}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
+                    >
+                      Provide Feedback
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-            <div className="flex space-x-4 mt-4 justify-between">
-              {existingBookingIds.includes(booking.bookingId) ? (
-                <button
-                  className="bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed"
-                  disabled
-                >
-                  Đã hoàn thành đánh giá
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleGiveFeedback(booking.bookingId)}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                >
-                  Đánh giá tư vấn
-                </button>
-              )}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 bg-blue-200 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">Provide Feedback</h3>
+            <textarea
+              value={feedbackDescription}
+              onChange={(e) => setFeedbackDescription(e.target.value)}
+              placeholder="Enter your feedback here..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-32"
+            />
+            <div className="flex justify-end space-x-3 mt-4">
+              <button
+                onClick={closeFeedbackModal}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGiveFeedback}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Submit
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

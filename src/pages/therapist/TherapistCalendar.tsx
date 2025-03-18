@@ -21,13 +21,13 @@ interface Slot {
 }
 
 const slots: Slot[] = [
-  { id: "1", time: "Bắt đầu 7:30 - Kết thúc 9:00" },
-  { id: "2", time: "Bắt đầu 9:30 - Kết thúc 11:00" },
-  { id: "3", time: "Bắt đầu 11:30 - Kết thúc 13:00" },
-  { id: "4", time: "Bắt đầu 13:30 - Kết thúc 15:00" },
-  { id: "5", time: "Bắt đầu 15:30 - Kết thúc 17:00" },
-  { id: "6", time: "Bắt đầu 17:30 - Kết thúc 19:00" },
-  { id: "7", time: "Bắt đầu 19:30 - Kết thúc 21:00" },
+  { id: "1", time: "Start 7:30 - End 9:00" },
+  { id: "2", time: "Start 9:30 - End 11:00" },
+  { id: "3", time: "Start 11:30 - End 13:00" },
+  { id: "4", time: "Start 13:30 - End 15:00" },
+  { id: "5", time: "Start 15:30 - End 17:00" },
+  { id: "6", time: "Start 17:30 - End 19:00" },
+  { id: "7", time: "Start 19:30 - End 21:00" },
 ];
 
 const TherapistCalendar = () => {
@@ -46,7 +46,6 @@ const TherapistCalendar = () => {
   const fetchSchedule = useCallback(async () => {
     const token = AuthService.getToken();
     if (!token) {
-      console.error("Người dùng chưa đăng nhập hoặc thiếu quyền truy cập.");
       return;
     }
     try {
@@ -60,14 +59,12 @@ const TherapistCalendar = () => {
         }
       );
       if (!response.ok) {
-        throw new Error(`Lỗi: ${response.statusText}`);
+        throw new Error(`Error: ${response.statusText}`);
       }
       const data: Schedule[] = await response.json();
-      console.log("Fetched schedules:", data); // Debug log
       setSchedule(data);
     } catch (error) {
-      console.error("Lỗi khi lấy lịch trình:", error);
-      toast.error("Không thể tải lịch trình. Vui lòng thử lại sau.");
+      toast.error("Unable to load schedule. Please try again later.");
     }
   }, []);
 
@@ -91,7 +88,7 @@ const TherapistCalendar = () => {
   }, [selectedDate, currentMonth, fetchSchedule]);
 
   const adjustToHanoiTime = (date: Date) => {
-    return addHours(date, 7); // Thêm 7 giờ cho múi giờ Hà Nội
+    return addHours(date, 7);
   };
 
   const isDateInPast = (date: string) => {
@@ -111,7 +108,7 @@ const TherapistCalendar = () => {
   const openConfirmModal = () => {
     const token = AuthService.getToken();
     if (!therapistId || !token) {
-      toast.error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
+      toast.error("You are not logged in or your session has expired!");
       return;
     }
     setShowModal(true);
@@ -124,15 +121,15 @@ const TherapistCalendar = () => {
   const handleConfirm = async () => {
     const token = AuthService.getToken();
     if (!therapistId || !token) {
-      setError("Bạn chưa đăng nhập hoặc thông tin không hợp lệ.");
+      setError("You are not logged in or the information is invalid.");
       return;
     }
     if (!selectedDate || selectedSlot === null) {
-      setError("Vui lòng chọn một ngày và một khung giờ!");
+      setError("Please select a date and a time slot!");
       return;
     }
     if (isDateInPast(formatDate(selectedDate))) {
-      setError("Không thể tạo lịch cho ngày trong quá khứ!");
+      setError("Cannot create a schedule for a past date!");
       return;
     }
     setError("");
@@ -163,21 +160,20 @@ const TherapistCalendar = () => {
       );
       const responseText = await response.text();
       if (!response.ok) {
-        throw new Error(responseText || "Lỗi không xác định khi tạo lịch.");
+        throw new Error(responseText || "Unknown error occurred while creating schedule.");
       }
-      toast.success("Lịch đã được tạo thành công!");
-      setSelectedSlot(null); // Reset selectedSlot sau khi tạo
-      await fetchSchedule(); // Làm mới dữ liệu từ API
+      toast.success("Schedule created successfully!");
+      setSelectedSlot(null);
+      await fetchSchedule();
     } catch (error) {
-      console.error("Lỗi khi gửi request:", error);
-      toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại!");
+      toast.error(error instanceof Error ? error.message : "An error occurred, please try again!");
     }
   };
 
   const handleUpdateStatus = async (scheduleItem: Schedule, status: number) => {
     const token = AuthService.getToken();
     if (!token) {
-      toast.error("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
+      toast.error("You are not logged in or your session has expired!");
       return;
     }
     const requestData = [
@@ -202,13 +198,12 @@ const TherapistCalendar = () => {
         }
       );
       if (!response.ok) {
-        throw new Error(`Lỗi: ${response.statusText}`);
+        throw new Error(`Error: ${response.statusText}`);
       }
-      toast.success("Cập nhật trạng thái thành công!");
-      await fetchSchedule(); // Làm mới dữ liệu từ API
+      toast.success("Status updated successfully!");
+      await fetchSchedule();
     } catch (error) {
-      console.error("Lỗi khi cập nhật lịch:", error);
-      toast.error("Không thể cập nhật trạng thái. Vui lòng thử lại sau.");
+      toast.error("Unable to update status. Please try again later.");
     }
   };
 
@@ -219,12 +214,8 @@ const TherapistCalendar = () => {
       const scheduleDate = adjustToHanoiTime(new Date(slot.date));
       const formattedScheduleDate = formatDate(scheduleDate);
       const formattedSelectedDate = formatDate(selectedDate);
-      console.log(
-        `Comparing dates - Schedule: ${formattedScheduleDate}, Selected: ${formattedSelectedDate}`
-      ); // Debug log
       return formattedScheduleDate === formattedSelectedDate;
     });
-    console.log("Filtered schedules for selected date:", filteredSchedules); // Debug log
     return filteredSchedules;
   };
 
@@ -234,9 +225,7 @@ const TherapistCalendar = () => {
     );
 
   const getScheduleBySlot = (slotId: number): Schedule | null => {
-    const scheduleItem = getSchedulesForSelectedDate().find((schedule) => schedule.slot === slotId) || null;
-    console.log(`Schedule for slot ${slotId}:`, scheduleItem); // Debug log
-    return scheduleItem;
+    return getSchedulesForSelectedDate().find((schedule) => schedule.slot === slotId) || null;
   };
 
   const formatHanoiTime = (date: Date) => {
@@ -249,7 +238,7 @@ const TherapistCalendar = () => {
       <Toaster position="top-center" />
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-center">Quản lý lịch làm việc</h2>
+          <h2 className="text-2xl font-bold text-center">Schedule Management</h2>
           <div className="flex flex-col items-end space-y-4">
             <div className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center">
               <span className="mr-2">⏰</span>
