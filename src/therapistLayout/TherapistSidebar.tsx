@@ -101,7 +101,7 @@ const TherapistSidebar = ({
           >
             <SettingOutlined className="text-2xl text-white" />
             {isSidebarExpanded && (
-              <span className="text-xl font-semibold ml-3 tracking-wide text-white">Tư Vấn Viên</span>
+              <span className="text-xl font-semibold ml-3 tracking-wide text-white">Therapist</span>
             )}
           </div>
           {/* Navigation */}
@@ -175,7 +175,7 @@ const TherapistSidebar = ({
                   icon={<LogoutOutlined />}
                   className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  {isSidebarExpanded && "Đăng xuất"}
+                  {isSidebarExpanded && "Log out"}
                 </Button>
               </>
             ) : (
@@ -195,7 +195,7 @@ const TherapistSidebar = ({
                   onClick={handleLogout}
                   icon={<LogoutOutlined />}
                   className="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-full shadow-md hover:shadow-lg transition-all duration-200"
-                  title="Đăng xuất"
+                  title="Log out"
                 />
               </div>
             )}
@@ -214,7 +214,7 @@ const TherapistSidebar = ({
           <div className="p-5 border-b border-blue-300/50 flex items-center justify-between">
             <h1 className="text-xl font-semibold flex items-center tracking-wide text-white">
               <SettingOutlined className="mr-2 text-2xl" />
-              Tư Vấn Viên
+              Therapist
             </h1>
             <button
               onClick={() => setIsMobileSidebarOpen(false)}
@@ -287,7 +287,7 @@ const TherapistSidebar = ({
               icon={<LogoutOutlined />}
               className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
-              Đăng xuất
+              Sign Out
             </Button>
           </div>
         </div>
