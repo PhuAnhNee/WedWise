@@ -1,5 +1,5 @@
 import React from "react";
-import { format } from "date-fns";
+import { format, addHours } from "date-fns";
 
 interface Schedule {
   scheduleId: string;
@@ -27,10 +27,19 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
   slots,
   handleUpdateStatus,
 }) => {
-  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+  const adjustToHanoiTime = (date: Date) => {
+    return addHours(date, 7);
+  };
+
+  const formatDate = (date: Date) => {
+    const adjustedDate = adjustToHanoiTime(new Date(date));
+    return adjustedDate.toISOString().split("T")[0];
+  };
+
   const schedulesForSelectedDate = schedules.filter((slot) => {
-    const scheduleDate = new Date(slot.date);
-    return formatDate(scheduleDate) === formatDate(selectedDate);
+    const scheduleDate = adjustToHanoiTime(new Date(slot.date));
+    const adjustedSelectedDate = adjustToHanoiTime(new Date(selectedDate));
+    return formatDate(scheduleDate) === formatDate(adjustedSelectedDate);
   });
 
   if (schedulesForSelectedDate.length === 0) return null;
@@ -38,15 +47,18 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
   const getStatusColor = (status: number) => {
     switch (status) {
       case 0:
-        return "bg-green-100"; // Lịch trống
+        return "bg-green-100"; // Available
       case 1:
-        return "bg-yellow-100"; // Được đặt
+        return "bg-yellow-100"; // Booked
       case 2:
-        return "bg-red-100"; // Lịch bận
+        return "bg-red-100"; // Busy
       default:
         return "";
     }
   };
+
+  console.log("ScheduleSummary selectedDate:", formatDate(selectedDate)); // Debug log
+  console.log("Schedules for selected date:", schedulesForSelectedDate); // Debug log
 
   return (
     <div className="mt-8 bg-gray-50 p-5 rounded-xl shadow-md">
@@ -70,7 +82,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
                   handleUpdateStatus(schedule, Number(e.target.value))
                 }
                 className="px-3 py-1 rounded border border-gray-300"
-                disabled={schedule.status === 1} // Vô hiệu hóa nếu status = 1 (Được đặt)
+                disabled={schedule.status === 1} // Disable if status = 1 (Booked)
               >
                 <option value={0}>Lịch trống</option>
                 <option value={1}>Được đặt</option>

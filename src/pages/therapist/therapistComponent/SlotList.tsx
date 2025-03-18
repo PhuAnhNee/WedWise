@@ -42,15 +42,17 @@ const SlotList: React.FC<SlotListProps> = ({
   const getStatusColor = (status: number) => {
     switch (status) {
       case 0:
-        return "bg-green-100"; // Lịch trống
+        return "bg-green-100"; // Available
       case 1:
-        return "bg-yellow-100"; // Được đặt
+        return "bg-yellow-100"; // Booked
       case 2:
-        return "bg-red-100"; // Lịch bận
+        return "bg-red-100"; // Busy
       default:
         return "";
     }
   };
+
+  console.log("SlotList selectedDate:", selectedDate); // Debug log
 
   return (
     <div className="w-full md:w-1/2 space-y-4">
@@ -60,7 +62,7 @@ const SlotList: React.FC<SlotListProps> = ({
           const slotId = Number(slot.id);
           const scheduleItem = getScheduleBySlot(slotId);
           const isScheduled = !!scheduleItem;
-          const status = scheduleItem ? scheduleItem.status : -1;
+          const status = scheduleItem ? scheduleItem.status : 1;
 
           return (
             <div
@@ -83,7 +85,7 @@ const SlotList: React.FC<SlotListProps> = ({
                   checked={selectedSlot === slotId && !isScheduled}
                   onChange={() => toggleSlot(slotId)}
                   className="w-5 h-5"
-                  disabled={isDateInPast(selectedDate) || isScheduled} // Vô hiệu hóa nếu đã có lịch hoặc ngày quá khứ
+                  disabled={isDateInPast(selectedDate) || isScheduled}
                 />
               )}
             </div>
