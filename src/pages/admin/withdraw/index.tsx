@@ -34,13 +34,23 @@ interface Therapist {
     updatedAt: string;
 }
 
+interface Certificate {
+    certificateId: string;
+    therapistId: string;
+    certificateName: string;
+    certificateUrl: string;
+    therapistName?: string; // Optional field for pre-fetched therapist name
+}
+
 const TherapistManagement: React.FC = () => {
     const [therapists, setTherapists] = useState<Therapist[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [isSpecModalVisible, setIsSpecModalVisible] = useState(false);
     const [isDescModalVisible, setIsDescModalVisible] = useState(false);
+    const [isCertModalVisible, setIsCertModalVisible] = useState(false);
     const [selectedSpecifications, setSelectedSpecifications] = useState<Specification[]>([]);
     const [selectedDescription, setSelectedDescription] = useState<string>("");
+    const [certificates, setCertificates] = useState<Certificate[]>([]);
     const pageSize = 5;
 
     // Fetch danh sách therapist từ API
@@ -58,6 +68,45 @@ const TherapistManagement: React.FC = () => {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error fetching therapists:", err.response?.data || err.message);
             message.error("Failed to load therapists!");
+        }
+    };
+
+    // Fetch danh sách certificates từ API và pre-fetch therapist names
+    const fetchCertificates = async () => {
+        try {
+            const accessToken = localStorage.getItem("accessToken");
+            if (!accessToken) {
+                message.error("Unauthorized: Please log in again.");
+                return;
+            }
+
+            const headers = { Authorization: `Bearer ${accessToken}` };
+            const response = await axios.get<Certificate[]>(`${API_BASE_URL}/Certificate/Get_All_Certificate`, { headers });
+            const certsWithNames = await Promise.all(
+                response.data.map(async (cert) => ({
+                    ...cert,
+                    therapistName: await fetchTherapistName(cert.therapistId),
+                }))
+            );
+            setCertificates(certsWithNames);
+            setIsCertModalVisible(true);
+        } catch (error) {
+            const err = error as AxiosError<{ message?: string }>;
+            console.error("Error fetching certificates:", err.response?.data || err.message);
+            message.error("Failed to load certificates!");
+        }
+    };
+
+    // Fetch therapist name by ID
+    const fetchTherapistName = async (therapistId: string): Promise<string> => {
+        try {
+            const accessToken = localStorage.getItem("accessToken");
+            const headers = { Authorization: `Bearer ${accessToken}` };
+            const response = await axios.get<Therapist>(`${API_BASE_URL}/Therapist/Get_Therapist_By_Id?id=${therapistId}`, { headers });
+            return response.data.therapistName || "Unknown";
+        } catch (error) {
+            console.error("Error fetching therapist name:", error);
+            return "Unknown";
         }
     };
 
@@ -169,6 +218,12 @@ const TherapistManagement: React.FC = () => {
         setSelectedDescription("");
     };
 
+    const handleCertModalClose = () => {
+        console.log("Closing certificates modal");
+        setIsCertModalVisible(false);
+        setCertificates([]);
+    };
+
     useEffect(() => {
         fetchTherapists();
     }, []);
@@ -199,7 +254,7 @@ const TherapistManagement: React.FC = () => {
             ),
         },
         {
-            title: "Certifications",
+            title: "Description",
             key: "description",
             render: (_, record) => (
                 <Button
@@ -239,7 +294,12 @@ const TherapistManagement: React.FC = () => {
 
     return (
         <div className="p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Therapist Management</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Therapist Management</h2>
+                <Button type="primary" onClick={fetchCertificates}>
+                    View All Certificates
+                </Button>
+            </div>
             <Table
                 columns={columns}
                 dataSource={therapists.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
@@ -286,6 +346,31 @@ const TherapistManagement: React.FC = () => {
                 footer={null}
             >
                 <p>{selectedDescription}</p>
+            </Modal>
+
+            {/* Modal hiển thị certificates */}
+            <Modal
+                title="All Certificates"
+                open={isCertModalVisible}
+                onCancel={handleCertModalClose}
+                footer={null}
+                width={800}
+            >
+                <List
+                    dataSource={certificates}
+                    renderItem={(cert) => (
+                        <List.Item>
+                            <div className="flex justify-between w-full">
+                                <span>{cert.therapistName || "Unknown"}</span>
+                                <span>{cert.certificateName}</span>
+                                <a href={cert.certificateUrl} target="_blank" rel="noopener noreferrer" className='text-blue-600'>
+                                    View Certificate
+                                </a>
+                            </div>
+                        </List.Item>
+                    )}
+                    locale={{ emptyText: "No certificates available" }}
+                />
             </Modal>
         </div>
     );
