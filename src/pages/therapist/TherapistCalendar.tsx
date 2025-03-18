@@ -215,12 +215,11 @@ const TherapistCalendar = () => {
   const getSchedulesForSelectedDate = (): Schedule[] => {
     const adjustedSelectedDate = adjustToHanoiTime(new Date(selectedDate));
     const formattedSelectedDate = formatDate(adjustedSelectedDate);
-    console.log("Selected date in getSchedulesForSelectedDate:", formattedSelectedDate); // Debug log
+    console.log("Selected date in getSchedulesForSelectedDate:", formattedSelectedDate); 
 
     const filteredSchedules = schedule.filter((slot) => {
       const scheduleDate = adjustToHanoiTime(new Date(slot.date));
       const formattedScheduleDate = formatDate(scheduleDate);
-      console.log("Comparing schedule date:", formattedScheduleDate, "with selected date:", formattedSelectedDate); // Debug log
       return formattedScheduleDate === formattedSelectedDate;
     });
     return filteredSchedules;
