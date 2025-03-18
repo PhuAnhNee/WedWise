@@ -207,13 +207,20 @@ const TherapistCalendar = () => {
     }
   };
 
-  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+  const formatDate = (date: Date) => {
+    const adjustedDate = adjustToHanoiTime(new Date(date));
+    return adjustedDate.toISOString().split("T")[0];
+  };
 
   const getSchedulesForSelectedDate = (): Schedule[] => {
+    const adjustedSelectedDate = adjustToHanoiTime(new Date(selectedDate));
+    const formattedSelectedDate = formatDate(adjustedSelectedDate);
+    console.log("Selected date in getSchedulesForSelectedDate:", formattedSelectedDate); // Debug log
+
     const filteredSchedules = schedule.filter((slot) => {
       const scheduleDate = adjustToHanoiTime(new Date(slot.date));
       const formattedScheduleDate = formatDate(scheduleDate);
-      const formattedSelectedDate = formatDate(selectedDate);
+      console.log("Comparing schedule date:", formattedScheduleDate, "with selected date:", formattedSelectedDate); // Debug log
       return formattedScheduleDate === formattedSelectedDate;
     });
     return filteredSchedules;
@@ -255,7 +262,7 @@ const TherapistCalendar = () => {
           />
           <SlotList
             slots={slots}
-            selectedDate={formatDate(selectedDate)}
+            selectedDate={formatDate(selectedDate)} // Ensure the date is formatted after adjustment
             selectedSlot={selectedSlot}
             setSelectedSlot={setSelectedSlot}
             isSlotScheduled={isSlotScheduled}
