@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Modal, Input, Button, Form, Select, message, Popconfirm } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import axios, { AxiosError } from "axios";
 
 const API_BASE_URL =
@@ -167,9 +167,9 @@ const AdminQuiz: React.FC = () => {
                         okText="Yes"
                         cancelText="No"
                     >
-                        <Button icon={<DeleteOutlined />} danger>
+                        {/* <Button icon={<DeleteOutlined />} danger>
                             Delete
-                        </Button>
+                        </Button> */}
                     </Popconfirm>
                 </div>
             ),
