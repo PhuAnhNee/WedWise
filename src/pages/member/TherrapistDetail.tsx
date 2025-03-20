@@ -209,6 +209,7 @@ const showErrorNotification = (errorMessage: string) => {
         // ✅ Đợi 2 giây trước khi chuyển trang
         setTimeout(() => {
             navigate("/home/my-booking");
+            window.location.reload();
         }, 2000);
 
     } catch (error: any) {
@@ -312,17 +313,21 @@ const showErrorNotification = (errorMessage: string) => {
   disabledDate={(date) => date.isBefore(dayjs().startOf("day"))}
   placeholder="Chọn ngày tư vấn"
   dateRender={(current) => {
-    const isScheduled = therapist?.schedules?.some((s: any) => 
-      dayjs(s.date).format("YYYY-MM-DD") === current.format("YYYY-MM-DD") && s.isAvailable
+    // Kiểm tra xem ngày hiện tại có lịch trống (status === 0) hay không
+    const hasAvailableSchedule = therapist?.schedules?.some((s: any) => 
+      dayjs(s.date).format("YYYY-MM-DD") === current.format("YYYY-MM-DD") && 
+      s.status === 0
     );
 
     return (
-      <div className="relative">
-        <div className="ant-picker-cell-inner">{current.date()}</div>
-        {isScheduled && (
-          <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-green-500 rounded-full"></span>
-        )}
-      </div>
+      <div 
+  className={`relative flex justify-center items-center ${hasAvailableSchedule ? 'bg-green-50' : ''}`}
+>
+  <div className="ant-picker-cell-inner">{current.date()}</div>
+  {hasAvailableSchedule && (
+    <span className="absolute bottom-1 w-2 h-2 bg-green-500 rounded-full" />
+  )}
+</div>
     );
   }}
 />
@@ -366,14 +371,6 @@ const showErrorNotification = (errorMessage: string) => {
             disabled={!selectedSchedule}
           >
             {loading ? "Đang xử lý..." : "Xác nhận đặt lịch"}
-          </Button>
-          <Button 
-            type="default" 
-            className="bg-blue-500 text-white"
-            size="large"
-            block
-          >
-            Lưu nháp
           </Button>
         </div>
       </Card>

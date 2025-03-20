@@ -160,11 +160,11 @@ const HomePage: React.FC = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      const allBlogs = data;
+      const filteredBlogs = data.filter((blog: BlogPost) => blog.status === 0);
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
-      setBlogPosts(allBlogs.slice(start, end)); // Cắt dữ liệu theo trang
-      setTotalBlogs(allBlogs.length); // Cập nhật tổng số blog
+      setBlogPosts(filteredBlogs.slice(start, end)); // Cắt dữ liệu theo trang từ danh sách đã lọc
+      setTotalBlogs(filteredBlogs.length); // Cập nhật tổng số blog sau khi lọc
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
     } finally {

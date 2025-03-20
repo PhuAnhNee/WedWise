@@ -193,6 +193,7 @@ const MyBooking: React.FC = () => {
       );
 
       showSuccessNotification("Lịch hẹn đã được hủy thành công!");
+      window.location.reload();
       fetchBookings(); // Refresh the bookings list
     } catch (error) {
       console.error("Lỗi khi hủy lịch hẹn:", error);
