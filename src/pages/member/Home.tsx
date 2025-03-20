@@ -1,11 +1,20 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Carousel from "../../component/carousel/index";
-
+import { Pagination } from "antd";
 // Định nghĩa interface cho dữ liệu
-interface Article {
-  src: string;
+
+interface BlogPost {
+  id: string;
   title: string;
-  category: "all" | "relationship" | "family" | "communication";
+  content: string;
+  status: number;
+  picture: string;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  createdUser: null | string;
+  updatedUser: null | string;
 }
 
 interface Quiz {
@@ -93,7 +102,7 @@ const FeaturedQuiz: React.FC<{ quiz: Quiz; featuredHover: boolean; setFeaturedHo
           ? "bg-blue-600 shadow-lg shadow-blue-400/30"
           : "bg-blue-500"
           }`}
-        href="#"
+        href="/home/quizzes"
       >
         Take Quiz
       </a>
@@ -101,24 +110,27 @@ const FeaturedQuiz: React.FC<{ quiz: Quiz; featuredHover: boolean; setFeaturedHo
   </div>
 );
 
-// Component cho Article Card
-const ArticleCard: React.FC<{ article: Article }> = ({ article }) => (
+// Updated ArticleCard to work with BlogPost interface
+const ArticleCard: React.FC<{ blog: BlogPost }> = ({ blog }) => (
   <div className="bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
     <div className="relative overflow-hidden">
       <img
-        src={article.src}
-        alt={`Illustration for ${article.title}`}
+        src={blog.picture}
+        alt={`Illustration for ${blog.title}`}
         className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
       />
       <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
     </div>
     <div className="p-4">
       <span className="text-xs font-semibold text-blue-500 capitalize">
-        {article.category}
+        Blog
       </span>
       <h4 className="text-base md:text-lg font-bold mt-2 text-gray-800 group-hover:text-blue-500 transition-colors duration-300">
-        {article.title}
+        {blog.title}
       </h4>
+      <p className="text-gray-600 text-sm mt-2 line-clamp-2">
+        {blog.content}
+      </p>
       <div className="mt-3 flex justify-end">
         <button className="text-blue-500 hover:text-blue-700 text-sm font-medium transition-colors duration-300">
           Read Article →
@@ -131,37 +143,46 @@ const ArticleCard: React.FC<{ article: Article }> = ({ article }) => (
 const HomePage: React.FC = () => {
   const [animate, setAnimate] = useState(false);
   const [featuredHover, setFeaturedHover] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<"all" | "relationship" | "family" | "communication">("all");
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
+  const [pageSize] = useState(4); // Số bài mỗi trang
+  const [totalBlogs, setTotalBlogs] = useState(0); // Tổng số blog posts
+  // Hàm fetch dữ liệu blog
+  const fetchBlogPosts = async (page: number) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Blog/Get_All_Blog"
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      const allBlogs = data;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      setBlogPosts(allBlogs.slice(start, end)); // Cắt dữ liệu theo trang
+      setTotalBlogs(allBlogs.length); // Cập nhật tổng số blog
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // useEffect chạy khi component mount và khi currentPage thay đổi
   useEffect(() => {
     setAnimate(true);
-  }, []);
+    fetchBlogPosts(currentPage); // Gọi fetch với trang hiện tại
+  }, [currentPage]); // Thêm currentPage vào dependency array
 
-  const categories = ["all", "relationship", "family", "communication"] as const;
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
-  const articles: Article[] = [
-    {
-      src: "https://storage.googleapis.com/a1aa/image/XjfjUgYpvB7JxDOCtTDfj50f2EQpSE4zWkNWvzcrNgY.jpg",
-      title: "25 Romantic Dinner Ideas",
-      category: "relationship",
-    },
-    {
-      src: "https://storage.googleapis.com/a1aa/image/yvRP3kvEvyiVJLdMiTnDzlBwjcBLFE1ac0tXB83Qj5k.jpg",
-      title: "10 Reasons Why Communication is Key",
-      category: "communication",
-    },
-    {
-      src: "https://storage.googleapis.com/a1aa/image/MLQpd9ol2Dhb_aypAfCl98ttlkdz82anidwvIYBGVng.jpg",
-      title: "Reconnecting with Your Partner",
-      category: "relationship",
-    },
-    {
-      src: "https://storage.googleapis.com/a1aa/image/DdjwR_7p3-_90-7oJJ-1SFQ8Q4UJ4m14Vv5yEMk7f3M.jpg",
-      title: "Building a Happy Family",
-      category: "family",
-    },
-  ];
-
+  // We'll keep the original quizzes data
   const quizzes: Quiz[] = [
     {
       src: "https://storage.googleapis.com/a1aa/image/6MkNmKPd-tap0mEzFHEYlVT_EZymea5Ms60dIJoN0hY.jpg",
@@ -184,12 +205,6 @@ const HomePage: React.FC = () => {
       desc: "Find out if he's thinking about you when you're apart.",
     },
   ];
-
-  const filteredArticles = useMemo(() => {
-    return activeCategory === "all"
-      ? articles
-      : articles.filter((article) => article.category === activeCategory);
-  }, [activeCategory, articles]);
 
   return (
     <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
@@ -276,7 +291,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Top Reads */}
+        {/* Top Reads - Now using API data */}
         <div>
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
             <div className="relative">
@@ -285,28 +300,46 @@ const HomePage: React.FC = () => {
               </h3>
               <div className="absolute -bottom-2 left-0 w-16 h-1 bg-blue-500 rounded-full"></div>
             </div>
-            <div className="flex space-x-2 overflow-x-auto pb-2 mt-4 md:mt-0">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setActiveCategory(category)}
-                  aria-pressed={activeCategory === category}
-                  className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all duration-300 ${activeCategory === category
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {filteredArticles.map((article, index) => (
-              <ArticleCard key={index} article={article} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <strong className="font-bold">Error:</strong>
+              <span className="block sm:inline"> {error}</span>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                {blogPosts.length > 0 ? (
+                  blogPosts.map((blog) => (
+                    <ArticleCard key={blog.id} blog={blog} />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-8 text-gray-500">
+                    No blog posts available at the moment.
+                  </div>
+                )}
+              </div>
+
+              {/* Phân trang */}
+              {blogPosts.length > 0 && (
+                <div className="mt-8 flex justify-center">
+                  <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={totalBlogs}
+                    onChange={handlePageChange}
+                    showSizeChanger={false} // Ẩn tùy chọn thay đổi pageSize nếu không cần
+                    className="antd-pagination"
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
