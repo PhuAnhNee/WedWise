@@ -150,10 +150,10 @@ const QuizSubmission: React.FC = () => {
     // Handle numeric levels
     if (typeof level === 'number') {
       switch (level) {
-        case 3: return 'red';    // High
-        case 2: return 'orange'; // Medium
+        case 3: return 'orange';    // High
+        case 2: return 'yellow'; // Medium
         case 1: return 'green';  // Low
-        default: return 'blue';
+        default: return 'red';
       }
     }
     
@@ -162,19 +162,19 @@ const QuizSubmission: React.FC = () => {
       switch (level.toLowerCase()) {
         case 'cao':
         case 'high':
-          return 'red';
+          return 'orange';
         case 'trung bình':
         case 'medium':
-          return 'orange';
+          return 'yellow';
         case 'thấp':
         case 'low': 
           return 'green';
         default:
-          return 'blue';
+          return 'red';
       }
     }
     
-    return 'blue'; // Default fallback
+    return 'red'; // Default fallback
   };
 
   const handleSubmit = async () => {

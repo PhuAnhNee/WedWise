@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Form, Input, Checkbox, notification } from "antd";
-import { GoogleOutlined, CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 import {jwtDecode} from "jwt-decode"; // Sử dụng default import
 import AuthService from "../service/AuthService";
 
@@ -134,9 +134,9 @@ const Login: React.FC = () => {
                                 <Form.Item name="remember" valuePropName="checked" noStyle>
                                     <Checkbox>Remember me</Checkbox>
                                 </Form.Item>
-                                <a href="#" className="text-blue-600 hover:underline">
+                                {/* <a href="#" className="text-blue-600 hover:underline">
                                     Forgot password?
-                                </a>
+                                </a> */}
                             </div>
                             <Form.Item>
                                 <Button
@@ -149,9 +149,9 @@ const Login: React.FC = () => {
                                     {loading ? "Signing in..." : "Sign in"}
                                 </Button>
                             </Form.Item>
-                            <Button icon={<GoogleOutlined />} className="w-full" size="large">
+                            {/* <Button icon={<GoogleOutlined />} className="w-full" size="large">
                                 Sign in with Google
-                            </Button>
+                            </Button> */}
                         </Form>
                         <p className="text-center mt-4 text-gray-600">
                             Don't have an account? <a href="register" className="text-blue-600 hover:underline">Sign up now</a>
