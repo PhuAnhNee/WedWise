@@ -254,7 +254,7 @@ const FeedbackManagement: React.FC = () => {
     return (
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
             <div className="mb-6 flex justify-between items-center">
-                <h2 className="text-3xl font-bold text-gray-800">Feedback Management</h2>
+                <h2 className="text-3xl font-bold text-gray-800">Booking Management</h2>
                 <Select
                     style={{ width: 200 }}
                     placeholder="Filter by User"
