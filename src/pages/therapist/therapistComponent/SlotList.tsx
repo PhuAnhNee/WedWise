@@ -1,3 +1,5 @@
+import React from "react";
+
 interface Slot {
   id: string;
   time: string;
@@ -19,7 +21,7 @@ interface SlotListProps {
   isSlotScheduled: (id: number) => boolean;
   getScheduleBySlot: (id: number) => Schedule | null;
   handleUpdateStatus: (scheduleItem: Schedule, status: number) => void;
-  isDateInPast: (date: string) => boolean;
+  isDateInPast: (date: Date) => boolean;
   openConfirmModal: () => void;
 }
 
@@ -34,7 +36,8 @@ const SlotList: React.FC<SlotListProps> = ({
   openConfirmModal,
 }) => {
   const toggleSlot = (id: number) => {
-    if (!isDateInPast(selectedDate)) {
+    const date = new Date(selectedDate);
+    if (!isDateInPast(date)) {
       setSelectedSlot((prev) => (prev === id ? null : id));
     }
   };
@@ -42,17 +45,15 @@ const SlotList: React.FC<SlotListProps> = ({
   const getStatusColor = (status: number) => {
     switch (status) {
       case 0:
-        return "bg-green-100"; // Available
+        return "bg-green-100";
       case 1:
-        return "bg-yellow-100"; // Booked
+        return "bg-yellow-100";
       case 2:
-        return "bg-red-100"; // Busy
+        return "bg-red-100";
       default:
         return "bg-white";
     }
   };
-
-  console.log("SlotList selectedDate:", selectedDate); // Debug log
 
   return (
     <div className="w-full md:w-1/2 space-y-4">
@@ -87,14 +88,14 @@ const SlotList: React.FC<SlotListProps> = ({
                   checked={selectedSlot === slotId && !isScheduled}
                   onChange={() => toggleSlot(slotId)}
                   className="w-5 h-5"
-                  disabled={isDateInPast(selectedDate) || isScheduled}
+                  disabled={isDateInPast(new Date(selectedDate)) || isScheduled}
                 />
               )}
             </div>
           );
         })}
       </div>
-      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(selectedDate) && (
+      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(new Date(selectedDate)) && (
         <div className="flex gap-4 mt-4">
           <button
             onClick={openConfirmModal}
@@ -104,7 +105,7 @@ const SlotList: React.FC<SlotListProps> = ({
           </button>
         </div>
       )}
-      {isDateInPast(selectedDate) && (
+      {isDateInPast(new Date(selectedDate)) && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 p-3 rounded-lg mt-4">
           <p>Không thể tạo lịch cho ngày trong quá khứ!</p>
         </div>
