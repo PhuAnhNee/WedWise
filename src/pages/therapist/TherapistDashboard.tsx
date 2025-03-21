@@ -13,8 +13,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import AuthService from "../service/AuthService"; 
-
+import AuthService from "../service/AuthService";
 
 interface Transaction {
   transactionId: string;
@@ -78,20 +77,20 @@ const TherapistDashboard = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // API endpoints
+  const currentUser = AuthService.getCurrentUser();
+  const therapistId: string | undefined = currentUser?.UserId;
+
   const walletApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/GetWallet";
-  const bookingApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Get_Booking_By_Therapist_Id?id=0c0493c2-4f20-498a-a520-97635c24c66d";
+  const bookingApi = `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Get_Booking_By_Therapist_Id?id=${therapistId}`;
   const feedbackApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Feedback/Get_All_Feedbacks";
 
-  // Instance of AuthService
   const authService = AuthService;
 
-  // Fetch data from APIs with authentication
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = authService.getToken();
-        if (!token || authService.isTokenExpired()) {
+        if (!token || authService.isTokenExpired() || !therapistId) {
           setError("Please log in to access the dashboard.");
           setLoading(false);
           return;
@@ -108,7 +107,6 @@ const TherapistDashboard = () => {
           fetch(feedbackApi, { headers }),
         ]);
 
-        // Check if responses are successful
         if (!walletRes.ok) {
           throw new Error(`Wallet API failed with status: ${walletRes.status}`);
         }
@@ -135,9 +133,8 @@ const TherapistDashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [therapistId]);
 
-  // Calculate analytics data
   const totalRevenue = walletData?.transactions
     ? walletData.transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
     : 0;
@@ -147,13 +144,12 @@ const TherapistDashboard = () => {
     feedbackData.length > 0
       ? feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0) / feedbackData.length
       : 0;
-  const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length; 
+  const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length;
 
-  
-  const revenueChange = "+5%"; 
-  const bookingsChange = "+3%"; 
-  const ratingChange = "+1%"; 
-  const pendingChange = "+0%"; 
+  const revenueChange = "+5%";
+  const bookingsChange = "+3%";
+  const ratingChange = "+1%";
+  const pendingChange = "+0%";
 
   if (loading) {
     return <div>Loading...</div>;
@@ -167,12 +163,12 @@ const TherapistDashboard = () => {
     <div className="p-6 bg-white shadow-lg rounded-lg">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
-        <span className="text-sm text-gray-500">Last Updated: {new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour12: true, hour: "2-digit", minute: "2-digit" })} PDT</span>
+        <span className="text-sm text-gray-500">
+          Last Updated: {new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour12: true, hour: "2-digit", minute: "2-digit" })} PDT
+        </span>
       </div>
 
-     
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +184,6 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{revenueChange} from last month</p>
         </div>
 
-        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -204,7 +199,6 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{bookingsChange} from last month</p>
         </div>
 
-        
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -220,7 +214,6 @@ const TherapistDashboard = () => {
           <p className="text-green-500 text-sm mt-2">{ratingChange} from last month</p>
         </div>
 
-       
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -237,7 +230,6 @@ const TherapistDashboard = () => {
         </div>
       </div>
 
-     
       <div className="p-4 bg-gray-50 rounded-lg shadow mb-6">
         <h3 className="text-lg font-semibold mb-3">Revenue by Month</h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -251,9 +243,7 @@ const TherapistDashboard = () => {
         </ResponsiveContainer>
       </div>
 
-     
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Revenue by Day</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -267,7 +257,6 @@ const TherapistDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Revenue by Quarter</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -282,9 +271,7 @@ const TherapistDashboard = () => {
         </div>
       </div>
 
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Review Summary</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -299,7 +286,6 @@ const TherapistDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-       
         <div className="p-4 bg-gray-50 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-3">Bookings per Day</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -316,7 +302,6 @@ const TherapistDashboard = () => {
     </div>
   );
 
-  
   function calculateRevenueByDay() {
     return walletData?.transactions
       ?.reduce((acc: { day: string; revenue: number }[], transaction: Transaction) => {
