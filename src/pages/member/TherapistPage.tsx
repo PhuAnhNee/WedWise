@@ -6,25 +6,30 @@ import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
 
 const API_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_All_Therapists";
 const SPECIFICATIONS_API = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Specification/Get_All_Specification";
-const THERAPIST_BY_SPEC_API = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_SpecificationId?id=";
 const THERAPIST_BY_NAME_API = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Name?name=";
 
+// Cập nhật interface cho Therapist
 interface Therapist {
   therapistId: string;
   therapistName: string;
   description: string;
   avatar?: string;
   consultationFee: number;
+  status?: boolean;
+  meetUrl?: string;
+  schedules?: any[];
+  certificates?: any;
 }
 
+// Cập nhật interface cho Specification
 interface Specification {
-  specificationId: string;
-  name: string;
+  specificationName: string;
+  therapists: Therapist[];
 }
 
 const TherapistPage: React.FC = () => {
   const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [specifications, setSpecifications] = useState<Specification[]>([]);
+  const [allSpecifications, setAllSpecifications] = useState<Specification[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpecification, setSelectedSpecification] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -42,17 +47,13 @@ const TherapistPage: React.FC = () => {
       if (searchTerm) {
         fetchTherapistsByName(searchTerm);
       } else {
-        // Nếu ô tìm kiếm trống, trở về tất cả hoặc theo specification đã chọn
-        if (selectedSpecification) {
-          fetchTherapistsBySpecification(selectedSpecification);
-        } else {
-          fetchTherapists();
-        }
+        // Nếu không có search term, hiển thị theo specification đã chọn hoặc tất cả
+        filterTherapistsBySpecification(selectedSpecification);
       }
-    }, 500); // 500ms debounce time
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+  }, [searchTerm, selectedSpecification]);
 
   const getAccessToken = () => {
     const accessToken = localStorage.getItem("token");
@@ -61,8 +62,9 @@ const TherapistPage: React.FC = () => {
       return null;
     }
     return accessToken;
-  }
+  };
 
+  // Lấy danh sách specifications và therapists từ API
   const fetchSpecifications = async () => {
     try {
       const accessToken = getAccessToken();
@@ -70,7 +72,7 @@ const TherapistPage: React.FC = () => {
 
       const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
       const response = await axios.get<Specification[]>(SPECIFICATIONS_API, { headers });
-      setSpecifications(response.data);
+      setAllSpecifications(response.data);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách specifications:", error);
     }
@@ -81,32 +83,20 @@ const TherapistPage: React.FC = () => {
     try {
       const accessToken = getAccessToken();
       if (!accessToken) return;
-
+  
       const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
       const response = await axios.get<Therapist[]>(API_URL, { headers });
-      setTherapists(response.data);
+  
+      // Lọc danh sách chỉ lấy những therapist có status === true
+      const activeTherapists = response.data.filter(therapist => therapist.status === true);
+      setTherapists(activeTherapists);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách chuyên gia:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const fetchTherapistsBySpecification = async (specificationId: string) => {
-    setIsLoading(true);
-    try {
-      const accessToken = getAccessToken();
-      if (!accessToken) return;
-
-      const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
-      const response = await axios.get<Therapist[]>(`${THERAPIST_BY_SPEC_API}${specificationId}`, { headers });
-      setTherapists(response.data);
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách chuyên gia theo specification:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
 
   const fetchTherapistsByName = async (name: string) => {
     setIsLoading(true);
@@ -124,30 +114,32 @@ const TherapistPage: React.FC = () => {
     }
   };
 
-  const handleSpecificationChange = (specificationId: string) => {
-    setSelectedSpecification(specificationId);
-    
-    // Xóa search term khi chọn specification mới
-    setSearchTerm("");
-    
-    if (specificationId) {
-      fetchTherapistsBySpecification(specificationId);
-    } else {
-      fetchTherapists();
+  // Lọc therapists dựa trên specification từ dữ liệu đã lấy
+  const filterTherapistsBySpecification = (specificationName: string) => {
+    if (!specificationName) {
+      fetchTherapists(); // Nếu không chọn specification, lấy tất cả
+      return;
     }
+
+    const selectedSpec = allSpecifications.find(spec => spec.specificationName === specificationName);
+    if (selectedSpec) {
+      setTherapists(selectedSpec.therapists);
+    } else {
+      setTherapists([]);
+    }
+  };
+
+  const handleSpecificationChange = (specificationName: string) => {
+    setSelectedSpecification(specificationName);
+    setSearchTerm(""); // Xóa search term khi chọn specification mới
+    filterTherapistsBySpecification(specificationName);
     setShowFilterOptions(false);
   };
 
   const resetFilter = () => {
     setSelectedSpecification("");
-    
-    // Nếu đang có search term, thực hiện search lại
-    if (searchTerm) {
-      fetchTherapistsByName(searchTerm);
-    } else {
-      fetchTherapists();
-    }
-    
+    setSearchTerm("");
+    fetchTherapists();
     setShowFilterOptions(false);
   };
 
@@ -155,22 +147,18 @@ const TherapistPage: React.FC = () => {
     setSearchTerm(e.target.value);
   };
 
-  // Tìm tên của specification đã chọn
   const getSelectedSpecificationName = () => {
-    const spec = specifications.find(s => s.specificationId === selectedSpecification);
-    return spec ? spec.name : "Tất cả chuyên môn";
+    return selectedSpecification || "Tất cả chuyên môn";
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Tiêu đề */}
         <h1 className="text-4xl font-bold text-center mb-10 text-indigo-800">
           Gặp gỡ các chuyên gia tư vấn của chúng tôi
         </h1>
 
         <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto mb-10">
-          {/* Tìm kiếm */}
           <div className="relative flex-grow">
             <input
               type="text"
@@ -182,7 +170,6 @@ const TherapistPage: React.FC = () => {
             <SearchOutlined className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
 
-          {/* Bộ lọc */}
           <div className="relative">
             <div
               className="flex items-center gap-2 p-3 border rounded-full shadow-sm cursor-pointer hover:bg-gray-50 transition-all duration-300"
@@ -192,22 +179,21 @@ const TherapistPage: React.FC = () => {
               <span className="text-gray-700">{getSelectedSpecificationName()}</span>
             </div>
 
-            {/* Danh sách các specification */}
             {showFilterOptions && (
               <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
-                <div 
+                <div
                   className="p-3 hover:bg-indigo-50 cursor-pointer border-b"
                   onClick={resetFilter}
                 >
                   Tất cả chuyên môn
                 </div>
-                {specifications.map((spec) => (
+                {allSpecifications.map((spec) => (
                   <div
-                    key={spec.specificationId}
+                    key={spec.specificationName}
                     className="p-3 hover:bg-indigo-50 cursor-pointer border-b"
-                    onClick={() => handleSpecificationChange(spec.name)}
+                    onClick={() => handleSpecificationChange(spec.specificationName)}
                   >
-                    {spec.name}
+                    {spec.specificationName}
                   </div>
                 ))}
               </div>
@@ -215,7 +201,6 @@ const TherapistPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Hiển thị trạng thái loading */}
         {isLoading && (
           <div className="text-center py-10">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
@@ -223,7 +208,6 @@ const TherapistPage: React.FC = () => {
           </div>
         )}
 
-        {/* Hiển thị thông tin lọc/tìm kiếm hiện tại */}
         {!isLoading && therapists.length > 0 && (
           <div className="mb-6 text-center text-gray-600">
             {selectedSpecification && searchTerm && (
@@ -238,7 +222,6 @@ const TherapistPage: React.FC = () => {
           </div>
         )}
 
-        {/* Danh sách chuyên gia */}
         {!isLoading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {therapists.length === 0 ? (
@@ -256,7 +239,6 @@ const TherapistPage: React.FC = () => {
                   onClick={() => navigate(`/home/therapist/${therapist.therapistId}`)}
                 >
                   <div className="p-6 flex flex-col items-center text-center">
-                    {/* Avatar */}
                     <div className="relative mb-4">
                       <img
                         src={therapist.avatar || "default-avatar.png"}
@@ -266,7 +248,6 @@ const TherapistPage: React.FC = () => {
                       <div className="absolute inset-0 rounded-full border-2 border-indigo-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
 
-                    {/* Thông tin chuyên gia */}
                     <h3 className="text-xl font-semibold text-indigo-700 mb-2">
                       {therapist.therapistName || therapist.description}
                     </h3>
@@ -277,11 +258,10 @@ const TherapistPage: React.FC = () => {
                       Phí tư vấn: {therapist.consultationFee?.toLocaleString() || "N/A"} VND
                     </p>
 
-                    {/* Nút Xem chi tiết */}
                     <Link
                       to={`/home/therapist/${therapist.therapistId}`}
                       className="inline-block px-5 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors duration-300"
-                      onClick={(e) => e.stopPropagation()} // Ngăn click trên Link kích hoạt navigate của card
+                      onClick={(e) => e.stopPropagation()}
                     >
                       Xem chi tiết
                     </Link>
