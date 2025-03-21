@@ -25,6 +25,9 @@ import AnswerManage from "../answer-manage";
 import BookingManage from "../booking-manage";
 import QuestionManage from "../question-manage";
 import Specification from "../specification";
+import BlogManage from "../blog-manage";
+import CommissionManage from "../commission-manage";
+import UpdateSpec from "../update-therapist-specification";
 import Result from "../result";
 import Feedback from "../feedback";
 import Manage from "../manage/index";
@@ -59,10 +62,16 @@ const Dashboard: React.FC = () => {
                 return <Result />;
             case "specification":
                 return <Specification />;
+            case "blog-manage":
+                return <BlogManage />;
+            case "update-spec":
+                return <UpdateSpec />;
             case "answer-manage":
                 return <AnswerManage />;
             case "question-manage":
                 return <QuestionManage />;
+            case "commission-manage":
+                return <CommissionManage />;
             case "feedback":
                 return <Feedback />;
             case "settings":
@@ -126,6 +135,9 @@ const Dashboard: React.FC = () => {
                     <Menu.Item key="specification" icon={<FileProtectOutlined />}>
                         Specification
                     </Menu.Item>
+                    <Menu.Item key="update-spec" icon={<FileProtectOutlined />}>
+                        Update Therapist
+                    </Menu.Item>
                     <Menu.Item key="manage" icon={<FormOutlined />}>
                         Manage
                     </Menu.Item>
@@ -143,6 +155,12 @@ const Dashboard: React.FC = () => {
                     </Menu.Item>
                     <Menu.Item key="feedback" icon={<AuditOutlined />}>
                         Feedback
+                    </Menu.Item>
+                    <Menu.Item key="commission-manage" icon={<FileProtectOutlined />}>
+                        Commission
+                    </Menu.Item>
+                    <Menu.Item key="blog-manage" icon={<FileProtectOutlined />}>
+                        Blog Manage
                     </Menu.Item>
                 </Menu>
             </Sider>

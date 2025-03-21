@@ -48,7 +48,7 @@ const SlotList: React.FC<SlotListProps> = ({
       case 2:
         return "bg-red-100"; // Busy
       default:
-        return "";
+        return "bg-white";
     }
   };
 
@@ -71,8 +71,10 @@ const SlotList: React.FC<SlotListProps> = ({
                 isScheduled ? getStatusColor(status) : ""
               }`}
             >
-              <span>{`Slot ${slot.id}`}</span>
-              <span>{slot.time}</span>
+              <div className="flex-1 flex items-center space-x-4">
+                <span className="w-16">{`Slot ${slot.id}`}</span>
+                <span className="flex-1">{slot.time}</span>
+              </div>
               {isScheduled ? (
                 <span className="text-sm font-medium">
                   {status === 0 && "Lịch trống"}
