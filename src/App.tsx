@@ -12,6 +12,9 @@ import AnswerManage from "./pages/admin/answer-manage/index";
 import QuestionManage from "./pages/admin/question-manage/index";
 import BookingManage from "./pages/admin/booking-manage/index";
 import Specification from "./pages/admin/specification/index";
+import BlogManage from "./pages/admin/blog-manage/index";
+import CommissionManage from "./pages/admin/commission-manage/index";
+import UpdateSpec from "./pages/admin/update-therapist-specification/index";
 import Result from "./pages/admin/result/index";
 import Feedback from "./pages/admin/feedback/index";
 import ProfileAdmin from "./pages/admin/profile";
@@ -50,13 +53,16 @@ const App: React.FC = () => {
         <Route path="question-manage" element={<QuestionManage />} />
         <Route path="answer-manage" element={<AnswerManage />} />
         <Route path="booking-manage" element={<BookingManage />} />
+        <Route path="commission-manage" element={<CommissionManage />} />
         <Route path="specification" element={<Specification />} />
+        <Route path="update-spec" element={<UpdateSpec />} />
+        <Route path="blog-manage" element={<BlogManage />} />
         <Route path="result" element={<Result />} />
         <Route path="feedback" element={<Feedback />} />
         <Route path="/home" element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="therapist" element={<TherapistPage />} />
-          <Route path="therapist/:id" element={<TherapistDetail />} /> 
+          <Route path="therapist/:id" element={<TherapistDetail />} />
           <Route path="my-booking" element={<MyBooking />} />
           <Route path="quizzes" element={<QuizPage />} />
           <Route path="quiz/:quizId" element={<QuizDetail />} />
