@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, startOfToday, subDays, isAfter, addHours } from "date-fns";
+import { format, startOfToday, subDays, isAfter } from "date-fns";
+import { toZonedTime } from "date-fns-tz"; // Updated import
 import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
 import Calendar from "./therapistComponent/Calendar";
@@ -41,6 +42,7 @@ const TherapistCalendar = () => {
 
   const currentUser = AuthService.getCurrentUser();
   const therapistId = currentUser?.UserId;
+  const hanoiTimeZone = "Asia/Ho_Chi_Minh"; // Define Hanoi timezone (UTC+7)
   const today = startOfToday();
 
   const fetchSchedule = useCallback(async () => {
@@ -87,21 +89,27 @@ const TherapistCalendar = () => {
     }
   }, [selectedDate, currentMonth, fetchSchedule]);
 
-  const adjustToHanoiTime = (date: Date) => {
-    return addHours(date, 7);
+  // Convert a UTC date to Hanoi timezone
+  const toHanoiTime = (date: Date) => {
+    return toZonedTime(date, hanoiTimeZone);
+  };
+
+  // Convert a Hanoi timezone date to UTC for API
+  const toUtcTime = (date: Date) => {
+    return toZonedTime(date, "UTC");
   };
 
   const isDateInPast = (date: string) => {
-    const parsedDate = adjustToHanoiTime(new Date(date));
-    return !isAfter(parsedDate, subDays(adjustToHanoiTime(today), 1));
+    const parsedDate = toHanoiTime(new Date(date));
+    return !isAfter(parsedDate, subDays(toHanoiTime(today), 1));
   };
 
   const isBeforeCurrentMonth = (date: Date) => {
-    const hanoiDate = adjustToHanoiTime(date);
-    const currentMonth = adjustToHanoiTime(new Date());
+    const hanoiDate = toHanoiTime(date);
+    const currentMonthDate = toHanoiTime(new Date());
     return (
-      hanoiDate.getFullYear() < currentMonth.getFullYear() ||
-      (hanoiDate.getFullYear() === currentMonth.getFullYear() && hanoiDate.getMonth() < currentMonth.getMonth())
+      hanoiDate.getFullYear() < currentMonthDate.getFullYear() ||
+      (hanoiDate.getFullYear() === currentMonthDate.getFullYear() && hanoiDate.getMonth() < currentMonthDate.getMonth())
     );
   };
 
@@ -135,7 +143,9 @@ const TherapistCalendar = () => {
     setError("");
     setShowModal(false);
 
-    const dateToSend = adjustToHanoiTime(new Date(selectedDate));
+    // Convert selectedDate to Hanoi time and then to UTC for the API
+    const dateInHanoi = toHanoiTime(new Date(selectedDate));
+    const dateToSend = toUtcTime(dateInHanoi);
 
     const requestData = [
       {
@@ -180,7 +190,7 @@ const TherapistCalendar = () => {
       {
         scheduleId: scheduleItem.scheduleId,
         therapistId: scheduleItem.therapistId,
-        date: scheduleItem.date,
+        date: scheduleItem.date, // Already in UTC from API
         slot: scheduleItem.slot,
         status: status,
       },
@@ -208,17 +218,16 @@ const TherapistCalendar = () => {
   };
 
   const formatDate = (date: Date) => {
-    const adjustedDate = adjustToHanoiTime(new Date(date));
-    return adjustedDate.toISOString().split("T")[0];
+    const adjustedDate = toHanoiTime(new Date(date));
+    return format(adjustedDate, "yyyy-MM-dd");
   };
 
   const getSchedulesForSelectedDate = (): Schedule[] => {
-    const adjustedSelectedDate = adjustToHanoiTime(new Date(selectedDate));
+    const adjustedSelectedDate = toHanoiTime(new Date(selectedDate));
     const formattedSelectedDate = formatDate(adjustedSelectedDate);
-    console.log("Selected date in getSchedulesForSelectedDate:", formattedSelectedDate); 
 
     const filteredSchedules = schedule.filter((slot) => {
-      const scheduleDate = adjustToHanoiTime(new Date(slot.date));
+      const scheduleDate = toHanoiTime(new Date(slot.date));
       const formattedScheduleDate = formatDate(scheduleDate);
       return formattedScheduleDate === formattedSelectedDate;
     });
@@ -235,7 +244,7 @@ const TherapistCalendar = () => {
   };
 
   const formatHanoiTime = (date: Date) => {
-    const hanoiTime = adjustToHanoiTime(date);
+    const hanoiTime = toHanoiTime(date);
     return format(hanoiTime, "HH:mm:ss");
   };
 
@@ -261,7 +270,7 @@ const TherapistCalendar = () => {
           />
           <SlotList
             slots={slots}
-            selectedDate={formatDate(selectedDate)} // Ensure the date is formatted after adjustment
+            selectedDate={formatDate(selectedDate)}
             selectedSlot={selectedSlot}
             setSelectedSlot={setSelectedSlot}
             isSlotScheduled={isSlotScheduled}
