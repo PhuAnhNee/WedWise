@@ -5,6 +5,7 @@ import axios from "axios";
 import AuthService from "../service/AuthService";
 import ProfileCard from "./therapistComponent/ProfileCard";
 import CertificateCard from "./therapistComponent/CertificateCard";
+import SpecificationList from "./therapistComponent/SpecificationList";
 
 interface TherapistProfile {
   therapistName: string;
@@ -148,7 +149,7 @@ const Profile = () => {
   return (
     <>
       {contextHolder}
-      <div className="flex justify-center items-start min-h-screen p-6 bg-gradient-to-r">
+      <div className="flex flex-col md:flex-row justify-center items-start min-h-screen p-6 bg-gradient-to-r gap-6">
         <ProfileCard
           profile={profile}
           setProfile={setProfile}
@@ -157,14 +158,26 @@ const Profile = () => {
           showNotification={showNotification}
           message={message}
         />
-        <CertificateCard
-          certificate={certificate}
-          setCertificate={setCertificate}
-          therapistId={therapistId}
-          fetchCertificate={fetchCertificate}
-          handleFileUpload={handleFileUpload}
-          showNotification={showNotification}
-        />
+        <div className="flex flex-col gap-6">
+          <CertificateCard
+            certificate={certificate}
+            setCertificate={setCertificate}
+            therapistId={therapistId}
+            fetchCertificate={fetchCertificate}
+            handleFileUpload={handleFileUpload}
+            showNotification={showNotification}
+          />
+          {therapistId ? (
+            <SpecificationList
+              therapistId={therapistId}
+              showNotification={showNotification}
+            />
+          ) : (
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <p className="text-red-500">Therapist ID is not available.</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
