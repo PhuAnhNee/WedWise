@@ -20,6 +20,7 @@ interface Blog {
     id: string;
     title: string;
     content: string;
+    body: string;
     status: number; // 0 = Active, 1 = Inactive
     picture: string;
 }
@@ -65,8 +66,9 @@ const BlogManage: React.FC = () => {
             form.setFieldsValue({
                 title: blogData.title,
                 content: blogData.content,
+                body: blogData.body,
                 picture: blogData.picture,
-                status: blogData.status === 0, // 0 = Active (true), 1 = Inactive (false)
+                status: blogData.status === 0,
             });
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
@@ -76,7 +78,13 @@ const BlogManage: React.FC = () => {
     };
 
     // Create blog
-    const handleCreate = async (values: { title: string; content: string; picture: string; status?: boolean }) => {
+    const handleCreate = async (values: {
+        title: string;
+        content: string;
+        body: string;
+        picture: string;
+        status?: boolean
+    }) => {
         try {
             const accessToken = localStorage.getItem("accessToken");
             if (!accessToken) {
@@ -88,8 +96,9 @@ const BlogManage: React.FC = () => {
             const payload = {
                 title: values.title,
                 content: values.content,
+                body: values.body,
                 picture: values.picture,
-                status: values.status ? 0 : 1, // true = Active (0), false = Inactive (1)
+                status: values.status ? 0 : 1,
             };
             await axios.post(`${API_BASE_URL}/Blog/Create_Blog`, payload, { headers });
             message.success("Blog created successfully!");
@@ -104,7 +113,13 @@ const BlogManage: React.FC = () => {
     };
 
     // Update blog
-    const handleUpdate = async (values: { title: string; content: string; picture: string; status: boolean }) => {
+    const handleUpdate = async (values: {
+        title: string;
+        content: string;
+        body: string;
+        picture: string;
+        status: boolean
+    }) => {
         if (!selectedBlog) return;
 
         try {
@@ -119,7 +134,8 @@ const BlogManage: React.FC = () => {
                 id: selectedBlog.id,
                 title: values.title,
                 content: values.content,
-                status: values.status ? 0 : 1, // true = Active (0), false = Inactive (1)
+                body: values.body,
+                status: values.status ? 0 : 1,
                 picture: values.picture,
             };
             await axios.post(`${API_BASE_URL}/Blog/Update_Blog`, payload, { headers });
@@ -144,12 +160,13 @@ const BlogManage: React.FC = () => {
                 return;
             }
 
-            const newStatus = blog.status === 0 ? 1 : 0; // Toggle between 0 (Active) and 1 (Inactive)
+            const newStatus = blog.status === 0 ? 1 : 0;
             const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
             const payload = {
                 id: blog.id,
                 title: blog.title,
                 content: blog.content,
+                body: blog.body,
                 status: newStatus,
                 picture: blog.picture,
             };
@@ -163,39 +180,10 @@ const BlogManage: React.FC = () => {
         }
     };
 
-    // // Delete blog
-    // const handleDelete = async (id: string) => {
-    //     Modal.confirm({
-    //         title: 'Confirm Delete',
-    //         content: 'Are you sure you want to delete this blog?',
-    //         okText: 'Yes',
-    //         okType: 'danger',
-    //         cancelText: 'No',
-    //         onOk: async () => {
-    //             try {
-    //                 const accessToken = localStorage.getItem("accessToken");
-    //                 if (!accessToken) {
-    //                     message.error("Unauthorized: Please log in again.");
-    //                     return;
-    //                 }
-
-    //                 const headers = { Authorization: `Bearer ${accessToken}` };
-    //                 await axios.post(`${API_BASE_URL}/Blog/Delete_Blog?id=${id}`, null, { headers });
-    //                 message.success("Blog deleted successfully!");
-    //                 fetchBlogs();
-    //             } catch (error) {
-    //                 const err = error as AxiosError<{ message?: string }>;
-    //                 console.error("Error deleting blog:", err.response?.data || err.message);
-    //                 message.error("Failed to delete blog!");
-    //             }
-    //         }
-    //     });
-    // };
-
     // Show create modal
     const showCreateModal = () => {
         form.resetFields();
-        form.setFieldsValue({ status: true }); // Default to Active
+        form.setFieldsValue({ status: true });
         setIsCreateModalVisible(true);
     };
 
@@ -283,16 +271,6 @@ const BlogManage: React.FC = () => {
                             shape="circle"
                         />
                     </Tooltip>
-                    {/* <Tooltip title="Delete">
-                        <Button
-                            type="primary"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDelete(record.id)}
-                            size="middle"
-                            shape="circle"
-                        />
-                    </Tooltip> */}
                 </Space>
             ),
         },
@@ -375,6 +353,13 @@ const BlogManage: React.FC = () => {
                         <TextArea rows={6} placeholder="Enter blog content" size="large" />
                     </Form.Item>
                     <Form.Item
+                        name="body"
+                        label="Blog Body"
+                        rules={[{ required: true, message: "Please enter the blog body!" }]}
+                    >
+                        <TextArea rows={6} placeholder="Enter blog body" size="large" />
+                    </Form.Item>
+                    <Form.Item
                         name="picture"
                         label="Picture URL"
                         rules={[{ required: true, message: "Please enter the picture URL!" }]}
@@ -385,7 +370,7 @@ const BlogManage: React.FC = () => {
                         name="status"
                         label="Status"
                         valuePropName="checked"
-                        initialValue={true} // Default to Active (0)
+                        initialValue={true}
                     >
                         <Switch
                             checkedChildren="Active"
@@ -433,6 +418,13 @@ const BlogManage: React.FC = () => {
                         rules={[{ required: true, message: "Please enter the blog content!" }]}
                     >
                         <TextArea rows={6} placeholder="Enter blog content" size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        name="body"
+                        label="Blog Body"
+                        rules={[{ required: true, message: "Please enter the blog body!" }]}
+                    >
+                        <TextArea rows={6} placeholder="Enter blog body" size="large" />
                     </Form.Item>
                     <Form.Item
                         name="picture"
