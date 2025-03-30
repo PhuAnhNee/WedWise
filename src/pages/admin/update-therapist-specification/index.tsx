@@ -6,7 +6,7 @@ const API_BASE_URL =
     "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
 
 interface Specification {
-    specificationId: string; // Must be a GUID
+    specificationId: string;
     name: string;
     description: string;
     level: number;
@@ -24,6 +24,14 @@ interface UpdateResponse {
     therapistId: string;
     specificationId: string;
     status: number;
+}
+
+interface SpecificationResponse {
+    specificationName: string;
+    therapists: {
+        therapistId: string;
+        therapistName: string;
+    }[];
 }
 
 type Props = Record<string, never>;
@@ -57,23 +65,52 @@ class UpdateSpecification extends Component<Props, State> {
         try {
             this.setState({ loading: true });
 
+            // Fetch therapists
             const therapistResponse = await axios.get<Therapist[]>(
                 `${API_BASE_URL}/Therapist/Get_All_Therapists`
             );
             const basicTherapists = therapistResponse.data.map(therapist => ({
                 therapistId: therapist.therapistId,
                 therapistName: therapist.therapistName,
-                specifications: therapist.specifications.map(spec => ({
-                    ...spec,
-                    status: spec.status ?? 0 // Default to 0 (Pending)
-                })) || [],
+                specifications: therapist.specifications || [],
                 key: therapist.therapistId
             }));
+            console.log("Fetched therapists:", basicTherapists);
 
-            // Log the fetched data to verify specificationId format
-            console.log("Fetched therapists with specifications:", basicTherapists);
+            // Fetch specifications
+            const specResponse = await axios.get<SpecificationResponse[]>(
+                `${API_BASE_URL}/Specification/Get_All_Specification`
+            );
+            const specData = specResponse.data;
+            console.log("Fetched specifications:", specData);
 
-            this.setState({ therapists: basicTherapists });
+            // Map specifications to therapists
+            const updatedTherapists = basicTherapists.map(therapist => {
+                const matchingSpecs = specData
+                    .filter(spec => spec.therapists.some(t => t.therapistId === therapist.therapistId))
+                    .map(spec => {
+                        const generatedSpecId = `${spec.specificationName}-${therapist.therapistId}`;
+                        console.warn(
+                            "Generated specificationId:",
+                            generatedSpecId,
+                            "Verify if this matches what the API expects."
+                        );
+                        return {
+                            specificationId: generatedSpecId, // Use this instead of fallback
+                            name: spec.specificationName,
+                            description: "No description",
+                            level: 0,
+                            status: therapist.specifications.find(s => s.name === spec.specificationName)?.status
+                        };
+                    });
+                return {
+                    ...therapist,
+                    specifications: matchingSpecs.length > 0 ? matchingSpecs : therapist.specifications
+                };
+            });
+
+            this.setState({ therapists: updatedTherapists });
+            console.log("Updated therapists with specifications:", updatedTherapists);
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error fetching data:", err.response?.status, err.message);
@@ -93,22 +130,15 @@ class UpdateSpecification extends Component<Props, State> {
         try {
             this.setState({ updating: true });
             const accessToken = localStorage.getItem("accessToken");
-            if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
-                return;
-            }
-
             const headers = {
                 Authorization: `Bearer ${accessToken}`,
                 "Content-Type": "application/json"
             };
 
             const payload = {
-                updateTheSpeDTO: {
-                    therapistId: selectedTherapistId,
-                    specificationId: selectedSpecificationId,
-                    status: selectedStatus
-                }
+                therapistId: selectedTherapistId,
+                specificationId: selectedSpecificationId,
+                status: selectedStatus
             };
 
             console.log("Sending update request with payload:", payload);
@@ -120,7 +150,7 @@ class UpdateSpecification extends Component<Props, State> {
             );
 
             console.log("Update response:", response.data);
-            message.success(`Specification status updated to ${selectedStatus === 0 ? "Pending" : selectedStatus === 1 ? "Accepted" : "Rejected"}`);
+            message.success(`Specification status updated to ${selectedStatus === 0 ? "Active" : selectedStatus === 1 ? "Pending" : "Reject"}`);
             this.setState({ isModalVisible: false });
             await this.fetchData();
         } catch (error) {
@@ -156,7 +186,7 @@ class UpdateSpecification extends Component<Props, State> {
                 key: "specifications",
                 render: (specifications: Specification[]) =>
                     specifications
-                        .map(spec => `${spec.name} (${spec.status === 0 ? "Pending" : spec.status === 1 ? "Accepted" : spec.status === 2 ? "Rejected" : "Unknown"})`)
+                        .map(spec => `${spec.name} (${spec.status === 0 ? "Active" : spec.status === 1 ? "Pending" : spec.status === 2 ? "Reject" : "Unknown"})`)
                         .join(", ") || "None"
             },
             {
@@ -215,10 +245,10 @@ class UpdateSpecification extends Component<Props, State> {
                                 {selectedTherapist?.specifications && selectedTherapist.specifications.length > 0 ? (
                                     selectedTherapist.specifications.map((spec, index) => (
                                         <Select.Option
-                                            key={spec.specificationId || `fallback-${index}`}
+                                            key={spec.specificationId || `fallback-${index}`} // Fallback only if spec.specificationId is invalid
                                             value={spec.specificationId}
                                         >
-                                            {spec.name} (Current: {spec.status === 0 ? "Pending" : spec.status === 1 ? "Accepted" : spec.status === 2 ? "Rejected" : "Unknown"})
+                                            {spec.name} (Current: {spec.status === 0 ? "Active" : spec.status === 1 ? "Pending" : spec.status === 2 ? "Reject" : "Unknown"})
                                         </Select.Option>
                                     ))
                                 ) : (
@@ -236,9 +266,9 @@ class UpdateSpecification extends Component<Props, State> {
                                 value={selectedStatus}
                                 onChange={(value: number) => this.setState({ selectedStatus: value })}
                             >
-                                <Select.Option value={0}>Pending</Select.Option>
-                                <Select.Option value={1}>Accepted</Select.Option>
-                                <Select.Option value={2}>Rejected</Select.Option>
+                                <Select.Option value={0}>Active</Select.Option>
+                                <Select.Option value={1}>Pending</Select.Option>
+                                <Select.Option value={2}>Reject</Select.Option>
                             </Select>
                         </div>
                     </div>
