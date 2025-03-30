@@ -134,12 +134,6 @@ const AdminLogin: React.FC = () => {
                             />
                         </div>
 
-                        <div className="text-center">
-                            <a href="#" className="text-sm text-blue-500 hover:underline">
-                                Forgot your password?
-                            </a>
-                        </div>
-
                         <div>
                             <button
                                 type="submit"
@@ -150,16 +144,6 @@ const AdminLogin: React.FC = () => {
                             </button>
                         </div>
                     </form>
-
-                    <div className="mt-6 text-center text-sm text-gray-600">
-                        <a href="#" className="text-blue-500 hover:underline">
-                            Terms of use
-                        </a>
-                        <span className="mx-2">|</span>
-                        <a href="#" className="text-blue-500 hover:underline">
-                            Privacy policy
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
