@@ -132,7 +132,7 @@ const Navbar: React.FC = () => {
               className="flex items-center space-x-2 cursor-pointer bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-gray-900 hover:bg-white/30 transition-all duration-200"
             >
               <FaWallet className="text-xl text-gray-900" />
-              <span className="font-medium">${walletBalance.toLocaleString()}</span>
+              <span className="font-medium">{walletBalance.toLocaleString()} VND</span>
             </motion.div>
 
             {/* User Dropdown */}

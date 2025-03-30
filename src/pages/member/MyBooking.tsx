@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, notification, Form, Input, Rate, Radio, Space } from "antd";
+import { Modal, Button, notification, Form, Input, Rate, Radio, Space, Alert } from "antd";
 import axios from "axios";
 import AuthService from "../service/AuthService";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
@@ -89,6 +89,8 @@ const MyBooking: React.FC = () => {
   const [feedbackForm] = Form.useForm();
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState<boolean>(false);
   const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState<boolean>(false);
+  const [isCancelModalVisible, setIsCancelModalVisible] = useState<boolean>(false);
+  const [isEligibleForRefund, setIsEligibleForRefund] = useState<boolean>(false);
 
   // Tạo notification
   const [api, contextHolder] = notification.useNotification();
@@ -166,43 +168,114 @@ const MyBooking: React.FC = () => {
     }
   };
 
-  // Handle canceling a booking
-  const handleCancelBooking = async () => {
+  // Get slot time based on slot number
+  const getSlotStartTimeBySlot = (slot: number): Date | null => {
+    if (!selectedBooking || !selectedBooking.schedule || !selectedBooking.schedule.date) {
+      return null;
+    }
+
+    const appointmentDate = new Date(selectedBooking.schedule.date);
+    let hours = 0;
+    let minutes = 0;
+
+    switch (slot) {
+      case 1: hours = 7; minutes = 30; break;
+      case 2: hours = 9; minutes = 30; break;
+      case 3: hours = 11; minutes = 30; break;
+      case 4: hours = 13; minutes = 30; break;
+      case 5: hours = 15; minutes = 30; break;
+      case 6: hours = 17; minutes = 30; break;
+      case 7: hours = 19; minutes = 30; break;
+      default: return null;
+    }
+
+    appointmentDate.setHours(hours, minutes, 0, 0);
+    return appointmentDate;
+  };
+
+  // Check if eligible for refund based on cancellation time
+  const checkRefundEligibility = (): boolean => {
+    if (!selectedBooking || !selectedBooking.schedule) {
+      return false;
+    }
+
+    const slotStartTime = getSlotStartTimeBySlot(selectedBooking.schedule.slot);
+    if (!slotStartTime) {
+      return false;
+    }
+
+    const currentTime = new Date();
+    const timeDifference = slotStartTime.getTime() - currentTime.getTime();
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+
+    // More than 2 hours before the appointment
+    return hoursDifference > 2;
+  };
+
+  // Handle showing cancel confirmation
+  const showCancelConfirmation = () => {
     if (!selectedBooking) {
       showErrorNotification("Không thể hủy lịch hẹn: Thông tin lịch hẹn không có sẵn");
       return;
     }
 
-    if (!selectedBooking.bookingId) {
-      showErrorNotification("Không thể hủy lịch hẹn: ID lịch hẹn không hợp lệ");
-      return;
-    }
-
-    try {
-      console.log("Cancelling booking with ID:", selectedBooking.bookingId);
-
-      // Call the cancel booking API
-      await axios.post(
-        `${API_BASE_URL}/Booking/Cancel_Booking?id=${selectedBooking.bookingId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${AuthService.getToken()}`
-          }
-        }
-      );
-
-      showSuccessNotification("Lịch hẹn đã được hủy thành công!");
-      window.location.reload();
-      fetchBookings(); // Refresh the bookings list
-    } catch (error) {
-      console.error("Lỗi khi hủy lịch hẹn:", error);
-      showErrorNotification("Hủy lịch hẹn thất bại. Vui lòng thử lại!");
-    } finally {
-      setIsModalVisible(false);
-      setSelectedBooking(null);
-    }
+    const isEligible = checkRefundEligibility();
+    setIsEligibleForRefund(isEligible);
+    setIsCancelModalVisible(true);
+    setIsModalVisible(false); // Hide the booking details modal
   };
+
+ // Handle canceling a booking
+const handleCancelBooking = async () => {
+  if (!selectedBooking) {
+    showErrorNotification("Không thể hủy lịch hẹn: Thông tin lịch hẹn không có sẵn");
+    return;
+  }
+
+  if (!selectedBooking.bookingId) {
+    showErrorNotification("Không thể hủy lịch hẹn: ID lịch hẹn không hợp lệ");
+    return;
+  }
+
+  try {
+    console.log("Cancelling booking with ID:", selectedBooking.bookingId);
+    
+    // Xác định trạng thái hoàn tiền dựa trên thời gian hủy
+    const isEligibleForRefund = checkRefundEligibility();
+    
+    // Chuẩn bị dữ liệu gửi đi theo định dạng mới
+    const cancelData = {
+      bookingId: selectedBooking.bookingId,
+      isReturn: isEligibleForRefund
+    };
+
+    // Call the cancel booking API với dữ liệu mới
+    await axios.post(
+      `${API_BASE_URL}/Booking/Cancel_Booking`,
+      cancelData,
+      {
+        headers: {
+          Authorization: `Bearer ${AuthService.getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const refundMessage = isEligibleForRefund 
+      ? "Lịch hẹn đã được hủy thành công! Tiền sẽ được hoàn về ví của bạn."
+      : "Lịch hẹn đã được hủy thành công! Tiền sẽ không được hoàn lại do hủy lịch hẹn trong vòng 2 giờ trước khi bắt đầu.";
+    
+    showSuccessNotification(refundMessage);
+    window.location.reload();
+    fetchBookings(); // Refresh the bookings list
+  } catch (error) {
+    console.error("Lỗi khi hủy lịch hẹn:", error);
+    showErrorNotification("Hủy lịch hẹn thất bại. Vui lòng thử lại!");
+  } finally {
+    setIsCancelModalVisible(false);
+    setSelectedBooking(null);
+  }
+};
 
   // Handle submitting feedback
   const handleSubmitFeedback = async (values: any) => {
@@ -312,7 +385,6 @@ const MyBooking: React.FC = () => {
         return { text: "Không xác định", color: "text-gray-500" };
     }
   };
-  // Handle Update feedback
 
   return (
     <>{contextHolder}
@@ -407,10 +479,7 @@ const MyBooking: React.FC = () => {
                 <Button
                   key="cancel"
                   danger
-                  onClick={() => {
-                    console.log("Cancel button clicked for booking:", selectedBooking);
-                    handleCancelBooking();
-                  }}
+                  onClick={showCancelConfirmation}
                 >
                   Hủy lịch hẹn
                 </Button>
@@ -449,9 +518,6 @@ const MyBooking: React.FC = () => {
                 </div>
               </div>
 
-              {/* <p>
-      <span className="font-medium">Mã đặt lịch:</span> {selectedBooking.bookingId}
-    </p> */}
               <p>
                 <span className="font-medium">Ngày hẹn:</span> {
                   selectedBooking.schedule && selectedBooking.schedule.date
@@ -512,6 +578,61 @@ const MyBooking: React.FC = () => {
                   <p className="text-sm">Bạn đã đánh giá về buổi tư vấn này. Cảm ơn bạn đã gửi phản hồi!</p>
                 </div>
               )}
+            </div>
+          )}
+        </Modal>
+
+        {/* Cancel Confirmation Modal */}
+        <Modal
+          title="Xác nhận hủy lịch hẹn"
+          open={isCancelModalVisible}
+          onCancel={() => {
+            setIsCancelModalVisible(false);
+            setIsModalVisible(true); // Show the booking details modal again
+          }}
+          footer={[
+            <Button key="back" onClick={() => {
+              setIsCancelModalVisible(false);
+              setIsModalVisible(true);
+            }}>
+              Quay lại
+            </Button>,
+            <Button
+              key="submit"
+              danger
+              onClick={handleCancelBooking}
+            >
+              Xác nhận hủy
+            </Button>,
+          ]}
+        >
+          {selectedBooking && (
+            <div>
+              <Alert
+                message={isEligibleForRefund 
+                  ? "Hoàn tiền vào ví" 
+                  : "Không hoàn tiền"}
+                description={isEligibleForRefund 
+                  ? "Bạn đang hủy lịch hẹn trước thời gian bắt đầu hơn 2 tiếng. Tiền sẽ được hoàn trả vào ví của bạn." 
+                  : "Bạn đang hủy lịch hẹn trong vòng 2 tiếng trước khi bắt đầu. Tiền sẽ KHÔNG được hoàn trả vào ví của bạn."}
+                type={isEligibleForRefund ? "success" : "warning"}
+                showIcon
+                style={{marginBottom: "20px"}}
+              />
+              <p>Bạn có chắc chắn muốn hủy lịch hẹn này không?</p>
+              <div className="bg-gray-50 p-3 rounded mt-4">
+                <p><span className="font-medium">Chuyên gia tư vấn:</span> {selectedBooking.therapist ? selectedBooking.therapist.therapistName : selectedBooking.therapistName}</p>
+                <p><span className="font-medium">Ngày hẹn:</span> {
+                  selectedBooking.schedule && selectedBooking.schedule.date
+                    ? formatDate(selectedBooking.schedule.date)
+                    : formatDate(selectedBooking.bookingDate)
+                }</p>
+                <p><span className="font-medium">Giờ hẹn:</span> {
+                  selectedBooking.schedule && selectedBooking.schedule.slot
+                    ? getTimeRangeBySlot(selectedBooking.schedule.slot)
+                    : "Không có thông tin"
+                }</p>
+              </div>
             </div>
           )}
         </Modal>
