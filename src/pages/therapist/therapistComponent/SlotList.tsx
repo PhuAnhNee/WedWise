@@ -1,3 +1,5 @@
+import React from "react";
+
 interface Slot {
   id: string;
   time: string;
@@ -18,9 +20,10 @@ interface SlotListProps {
   setSelectedSlot: React.Dispatch<React.SetStateAction<number | null>>;
   isSlotScheduled: (id: number) => boolean;
   getScheduleBySlot: (id: number) => Schedule | null;
-  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void;
-  isDateInPast: (date: string) => boolean;
+  isDateInPast: (date: Date) => boolean;
+  isSlotTimeInPast: (date: Date, slotId: number) => boolean;
   openConfirmModal: () => void;
+  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void; // Added
 }
 
 const SlotList: React.FC<SlotListProps> = ({
@@ -31,10 +34,12 @@ const SlotList: React.FC<SlotListProps> = ({
   isSlotScheduled,
   getScheduleBySlot,
   isDateInPast,
+  isSlotTimeInPast,
   openConfirmModal,
 }) => {
   const toggleSlot = (id: number) => {
-    if (!isDateInPast(selectedDate)) {
+    const date = new Date(selectedDate);
+    if (!isDateInPast(date) && !isSlotTimeInPast(date, id)) {
       setSelectedSlot((prev) => (prev === id ? null : id));
     }
   };
@@ -42,17 +47,15 @@ const SlotList: React.FC<SlotListProps> = ({
   const getStatusColor = (status: number) => {
     switch (status) {
       case 0:
-        return "bg-green-100"; // Available
+        return "bg-green-100";
       case 1:
-        return "bg-yellow-100"; // Booked
+        return "bg-yellow-100";
       case 2:
-        return "bg-red-100"; // Busy
+        return "bg-red-100";
       default:
         return "bg-white";
     }
   };
-
-  console.log("SlotList selectedDate:", selectedDate); // Debug log
 
   return (
     <div className="w-full md:w-1/2 space-y-4">
@@ -63,13 +66,15 @@ const SlotList: React.FC<SlotListProps> = ({
           const scheduleItem = getScheduleBySlot(slotId);
           const isScheduled = !!scheduleItem;
           const status = scheduleItem ? scheduleItem.status : 1;
+          const date = new Date(selectedDate);
+          const isPastSlot = isDateInPast(date) || isSlotTimeInPast(date, slotId);
 
           return (
             <div
               key={slot.id}
               className={`flex items-center justify-between p-3 border-b last:border-b-0 ${
                 isScheduled ? getStatusColor(status) : ""
-              }`}
+              } ${isPastSlot ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex-1 flex items-center space-x-4">
                 <span className="w-16">{`Slot ${slot.id}`}</span>
@@ -87,14 +92,14 @@ const SlotList: React.FC<SlotListProps> = ({
                   checked={selectedSlot === slotId && !isScheduled}
                   onChange={() => toggleSlot(slotId)}
                   className="w-5 h-5"
-                  disabled={isDateInPast(selectedDate) || isScheduled}
+                  disabled={isPastSlot || isScheduled}
                 />
               )}
             </div>
           );
         })}
       </div>
-      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(selectedDate) && (
+      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(new Date(selectedDate)) && !isSlotTimeInPast(new Date(selectedDate), selectedSlot) && (
         <div className="flex gap-4 mt-4">
           <button
             onClick={openConfirmModal}
@@ -104,7 +109,7 @@ const SlotList: React.FC<SlotListProps> = ({
           </button>
         </div>
       )}
-      {isDateInPast(selectedDate) && (
+      {isDateInPast(new Date(selectedDate)) && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 p-3 rounded-lg mt-4">
           <p>Không thể tạo lịch cho ngày trong quá khứ!</p>
         </div>

@@ -27,9 +27,7 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   if (!showModal) return null;
 
-  const handleConfirmClick = async () => {
-    await handleConfirm();
-  };
+  const handleConfirmClick = async () => await handleConfirm();
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-60 backdrop-blur-sm z-50 transition-opacity duration-300">
@@ -38,13 +36,9 @@ const Modal: React.FC<ModalProps> = ({
           showModal ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
       >
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          Xác nhận tạo lịch trống
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Xác nhận tạo lịch trống</h2>
         {error && (
-          <p className="text-red-600 bg-red-50 p-3 rounded-lg mb-6 text-center font-medium">
-            {error}
-          </p>
+          <p className="text-red-600 bg-red-50 p-3 rounded-lg mb-6 text-center font-medium">{error}</p>
         )}
         <div className="space-y-4 text-gray-700">
           <p className="text-lg">
