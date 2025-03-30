@@ -21,7 +21,7 @@ interface Booking {
   userName?: string;
   therapist?: { consultationFee: number };
   schedule?: { date: string; slot: number };
-  isOngoing?: boolean; // Added to track ongoing status
+  isOngoing?: boolean;
 }
 
 interface User {
@@ -114,7 +114,7 @@ const TherapistBookingList = () => {
           scheduleDate: booking.schedule?.date || '',
           slot: booking.schedule?.slot || 0,
           userName: users.find((u) => u.userId === booking.memberId)?.fullName || booking.memberId,
-          isOngoing: false, // Initialize as not ongoing
+          isOngoing: false,
         }));
 
         setBookings(bookingsWithSchedule);
@@ -143,7 +143,7 @@ const TherapistBookingList = () => {
       if (meetUrl) {
         const updatedBookings = bookings.map((booking) =>
           booking.bookingId === bookingId
-            ? { ...booking, meetUrl, isOngoing: true } // Mark as ongoing
+            ? { ...booking, meetUrl, isOngoing: true }
             : booking
         );
         setBookings(updatedBookings);
@@ -206,72 +206,67 @@ const TherapistBookingList = () => {
   };
 
   return (
-    <div className="min-h-screen 0 p-6">
+    <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-xl p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Therapist Booking List</h2>
-        {error && (
-          <p className="text-red-500 mb-6 text-center bg-red-100 p-3 rounded-lg">{error}</p>
-        )}
-        {bookings.length === 0 ? (
-          <p className="text-gray-500 text-center py-6">No pending bookings found.</p>
-        ) : (
-          <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-            {bookings.map((booking) => (
-              <div
-                key={booking.bookingId}
-                className="border border-gray-200 p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out"
+      {error && (
+        <p className="text-red-500 mb-6 text-center bg-red-100 p-3 rounded-lg">{error}</p>
+      )}
+      {bookings.length === 0 ? (
+        <p className="text-gray-500 text-center py-6">No On-Going bookings found.</p>
+      ) : (
+        bookings.map((booking) => (
+          <div
+            key={booking.bookingId}
+            className="border border-gray-200 p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out"
+          >
+            <h3 className="text-lg font-bold text-blue-700 mb-3">Booking ID: {booking.bookingId}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 text-base">
+              <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
+              <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
+              <p><span className="font-medium">Fee:</span> {booking.fee !== null && booking.fee !== undefined ? `${booking.fee.toLocaleString('en-US')} VND` : 'Free'}</p>
+              <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
+              <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
+              {booking.meetUrl && (
+                <p>
+                  <span className="font-medium">Link:</span>{' '}
+                  <a
+                    href={booking.meetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Join meeting
+                  </a>
+                </p>
+              )}
+            </div>
+            <div className="flex mt-4 justify-end space-x-3">
+              <button
+                onClick={() => handleStartConsultation(booking.bookingId)}
+                className={`text-white px-4 py-2 rounded transition-colors ${
+                  booking.isOngoing
+                    ? 'bg-blue-500 animate-blink'
+                    : 'bg-blue-500 hover:bg-blue-600'
+                }`}
               >
-                <h3 className="text-lg font-semibold text-blue-700 mb-2">Booking ID: {booking.bookingId}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-                  <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
-                  <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
-                  <p><span className="font-medium">Fee:</span> {booking.fee !== null && booking.fee !== undefined ? `${booking.fee.toLocaleString('en-US')} VND` : 'Free'}</p>
-                  <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
-                  <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
-                  {booking.meetUrl && (
-                    <p>
-                      <span className="font-medium">Link:</span>{' '}
-                      <a
-                        href={booking.meetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Join meeting
-                      </a>
-                    </p>
-                  )}
-                </div>
-                <div className="flex mt-4 justify-end">
-                  <button
-                    onClick={() => handleStartConsultation(booking.bookingId)}
-                    className={`text-white px-4 py-2 rounded transition-colors mr-4 ${
-                      booking.isOngoing
-                        ? 'bg-blue-500 animate-blink'
-                        : 'bg-blue-500 hover:bg-blue-600'
-                    }`}
-                  >
-                    {booking.isOngoing ? 'Ongoing Consultation' : 'Start Consultation'}
-                  </button>
-                  <button
-                    onClick={() => handleEndConsultation(booking.bookingId)}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors mr-4"
-                  >
-                    End Consultation
-                  </button>
-                  <button
-                    onClick={() => handleCancelBooking(booking.bookingId)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-                  >
-                    Cancel Booking
-                  </button>
-                </div>
-              </div>
-            ))}
+                {booking.isOngoing ? 'Ongoing Consultation' : 'Start Consultation'}
+              </button>
+              <button
+                onClick={() => handleEndConsultation(booking.bookingId)}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+              >
+                End Consultation
+              </button>
+              <button
+                onClick={() => handleCancelBooking(booking.bookingId)}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+              >
+                Cancel Booking
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        ))
+      )}
     </div>
   );
 };

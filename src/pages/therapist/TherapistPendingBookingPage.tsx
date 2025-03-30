@@ -216,51 +216,52 @@ const TherapistPendingBooking = () => {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-xl p-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Pending Feedback Bookings</h2>
+      
         {error && (
           <p className="text-red-500 mb-6 text-center bg-red-100 p-3 rounded-lg">{error}</p>
         )}
         {bookings.length === 0 ? (
           <p className="text-gray-500 text-center py-6">No bookings pending feedback found.</p>
         ) : (
-          <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-            {bookings.map((booking) => (
-              <div
-                key={booking.bookingId}
-                className={`border p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out ${
-                  existingBookingIds.includes(booking.bookingId) ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
-                }`}
-              >
-                <h3 className="text-lg font-semibold text-blue-700 mb-2">Booking ID: {booking.bookingId}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-                  <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
-                  <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
-                  <p><span className="font-medium">Fee:</span> {booking.consultationFee !== null && booking.consultationFee !== undefined ? `${booking.consultationFee.toLocaleString('en-US')} VND` : 'Free'}</p>
-                  <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
-                  <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
-                </div>
-                <div className="flex space-x-4 mt-4 justify-end">
-                  {existingBookingIds.includes(booking.bookingId) ? (
-                    <button className="bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed" disabled>
-                      Feedback Completed
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => openFeedbackModal(booking.bookingId)}
-                      className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
-                    >
-                      Provide Feedback
-                    </button>
-                  )}
-                </div>
+          <div>
+          {bookings.map((booking) => (
+            <div
+              key={booking.bookingId}
+              className={`border border-gray-200 p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out ${
+                existingBookingIds.includes(booking.bookingId) ? 'border-blue-300 bg-blue-50' : ''
+              }`}
+            >
+              <h3 className="text-lg font-semibold text-blue-700 mb-2">
+                Booking ID: {booking.bookingId}
+              </h3>
+              <div className="text-gray-700">
+                <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
+                <p><span className="font-medium">Status:</span> {statusMap[booking.status] || 'Unknown'}</p>
+                <p><span className="font-medium">Fee:</span> {booking.consultationFee?.toLocaleString('en-US') || 'Free'} VND</p>
+                <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'N/A'}</p>
+                <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
               </div>
-            ))}
-          </div>
+              <div className="flex space-x-4 mt-4 justify-end">
+                {existingBookingIds.includes(booking.bookingId) ? (
+                  <button className="bg-gray-500 text-white px-4 py-2 rounded cursor-not-allowed" disabled>
+                    Feedback Completed
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openFeedbackModal(booking.bookingId)}
+                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
+                  >
+                    Provide Feedback
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
         )}
-      </div>
+      
 
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-blue-200 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50">

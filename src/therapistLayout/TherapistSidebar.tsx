@@ -6,12 +6,9 @@ import {
   UserOutlined,
   CalendarOutlined,
   FileTextOutlined,
-  HourglassOutlined,
   WalletOutlined,
-  CheckCircleOutlined,
   LogoutOutlined,
   SettingOutlined,
- 
 } from "@ant-design/icons";
 import { Avatar, Button } from "antd";
 import axios from "axios";
@@ -37,7 +34,6 @@ const TherapistSidebar = ({
 }: TherapistSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState("");
   const [therapistProfile, setTherapistProfile] = useState<TherapistProfile | null>(null);
 
   const handleLogout = () => {
@@ -71,10 +67,9 @@ const TherapistSidebar = ({
     { path: "/therapist", label: "DashBoard", icon: <DashboardOutlined /> },
     { path: "/therapist/profile", label: "Profile", icon: <UserOutlined /> },
     { path: "/therapist/calendar", label: "Schedule", icon: <CalendarOutlined /> },
+    { path: "/therapist/booking-list", label: "Booking List", icon: <FileTextOutlined /> },
     { path: "/therapist/therapist-wallets", label: "Wallet", icon: <WalletOutlined /> },
-    { path: "/therapist/booking-list", label: "Booking", icon: <FileTextOutlined /> },
-    { path: "/therapist/pending-booking", label: "On-Going Booking ", icon: <HourglassOutlined /> },
-    { path: "/therapist/complete-booking", label: "Complete Booking", icon: <CheckCircleOutlined /> },
+    
   ];
 
   return (
@@ -110,8 +105,6 @@ const TherapistSidebar = ({
               <Link
                 key={item.path}
                 to={item.path}
-                onMouseEnter={() => setIsHovered(item.path)}
-                onMouseLeave={() => setIsHovered("")}
                 className={`flex items-center rounded-lg p-3 transition-all duration-200 ${
                   location.pathname === item.path
                     ? "bg-white shadow-inner"
@@ -121,11 +114,7 @@ const TherapistSidebar = ({
                 <span
                   className={`text-xl ${
                     !isSidebarExpanded && "mx-auto"
-                  } ${
-                    isHovered === item.path || location.pathname === item.path
-                      ? "text-black transform scale-110 transition-transform duration-200"
-                      : "text-white"
-                  }`}
+                  } ${location.pathname === item.path ? "text-black" : "text-white"}`}
                 >
                   {item.icon}
                 </span>
@@ -175,7 +164,7 @@ const TherapistSidebar = ({
                   icon={<LogoutOutlined />}
                   className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  {isSidebarExpanded && "Log out"}
+                  Log out
                 </Button>
               </>
             ) : (
@@ -203,7 +192,7 @@ const TherapistSidebar = ({
         </div>
       </aside>
 
-      {/* Mobile Sidebar - Full width or hidden */}
+      {/* Mobile Sidebar */}
       <aside
         className={`fixed top-0 left-0 w-64 h-full z-20 bg-gradient-to-br from-blue-700 via-blue-500 to-cyan-400 text-white shadow-xl transition-transform duration-300 ease-in-out ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -225,7 +214,7 @@ const TherapistSidebar = ({
           </div>
           {/* Navigation */}
           <nav className="p-4 flex flex-col space-y-2">
-            {navItems.map((item: typeof navItems[number]) => (
+            {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -237,11 +226,7 @@ const TherapistSidebar = ({
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
                 <span
-                  className={`mr-3 text-xl ${
-                    isHovered === item.path || location.pathname === item.path
-                      ? "text-black transform scale-110 transition-transform duration-200"
-                      : "text-white"
-                  }`}
+                  className={`mr-3 text-xl ${location.pathname === item.path ? "text-black" : "text-white"}`}
                 >
                   {item.icon}
                 </span>
