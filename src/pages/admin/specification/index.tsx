@@ -50,7 +50,7 @@ const SpecificationManager: React.FC = () => {
         setLoading(true);
         try {
             const response = await axios.get<Specification[]>(
-                `${API_BASE_URL}/Specification/Get_All_Specification`,
+                `${API_BASE_URL}/Specification/Get_All_Specification_With_Level`,
                 { headers: getHeaders(), timeout: 10000 }
             );
             if (!Array.isArray(response.data)) {
