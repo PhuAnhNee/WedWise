@@ -3,6 +3,11 @@ import { Button, Form, InputNumber, message, Card, Typography, Divider, Spin, To
 import { PercentageOutlined, SaveOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import axios, { AxiosError } from "axios";
 
+// Đảm bảo Ant Design được config đúng trong ứng dụng của bạn
+// Thêm dòng này vào file main.tsx hoặc App.tsx nếu chưa có:
+// import { MessageInstance } from 'antd/es/message/interface';
+// message.config({ duration: 3, maxCount: 1 });
+
 const { Title, Text } = Typography;
 
 const API_BASE_URL =
@@ -16,6 +21,7 @@ const Commission: React.FC = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [initializing, setInitializing] = useState(true);
+    const [currentCommission, setCurrentCommission] = useState<number>(0);
 
     // Fetch current commission
     const fetchCommission = async () => {
@@ -24,10 +30,14 @@ const Commission: React.FC = () => {
             const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
             const response = await axios.get<CommissionData>(`${API_BASE_URL}/Booking/Get_Commission`, { headers });
             form.setFieldsValue({ commission: response.data.commission });
+            setCurrentCommission(response.data.commission);
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error fetching commission:", err.response?.data || err.message);
-            message.error("Failed to load commission!");
+            message.error({
+                content: "Failed to load commission!",
+                duration: 3,
+            });
         } finally {
             setInitializing(false);
         }
@@ -39,26 +49,46 @@ const Commission: React.FC = () => {
         try {
             const accessToken = localStorage.getItem("accessToken");
             if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
+                message.error({
+                    content: "Unauthorized: Please log in again.",
+                    duration: 3,
+                });
                 setLoading(false);
                 return;
             }
 
-            const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+            const headers = {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+            };
             const payload = { commission: values.commission };
-            await axios.post(`${API_BASE_URL}/Booking/Update_Commission`, payload, { headers });
-            message.success("Commission updated successfully!");
-            fetchCommission(); // Refresh the commission value after update
+
+            const response = await axios.post(`${API_BASE_URL}/Booking/Update_Commission`, payload, { headers });
+
+            // Kiểm tra response từ server nếu có
+            if (response.status === 200 || response.status === 201) {
+                message.success({
+                    content: `Commission updated successfully from ${currentCommission}% to ${values.commission}%!`,
+                    duration: 3,
+                    style: {
+                        marginTop: '20vh', // Đưa thông báo lên cao hơn một chút
+                    },
+                });
+                setCurrentCommission(values.commission);
+                await fetchCommission(); // Refresh data
+            }
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error updating commission:", err.response?.data || err.message);
-            message.error("Failed to update commission!");
+            message.error({
+                content: "Failed to update commission!",
+                duration: 3,
+            });
         } finally {
             setLoading(false);
         }
     };
 
-    // Load commission on component mount
     useEffect(() => {
         fetchCommission();
     }, []);
@@ -80,7 +110,7 @@ const Commission: React.FC = () => {
                         Commission Management
                     </Title>
                     <Text type="secondary" className="block mb-6">
-                        Set the standard commission percentage for each therapist
+                        Set the standard commission percentage
                     </Text>
                     <Divider className="my-6" />
                     <Form
@@ -95,7 +125,7 @@ const Commission: React.FC = () => {
                             label={
                                 <span className="flex items-center text-lg">
                                     Commission Percentage
-                                    <Tooltip title="This is the percentage that will be charged to each therapist per booking">
+                                    <Tooltip title="This is the percentage that will be charged the whole system">
                                         <InfoCircleOutlined className="ml-2 text-blue-500" />
                                     </Tooltip>
                                 </span>
