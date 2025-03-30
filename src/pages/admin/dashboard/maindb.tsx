@@ -3,7 +3,6 @@ import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     BarChartOutlined,
-    SettingOutlined,
     UserOutlined,
     FormOutlined,
     AppstoreOutlined,
@@ -94,17 +93,11 @@ const Dashboard: React.FC = () => {
     const userMenu = (
         <Menu
             onClick={({ key }) => {
-                if (key === "profile") {
-                    navigate("/admin/profile"); // Chuyển hướng đến trang Profile Admin
-                } else if (key === "settings") {
-                    setSelectedPage("settings"); // Chuyển sang trang Settings trong dashboard
-                } else if (key === "logout") {
+                if (key === "logout") {
                     handleLogout(); // Gọi hàm logout
                 }
             }}
             items={[
-                { key: "profile", icon: <UserOutlined />, label: "Profile" },
-                { key: "settings", icon: <SettingOutlined />, label: "Settings" },
                 { key: "logout", icon: <LogoutOutlined />, label: "Logout" },
             ]}
         />

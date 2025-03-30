@@ -1,377 +1,295 @@
-import React, { useEffect, useState } from "react";
-import { Table, Button, Form, Input, Modal, message, Select, Spin } from "antd";
-import axios, { AxiosError } from "axios";
-import { PlusOutlined, EditOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from 'react';
+import axios, { AxiosError } from 'axios';
+import { Table, Modal, Input, Button, Form, message, Popconfirm, InputNumber, Select } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 
-const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
+interface QuizResult {
+    quizResultId?: string; // Optional for create, required for update/delete
+    quizId: string; // Used internally, not displayed
+    score?: number; // Restricted to 25, 50, 75, 100
+    level: number;
+    title: string; // Selected from category names
+    description: string;
+}
 
 interface Quiz {
     quizId: string;
     name: string;
+    categoryId?: string;
+    description?: string;
+    status?: number;
 }
 
-interface Answer {
-    answerId: string;
-    quizId: string;
-    score: number;
-}
-
-interface QuizResult {
-    quizResultId?: string;
-    quizId: string;
-    score: number;
-    level: number;
-    title: string;
+interface Category {
+    categoryId: string;
+    name: string;
     description: string;
-    quiz?: Quiz | null;
-    createdBy?: string;
-    updatedBy?: string;
-    createdAt?: string;
-    updatedAt?: string;
-    createdUser?: string;
-    updatedUser?: string;
+    status: number;
 }
 
-const QuizResultManager: React.FC = () => {
-    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-    const [answers, setAnswers] = useState<Answer[]>([]);
+const QuizResult: React.FC = () => {
     const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedResult, setSelectedResult] = useState<QuizResult | null>(null);
+    const [selectedQuizResult, setSelectedQuizResult] = useState<QuizResult | null>(null);
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
 
-    const getHeaders = () => ({
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        "Content-Type": "application/json",
-        Accept: "*/*",
-    });
+    const API_BASE_URL = 'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Controller';
+    const QUIZ_API_URL = 'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Quiz';
+    const CATEGORY_API_URL = 'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Category';
 
-    const fetchQuizzes = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get<Quiz[]>(`${API_BASE_URL}/Quiz/Get_All_Quiz`, {
-                headers: getHeaders(),
-                timeout: 10000
-            });
-            setQuizzes(response.data);
-        } catch (error) {
-            const err = error as AxiosError<{ message?: string }>;
-            message.error(err.response?.data?.message || "Failed to load quizzes!");
-        } finally {
-            setLoading(false);
+    const getHeaders = () => {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            message.error('Unauthorized: Please log in again.');
+            throw new Error('No access token found');
         }
-    };
-
-    const fetchAnswers = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get<Answer[]>(`${API_BASE_URL}/Answer/Get_All_Answer`, {
-                headers: getHeaders(),
-                timeout: 10000
-            });
-            setAnswers(response.data);
-        } catch (error) {
-            const err = error as AxiosError<{ message?: string }>;
-            message.error(err.response?.data?.message || "Failed to load answers!");
-        } finally {
-            setLoading(false);
-        }
+        return {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+        };
     };
 
     const fetchQuizResults = async () => {
-        setLoading(true);
         try {
-            const response = await axios.get<QuizResult[]>(
-                `${API_BASE_URL}/Controller/Get_All_Quiz_Result`,
-                {
-                    headers: getHeaders(),
-                    timeout: 10000
-                }
-            );
-            if (!Array.isArray(response.data)) {
-                throw new Error("Invalid response format");
-            }
-            setQuizResults(response.data);
+            setLoading(true);
+            const response = await axios.get<QuizResult[]>(`${API_BASE_URL}/Get_All_Quiz_Result`, { headers: getHeaders() });
+            const validQuizResults = response.data.filter((result) => result.quizResultId && typeof result.quizResultId === 'string');
+            setQuizResults(validQuizResults);
         } catch (error) {
-            const err = error as AxiosError<{ message?: string }>;
-            console.error("Fetch quiz results error:", err);
-            message.error(err.response?.data?.message || "Failed to load quiz results!");
+            console.error('Error fetching quiz results:', error);
+            message.error('Failed to load quiz results!');
         } finally {
             setLoading(false);
         }
     };
 
-    const calculateQuizResult = (quizId: string) => {
-        const quizAnswers = answers.filter((answer) => answer.quizId === quizId);
-        const totalScore = quizAnswers.reduce((sum, answer) => sum + answer.score, 0);
-
-        let level = 0;
-        let description = "";
-        if (totalScore >= 80) {
-            level = 3;
-            description = "Excellent! You've mastered this quiz.";
-        } else if (totalScore >= 50) {
-            level = 2;
-            description = "Good job! You have a solid understanding.";
-        } else if (totalScore >= 20) {
-            level = 1;
-            description = "Fair. You might need some review.";
-        } else {
-            level = 0;
-            description = "Needs improvement. Keep practicing!";
+    const fetchQuizzes = async () => {
+        try {
+            const response = await axios.get<Quiz[]>(`${QUIZ_API_URL}/Get_All_Quiz`, { headers: getHeaders() });
+            const validQuizzes = response.data.filter((quiz) => quiz.quizId && typeof quiz.quizId === 'string');
+            setQuizzes(validQuizzes);
+        } catch (error) {
+            console.error('Error fetching quizzes:', error);
+            message.error('Failed to load quizzes!');
         }
-
-        return { score: totalScore, level, description };
     };
 
-    useEffect(() => {
-        fetchQuizzes();
-        fetchAnswers();
-        fetchQuizResults();
-    }, []);
+    const fetchCategories = async () => {
+        try {
+            const response = await axios.get<Category[]>(`${CATEGORY_API_URL}/Get_All_Categories`, { headers: getHeaders() });
+            const validCategories = response.data.filter((cat) => cat.categoryId && typeof cat.categoryId === 'string');
+            setCategories(validCategories);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            message.error('Failed to load categories!');
+        }
+    };
 
-    const handleAddResult = (quizId?: string) => {
-        if (quizzes.length === 0) {
-            message.error("Quizzes not loaded yet. Please try again!");
+    const handleAddQuizResult = () => {
+        if (quizzes.length === 0 || categories.length === 0) {
+            message.error('Quiz or category list not loaded yet. Please wait or refresh!');
+            fetchQuizzes();
+            fetchCategories();
             return;
         }
-
-        setSelectedResult(null);
-        form.resetFields();
-
-        if (quizId) {
-            const result = calculateQuizResult(quizId);
-            form.setFieldsValue({
-                quizId,
-                score: result.score,
-                level: result.level,
-                description: result.description,
-                title: `Result for ${quizzes.find((q) => q.quizId === quizId)?.name || "Quiz"}`,
-            });
-        }
-
+        setSelectedQuizResult(null);
         setIsModalOpen(true);
+        form.resetFields();
     };
 
-    const handleEditResult = (result: QuizResult) => {
-        setSelectedResult(result);
-        form.setFieldsValue({
-            quizId: result.quizId,
-            title: result.title,
-            score: result.score,
-            level: result.level,
-            description: result.description
-        });
+    const handleEditQuizResult = (quizResult: QuizResult) => {
+        setSelectedQuizResult(quizResult);
         setIsModalOpen(true);
+        form.setFieldsValue({
+            quizId: quizResult.quizId, // Will match a quiz ID, displays name in Select
+            score: quizResult.score,
+            level: quizResult.level,
+            title: quizResult.title, // Matches a category name
+            description: quizResult.description,
+        });
     };
 
     const handleSubmit = async () => {
         try {
-            setLoading(true);
             const values = await form.validateFields();
-            console.log("Form values:", JSON.stringify(values, null, 2)); // Debug form values
+            setLoading(true);
+            const headers = getHeaders();
 
-            const accessToken = localStorage.getItem("accessToken");
-            if (!accessToken) {
-                message.error("Unauthorized: Please log in again.");
-                return;
-            }
+            const payload: QuizResult = {
+                quizId: values.quizId, // Selected quiz ID from dropdown
+                score: values.score,
+                level: values.level,
+                title: values.title, // Selected category name
+                description: values.description || '',
+            };
 
-            const payload = [{
-                quizId: values.quizId,
-                score: Number(values.score),
-                level: Number(values.level),
-                title: values.title,
-                description: values.description || ""
-            }];
-
-            console.log("Submitting payload:", JSON.stringify(payload, null, 2));
-
-            const response = await axios.post(
-                `${API_BASE_URL}/Controller/Create_Quiz_Result`,
-                payload,
-                { headers: getHeaders() }
-            );
-
-            console.log("Response:", response.data);
-
-            message.success("Result created successfully!");
-            await fetchQuizResults();
-            setIsModalOpen(false);
-            form.resetFields();
-        } catch (error) {
-            console.error("Full error:", error); // Log the entire error object
-            if (axios.isAxiosError(error)) {
-                const err = error as AxiosError<{ message?: string; errors?: string }>;
-                console.error("Error response:", JSON.stringify(err.response?.data, null, 2));
-                message.error(err.response?.data?.message || "Failed to create quiz result!");
-                if (err.response?.status === 401) {
-                    message.error("Session expired, please log in again.");
+            if (selectedQuizResult) {
+                const updatePayload = {
+                    quizResultId: selectedQuizResult.quizResultId,
+                    ...payload,
+                };
+                const response = await axios.post(`${API_BASE_URL}/Update_Quiz_Result`, updatePayload, { headers });
+                if (response.status === 200) {
+                    message.success('Quiz result updated successfully!');
                 }
             } else {
-                message.error("An unexpected error occurred!");
+                const response = await axios.post(`${API_BASE_URL}/Create_Quiz_Result`, [payload], { headers }); // API expects an array
+                if (response.status === 200 || response.status === 201) {
+                    message.success('New quiz result added successfully!');
+                }
             }
+
+            setIsModalOpen(false);
+            form.resetFields();
+            await fetchQuizResults();
+        } catch (error) {
+            const err = error as AxiosError<{ message?: string }>;
+            console.error('Error details:', err.response?.data || err.message);
+            message.error(err.response?.data?.message || 'Please check your input!');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRefresh = () => {
-        fetchQuizzes();
-        fetchAnswers();
-        fetchQuizResults();
+    const handleDeleteQuizResult = async (quizResultId: string) => {
+        try {
+            setLoading(true);
+            const headers = getHeaders();
+            const response = await axios.post(
+                `${API_BASE_URL}/Delete_Quiz_Result?id=${quizResultId}`,
+                null,
+                { headers }
+            );
+            if (response.status === 200) {
+                message.success('Quiz result deleted successfully!');
+                setQuizResults(quizResults.filter((result) => result.quizResultId !== quizResultId));
+            }
+        } catch (error) {
+            const err = error as AxiosError<{ message?: string }>;
+            console.error('Error deleting quiz result:', err.response?.data || err.message);
+            message.error(err.response?.data?.message || 'Failed to delete quiz result!');
+            await fetchQuizResults(); // Refresh in case of failure
+        } finally {
+            setLoading(false);
+        }
     };
 
+    useEffect(() => {
+        fetchQuizResults();
+        fetchQuizzes(); // Fetch quizzes on mount
+        fetchCategories(); // Fetch categories on mount
+    }, []);
+
     const columns = [
+        { title: 'Quiz Name', key: 'quizName', render: (_: unknown, record: QuizResult) => quizzes.find(q => q.quizId === record.quizId)?.name || 'Unknown' },
+        { title: 'Title', dataIndex: 'title', key: 'title' },
+        { title: 'Score', dataIndex: 'score', key: 'score' },
+        { title: 'Level', dataIndex: 'level', key: 'level' },
+        { title: 'Description', dataIndex: 'description', key: 'description' },
         {
-            title: "Quiz",
-            key: "quiz",
-            render: (_: unknown, record: QuizResult) =>
-                record.quiz?.name ||
-                quizzes.find((q) => q.quizId === record.quizId)?.name ||
-                "Unknown",
-        },
-        { title: "Title", dataIndex: "title", key: "title" },
-        {
-            title: "Score",
-            dataIndex: "score",
-            key: "score",
-            sorter: (a: QuizResult, b: QuizResult) => a.score - b.score
-        },
-        {
-            title: "Level",
-            dataIndex: "level",
-            key: "level",
-            sorter: (a: QuizResult, b: QuizResult) => a.level - b.level
-        },
-        { title: "Description", dataIndex: "description", key: "description" },
-        {
-            title: "Actions",
-            key: "actions",
+            title: 'Actions',
+            key: 'actions',
+            width: '25%',
             render: (_: unknown, record: QuizResult) => (
-                <Button
-                    icon={<EditOutlined />}
-                    onClick={() => handleEditResult(record)}
-                >
-                    Edit
-                </Button>
+                <div className="flex gap-2">
+                    <Button icon={<EditOutlined />} onClick={() => handleEditQuizResult(record)}>
+                        Edit
+                    </Button>
+                    <Popconfirm
+                        title="Are you sure you want to delete this quiz result?"
+                        onConfirm={() => handleDeleteQuizResult(record.quizResultId!)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button icon={<DeleteOutlined />} danger>
+                            Delete
+                        </Button>
+                    </Popconfirm>
+                </div>
             ),
         },
     ];
+
+    const scoreOptions = [25, 50, 75, 100];
 
     return (
         <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Quiz Result Management</h2>
-                <div>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => handleAddResult()}
-                        className="mr-2"
-                    >
-                        Add Result
-                    </Button>
-                    <Button onClick={handleRefresh}>
-                        Refresh
-                    </Button>
-                </div>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAddQuizResult}>
+                    Add Quiz Result
+                </Button>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center">
-                    <Spin size="large" />
-                </div>
-            ) : (
-                <Table
-                    dataSource={quizResults}
-                    columns={columns}
-                    rowKey="quizResultId"
-                    pagination={{
-                        pageSize: 5,
-                        showSizeChanger: true,
-                        pageSizeOptions: ['5', '10', '20']
-                    }}
-                    scroll={{ x: 1000 }}
-                />
-            )}
+            <Table
+                dataSource={quizResults}
+                columns={columns}
+                rowKey="quizResultId"
+                loading={loading}
+                pagination={{ pageSize: 5 }}
+            />
 
             <Modal
-                title={selectedResult ? "Edit Quiz Result" : "New Quiz Result"}
+                title={selectedQuizResult ? 'Edit Quiz Result' : 'Add New Quiz Result'}
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={handleSubmit}
-                okText={selectedResult ? "Update" : "Create"}
+                okText={selectedQuizResult ? 'Update' : 'Add'}
                 confirmLoading={loading}
-                width={600}
             >
                 <Form form={form} layout="vertical">
                     <Form.Item
                         name="quizId"
-                        label="Quiz"
-                        rules={[{ required: true, message: "Please select a quiz" }]}
+                        label="Quiz Name"
+                        rules={[{ required: true, message: 'Please select a quiz' }]}
                     >
-                        <Select
-                            placeholder="Select quiz"
-                            disabled={!!selectedResult}
-                            showSearch
-                            optionFilterProp="children"
-                        >
-                            {quizzes.map(quiz => (
+                        <Select placeholder="Select a quiz">
+                            {quizzes.map((quiz) => (
                                 <Select.Option key={quiz.quizId} value={quiz.quizId}>
                                     {quiz.name}
                                 </Select.Option>
                             ))}
                         </Select>
                     </Form.Item>
-
-                    <Form.Item
-                        name="title"
-                        label="Title"
-                        rules={[
-                            { required: true, message: "Please enter a title" },
-                            { type: "string", min: 1, message: "Title must be at least 1 character" },
-                            { type: "string", max: 100, message: "Title cannot exceed 100 characters" }
-                        ]}
-                    >
-                        <Input placeholder="Result title" />
-                    </Form.Item>
-
                     <Form.Item
                         name="score"
                         label="Score"
-                        rules={[
-                            { required: true, message: "Please enter a score" },
-                            { type: "number", min: 0, max: 100, message: "Score must be between 0 and 100" }
-                        ]}
-                        normalize={(value) => (value ? Number(value) : value)} // Ensure number type
+                        rules={[{ required: true, message: 'Please select a score' }]}
                     >
-                        <Input type="number" min={0} max={100} step={1} />
+                        <Select placeholder="Select score">
+                            {scoreOptions.map((score) => (
+                                <Select.Option key={score} value={score}>
+                                    {score}
+                                </Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
-
                     <Form.Item
                         name="level"
                         label="Level"
-                        rules={[
-                            { required: true, message: "Please enter a level" },
-                            { type: "number", min: 0, max: 4, message: "Level must be between 0 and 4" }
-                        ]}
-                        normalize={(value) => (value ? Number(value) : value)} // Ensure number type
+                        rules={[{ required: true, message: 'Please enter level' }]}
                     >
-                        <Input type="number" min={0} max={4} step={1} />
+                        <InputNumber min={0} placeholder="Enter level..." style={{ width: '100%' }} />
                     </Form.Item>
-
                     <Form.Item
-                        name="description"
-                        label="Description"
-                        rules={[
-                            { required: true, message: "Please enter a description" },
-                            { type: "string", min: 1, message: "Description must be at least 1 character" },
-                            { type: "string", max: 500, message: "Description cannot exceed 500 characters" }
-                        ]}
+                        name="title"
+                        label="Title"
+                        rules={[{ required: true, message: 'Please select a category as title' }]}
                     >
-                        <Input.TextArea rows={4} placeholder="Enter result description" />
+                        <Select placeholder="Select category as title">
+                            {categories.map((category) => (
+                                <Select.Option key={category.categoryId} value={category.name}>
+                                    {category.name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item name="description" label="Description">
+                        <Input placeholder="Enter description..." />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -379,4 +297,4 @@ const QuizResultManager: React.FC = () => {
     );
 };
 
-export default QuizResultManager;
+export default QuizResult;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Carousel from "../../component/carousel/index";
 import { Pagination } from "antd";
+import { Link } from "react-router-dom";
 // Định nghĩa interface cho dữ liệu
 
 interface BlogPost {
@@ -132,10 +133,13 @@ const ArticleCard: React.FC<{ blog: BlogPost }> = ({ blog }) => (
         {blog.content}
       </p>
       <div className="mt-3 flex justify-end">
-        <button className="text-blue-500 hover:text-blue-700 text-sm font-medium transition-colors duration-300">
-          Read Article →
-        </button>
-      </div>
+  <Link
+    to={`/home/blog/${blog.id}`}
+    className="text-blue-500 hover:text-blue-700 text-sm font-medium transition-colors duration-300"
+  >
+    Read Article →
+  </Link>
+</div>
     </div>
   </div>
 );
