@@ -7,30 +7,51 @@ import { motion } from "framer-motion";
 
 const { Title, Paragraph } = Typography;
 
-// Define proper interfaces for the quiz data
-interface Quiz {
-  quizId: string;
-  title: string;
-  description: string;
-  questionCount?: number;
-  category?: string | CategoryObject;
-  difficulty?: "easy" | "medium" | "hard";
-  estimatedTime?: string;
+// Định nghĩa interface cho câu trả lời
+interface Answer {
+  answerId: string;
+  questionId: string;
+  answerContent: string;
+  score: number;
 }
 
-// Define category object interface based on the error message
+// Định nghĩa interface cho câu hỏi
+interface Question {
+  questionId: string;
+  quizId: string;
+  questionContent: string;
+  status: number;
+  answers: Answer[];
+}
+
+// Định nghĩa interface cho Category
 interface CategoryObject {
   categoryId: string;
   name: string;
   description: string;
-  status: string;
-  quizzes: string[];
+  status: number;
+  quizzes: any[];
   createdBy: string;
   updatedBy: string;
   createdAt: string;
   updatedAt: string;
-  createdUser: string;
-  updatedUser: string;
+  createdUser: string | null;
+  updatedUser: string | null;
+}
+
+// Cập nhật interface Quiz để bao gồm trường questions
+interface Quiz {
+  quizId: string;
+  title?: string;
+  name?: string;
+  description: string;
+  questionCount?: number;
+  category?: string | CategoryObject;
+  categoryId?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  estimatedTime?: string;
+  quizStatus?: number;
+  questions?: Question[];
 }
 
 const API_URL =
@@ -49,13 +70,18 @@ const QuizPage: React.FC = () => {
   const fetchQuizzes = async () => {
     try {
       const response = await axios.get<Quiz[]>(API_URL);
-      // Simulate adding more data to enhance the UI
+      
+      // Cập nhật dữ liệu quiz với các trường cần thiết
       const enhancedQuizzes = response.data.map((quiz) => ({
         ...quiz,
+        title: quiz.name || quiz.title, // Đảm bảo title được thiết lập từ name nếu không có
         category: quiz.category || ["Relationship", "Communication", "Compatibility", "Values"][Math.floor(Math.random() * 4)],
         difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)] as "easy" | "medium" | "hard",
         estimatedTime: `${Math.floor(Math.random() * 20) + 5} phút`,
+        // Tính toán số câu hỏi thực tế từ mảng questions nếu có
+        questionCount: quiz.questions ? quiz.questions.length : undefined
       }));
+      
       setQuizzes(enhancedQuizzes);
     } catch (error) {
       message.error("Lỗi khi lấy danh sách quiz!");
@@ -184,12 +210,12 @@ const QuizPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-900/70 group-hover:from-transparent group-hover:to-indigo-900/90 transition-all duration-300"></div>
                     <img
                       src={`https://i.pinimg.com/736x/37/4a/92/374a928711a6cf28b7d3a4b9014a7edd.jpg?relationship,couple,love,${index}`}
-                      alt={quiz.title}
+                      alt={quiz.title || quiz.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
                       <Title level={4} className="!text-white text-center m-0 group-hover:text-indigo-200 transition-colors duration-300">
-                        {quiz.title}
+                        {quiz.title || quiz.name}
                       </Title>
                     </div>
                   </div>
@@ -220,7 +246,7 @@ const QuizPage: React.FC = () => {
                     <div className="flex items-center">
                       <BarChartOutlined className="text-indigo-600 mr-1" />
                       <span className="text-sm text-gray-600">
-                        {quiz.questionCount || Math.floor(Math.random() * 15) + 5} câu hỏi
+                        {quiz.questionCount || (quiz.questions ? quiz.questions.length : Math.floor(Math.random() * 15) + 5)} câu hỏi
                       </span>
                     </div>
                     <Button

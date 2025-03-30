@@ -222,7 +222,7 @@ const Wallet: React.FC = () => {
               transition={{ delay: 0.3 }}
               className="text-2xl font-semibold mt-2"
             >
-              Số dư: ${balance.toLocaleString()}
+              Số dư: {balance.toLocaleString()} VND
             </motion.p>
           )}
         </div>
@@ -306,7 +306,7 @@ const Wallet: React.FC = () => {
                     className={`font-semibold ${t.amount > 0 ? "text-green-600" : "text-red-600"
                       }`}
                   >
-                    {t.amount > 0 ? "+" : "-"}${Math.abs(t.amount).toLocaleString()}
+                    {t.amount > 0 ? "+" : "-"}{Math.abs(t.amount).toLocaleString()} VND
                   </span>
                 </motion.div>
               ))}
