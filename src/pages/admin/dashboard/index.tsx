@@ -21,7 +21,7 @@ interface Withdrawal {
     id: string;
     customerId: string;
     money: number;
-    status: number; // Changed to number to match API response
+    status: number;
     customer: null | string;
     createdBy: string;
     updatedBy: string;
@@ -51,13 +51,16 @@ const COLORS = ["#8b5cf6", "#3b82f6", "#06b6d4"];
 
 const Dashboard = () => {
     const [users, setUsers] = useState<User[]>([]);
-    const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+    const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]); // For selected user's withdrawals
+    const [allWithdrawals, setAllWithdrawals] = useState<Withdrawal[]>([]); // For total withdrawals
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [withdrawalsPage, setWithdrawalsPage] = useState<number>(1);
     const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
     const pageSize = 10;
+    const withdrawalsPageSize = 10;
 
     const getHeaders = () => ({
         Authorization: `Bearer ${localStorage.getItem("accessToken") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOiJiMmZiNjNkNS0xMTdhLTQxY2ItOTA3ZS1iYjAyYWRhYWQyZWUiLCJOYW1lIjoiYWRtaW4iLCJFbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIlBob25lIjoiMTIzNDU2NzgiLCJSb2xlIjoiQURNSU4iLCJBdmF0YXIiOiJodHRwczovL2ZpcmViYXNlc3RvcmFnZS5nb29nbGVhcGlzLmNvbS92MC9iL3N0dWRlbnQtNTFlNmEuYXBwc3BvdC5jb20vby9pbWFnZXMlMkY2Mzg3NjU5OTQzNjE1MTU1NDVfYXZhdGFyLmpwZz9hbHQ9bWVkaWEmdG9rZW49OWIzYjlhZGQtNzZkYy00NzI5LTg0ZmEtZTQ5YjI2NWRlZjEyIiwiZXhwIjoxNzQxODc5MjY0LCJpc3MiOiJQcmUtbWFyaXRhbCBDb3Vuc2VsaW5nIFBsYXRmb3JtIiwiYXVkIjoiUHJlLW1hcml0YWwgQ291bnNlbGluZyBQbGF0Zm9ybSJ9.D_zEEAqe9b3RFVemCidtMAEkK6Jztop9Dj-okpmu4IA"}`,
@@ -79,6 +82,21 @@ const Dashboard = () => {
         }
     };
 
+    const fetchAllWithdrawals = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get<Withdrawal[]>(`${API_BASE_URL}/Withdraw/Get_All_Withdraws`, {
+                headers: getHeaders()
+            });
+            setAllWithdrawals(response.data);
+        } catch (error) {
+            const err = error as AxiosError;
+            console.error("Error fetching all withdrawals:", err.response?.data || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fetchWithdrawals = async (user: User) => {
         setLoading(true);
         try {
@@ -88,6 +106,7 @@ const Dashboard = () => {
             setWithdrawals(response.data);
             setSelectedUser(user);
             setModalVisible(true);
+            setWithdrawalsPage(1);
         } catch (error) {
             const err = error as AxiosError;
             console.error("Error fetching withdrawals:", err.response?.data || err.message);
@@ -111,6 +130,7 @@ const Dashboard = () => {
             if (selectedUser) {
                 await fetchWithdrawals(selectedUser);
             }
+            await fetchAllWithdrawals(); // Refresh total withdrawals after update
         } catch (error) {
             const err = error as AxiosError;
             console.error("Error updating withdrawal:", err.response?.data || err.message);
@@ -147,6 +167,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchUsers();
+        fetchAllWithdrawals(); // Fetch all withdrawals on component mount
     }, []);
 
     const handleUserClick = (user: User) => {
@@ -155,14 +176,19 @@ const Dashboard = () => {
 
     const cardsData = [
         { title: "Total Users", value: users.length.toString(), icon: Users, color: "from-violet-500 to-purple-600", percentage: "+0%" },
-        { title: "Page Views", value: "48.2K", icon: Eye, color: "from-blue-500 to-indigo-600", percentage: "+8.1%" },
+        { title: "Page Views", value: "48", icon: Eye, color: "from-blue-500 to-indigo-600", percentage: "+8.1%" },
         { title: "Active Users", value: users.filter(u => u.isActive).length.toString(), icon: Users, color: "from-cyan-500 to-teal-600", percentage: "+4.3%" },
-        { title: "Withdrawals", value: withdrawals.length.toString(), icon: ShoppingCart, color: "from-amber-500 to-orange-600", percentage: "+0%" },
+        { title: "Withdrawals", value: allWithdrawals.length.toString(), icon: ShoppingCart, color: "from-amber-500 to-orange-600", percentage: "+0%" },
     ];
 
     const paginatedUsers = users.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize
+    );
+
+    const paginatedWithdrawals = withdrawals.slice(
+        (withdrawalsPage - 1) * withdrawalsPageSize,
+        withdrawalsPage * withdrawalsPageSize
     );
 
     return (
@@ -342,79 +368,90 @@ const Dashboard = () => {
                     open={modalVisible}
                     onCancel={() => setModalVisible(false)}
                     footer={null}
-                    width={800}
+                    width={1000}
                 >
                     {loading && selectedUser ? (
                         <div className="flex justify-center py-4">
                             <Spin size="large" />
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Withdraw ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {withdrawals.map((withdrawal, index) => (
-                                        <tr key={index}>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.id}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                ${withdrawal.money.toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {getStatusDisplay(withdrawal.status)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                                {formatDate(withdrawal.updatedAt)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {withdrawal.status === 0 && (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => updateWithdrawalStatus(withdrawal.id, 1)}
-                                                            disabled={updatingWithdrawal === withdrawal.id}
-                                                            className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''
-                                                                }`}
-                                                        >
-                                                            {updatingWithdrawal === withdrawal.id ? (
-                                                                <Spin size="small" />
-                                                            ) : (
-                                                                'Accept'
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => updateWithdrawalStatus(withdrawal.id, 2)}
-                                                            disabled={updatingWithdrawal === withdrawal.id}
-                                                            className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''
-                                                                }`}
-                                                        >
-                                                            {updatingWithdrawal === withdrawal.id ? (
-                                                                <Spin size="small" />
-                                                            ) : (
-                                                                'Reject'
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {withdrawals.length === 0 && (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                                                No withdrawals found for this user
-                                            </td>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Withdraw ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {paginatedWithdrawals.map((withdrawal) => (
+                                            <tr key={withdrawal.id}>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.id}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    ${withdrawal.money.toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {getStatusDisplay(withdrawal.status)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {formatDate(withdrawal.updatedAt)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {withdrawal.status === 0 && (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => updateWithdrawalStatus(withdrawal.id, 1)}
+                                                                disabled={updatingWithdrawal === withdrawal.id}
+                                                                className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                {updatingWithdrawal === withdrawal.id ? (
+                                                                    <Spin size="small" />
+                                                                ) : (
+                                                                    'Accept'
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateWithdrawalStatus(withdrawal.id, 2)}
+                                                                disabled={updatingWithdrawal === withdrawal.id}
+                                                                className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            >
+                                                                {updatingWithdrawal === withdrawal.id ? (
+                                                                    <Spin size="small" />
+                                                                ) : (
+                                                                    'Reject'
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {withdrawals.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                                                    No withdrawals found for this user
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {withdrawals.length > 0 && (
+                                <div className="mt-4 flex justify-end">
+                                    <Pagination
+                                        current={withdrawalsPage}
+                                        total={withdrawals.length}
+                                        pageSize={withdrawalsPageSize}
+                                        onChange={(page) => setWithdrawalsPage(page)}
+                                        showSizeChanger={false}
+                                    />
+                                </div>
+                            )}
+                        </>
                     )}
                 </Modal>
             </div>
