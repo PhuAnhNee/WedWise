@@ -20,9 +20,10 @@ interface SlotListProps {
   setSelectedSlot: React.Dispatch<React.SetStateAction<number | null>>;
   isSlotScheduled: (id: number) => boolean;
   getScheduleBySlot: (id: number) => Schedule | null;
-  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void;
   isDateInPast: (date: Date) => boolean;
+  isSlotTimeInPast: (date: Date, slotId: number) => boolean;
   openConfirmModal: () => void;
+  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void; // Added
 }
 
 const SlotList: React.FC<SlotListProps> = ({
@@ -33,11 +34,12 @@ const SlotList: React.FC<SlotListProps> = ({
   isSlotScheduled,
   getScheduleBySlot,
   isDateInPast,
+  isSlotTimeInPast,
   openConfirmModal,
 }) => {
   const toggleSlot = (id: number) => {
     const date = new Date(selectedDate);
-    if (!isDateInPast(date)) {
+    if (!isDateInPast(date) && !isSlotTimeInPast(date, id)) {
       setSelectedSlot((prev) => (prev === id ? null : id));
     }
   };
@@ -64,13 +66,15 @@ const SlotList: React.FC<SlotListProps> = ({
           const scheduleItem = getScheduleBySlot(slotId);
           const isScheduled = !!scheduleItem;
           const status = scheduleItem ? scheduleItem.status : 1;
+          const date = new Date(selectedDate);
+          const isPastSlot = isDateInPast(date) || isSlotTimeInPast(date, slotId);
 
           return (
             <div
               key={slot.id}
               className={`flex items-center justify-between p-3 border-b last:border-b-0 ${
                 isScheduled ? getStatusColor(status) : ""
-              }`}
+              } ${isPastSlot ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex-1 flex items-center space-x-4">
                 <span className="w-16">{`Slot ${slot.id}`}</span>
@@ -88,14 +92,14 @@ const SlotList: React.FC<SlotListProps> = ({
                   checked={selectedSlot === slotId && !isScheduled}
                   onChange={() => toggleSlot(slotId)}
                   className="w-5 h-5"
-                  disabled={isDateInPast(new Date(selectedDate)) || isScheduled}
+                  disabled={isPastSlot || isScheduled}
                 />
               )}
             </div>
           );
         })}
       </div>
-      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(new Date(selectedDate)) && (
+      {selectedSlot && !isSlotScheduled(selectedSlot) && !isDateInPast(new Date(selectedDate)) && !isSlotTimeInPast(new Date(selectedDate), selectedSlot) && (
         <div className="flex gap-4 mt-4">
           <button
             onClick={openConfirmModal}

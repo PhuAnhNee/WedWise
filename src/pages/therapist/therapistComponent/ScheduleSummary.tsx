@@ -20,6 +20,7 @@ interface ScheduleSummaryProps {
   schedules: Schedule[];
   slots: Slot[];
   handleUpdateStatus: (scheduleItem: Schedule, status: number) => void;
+  isSlotTimeInPast: (date: Date, slotId: number) => boolean;
 }
 
 const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
@@ -27,6 +28,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
   schedules,
   slots,
   handleUpdateStatus,
+  isSlotTimeInPast,
 }) => {
   const hanoiTimeZone = "Asia/Ho_Chi_Minh";
   const toHanoiTime = (date: Date) => toZonedTime(date, hanoiTimeZone);
@@ -61,12 +63,14 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
       <ul className="space-y-4">
         {schedulesForSelectedDate.map((schedule) => {
           const matchingSlot = slots.find((s) => Number(s.id) === schedule.slot);
+          const isPastSlot = isSlotTimeInPast(new Date(schedule.date), schedule.slot);
+
           return (
             <li
               key={schedule.scheduleId}
               className={`p-4 rounded-xl flex justify-between items-center border ${getStatusColor(
                 schedule.status
-              )} transition-all duration-200 hover:shadow-md`}
+              )} transition-all duration-200 hover:shadow-md ${isPastSlot ? "opacity-50" : ""}`}
             >
               <div className="flex-1">
                 <span className="text-lg font-semibold text-gray-900">Slot {schedule.slot}: </span>
@@ -78,9 +82,9 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
                 value={schedule.status}
                 onChange={(e) => handleUpdateStatus(schedule, Number(e.target.value))}
                 className={`px-4 py-2 rounded-lg border border-gray-300 text-lg font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                  schedule.status === 1 ? "bg-gray-200 cursor-not-allowed" : "bg-white"
+                  schedule.status === 1 || isPastSlot ? "bg-gray-200 cursor-not-allowed" : "bg-white"
                 }`}
-                disabled={schedule.status === 1}
+                disabled={schedule.status === 1 || isPastSlot}
               >
                 <option value={0}>Lịch trống</option>
                 <option value={1}>Được đặt</option>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, startOfToday, subDays, isAfter, addHours } from "date-fns";
+import { format, startOfToday, subDays, isAfter, addHours, isBefore } from "date-fns";
 import toast, { Toaster } from "react-hot-toast";
 import AuthService from "../service/AuthService";
 import Calendar from "./therapistComponent/Calendar";
@@ -87,7 +87,6 @@ const TherapistCalendar = () => {
     }
   }, [selectedDate, currentMonth, fetchSchedule]);
 
-  // Điều chỉnh giờ UTC sang giờ Hà Nội (UTC+7) cho dữ liệu lịch và API
   const adjustToHanoiTime = (date: Date) => {
     return addHours(date, 7);
   };
@@ -95,6 +94,20 @@ const TherapistCalendar = () => {
   const isDateInPast = (date: Date) => {
     const parsedDate = adjustToHanoiTime(date);
     return !isAfter(parsedDate, subDays(adjustToHanoiTime(today), 1));
+  };
+
+  const isSlotTimeInPast = (date: Date, slotId: number) => {
+    const slot = slots.find((s) => Number(s.id) === slotId);
+    if (!slot) return false;
+
+    const endTimeStr = slot.time.split(" - ")[1].replace("End ", "");
+    const [hours, minutes] = endTimeStr.split(":").map(Number);
+
+    const slotEndTime = new Date(date);
+    slotEndTime.setHours(hours, minutes, 0, 0);
+
+    const adjustedCurrentTime = adjustToHanoiTime(currentTime);
+    return isBefore(adjustToHanoiTime(slotEndTime), adjustedCurrentTime);
   };
 
   const isBeforeCurrentMonth = (date: Date) => {
@@ -132,6 +145,10 @@ const TherapistCalendar = () => {
     }
     if (isDateInPast(selectedDate)) {
       setError("Cannot create a schedule for a past date!");
+      return;
+    }
+    if (isSlotTimeInPast(selectedDate, selectedSlot)) {
+      setError("Cannot create a schedule for a past time slot!");
       return;
     }
     setError("");
@@ -176,6 +193,10 @@ const TherapistCalendar = () => {
     const token = AuthService.getToken();
     if (!token) {
       toast.error("You are not logged in or your session has expired!");
+      return;
+    }
+    if (isSlotTimeInPast(new Date(scheduleItem.date), scheduleItem.slot)) {
+      toast.error("Cannot update a schedule for a past time slot!");
       return;
     }
     const requestData = [
@@ -235,7 +256,6 @@ const TherapistCalendar = () => {
     return getSchedulesForSelectedDate().find((schedule) => schedule.slot === slotId) || null;
   };
 
-  // Hiển thị giờ địa phương trực tiếp, không cần điều chỉnh thêm nếu máy đã ở UTC+7
   const formatHanoiTime = (date: Date) => {
     return format(date, "HH:mm:ss");
   };
@@ -269,6 +289,7 @@ const TherapistCalendar = () => {
             getScheduleBySlot={getScheduleBySlot}
             handleUpdateStatus={handleUpdateStatus}
             isDateInPast={isDateInPast}
+            isSlotTimeInPast={isSlotTimeInPast}
             openConfirmModal={openConfirmModal}
           />
         </div>
@@ -277,6 +298,7 @@ const TherapistCalendar = () => {
           schedules={schedule}
           slots={slots}
           handleUpdateStatus={handleUpdateStatus}
+          isSlotTimeInPast={isSlotTimeInPast}
         />
         <Modal
           showModal={showModal}
