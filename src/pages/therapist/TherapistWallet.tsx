@@ -26,12 +26,13 @@ interface WalletData {
   transactions: Transaction[];
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE_WITHDRAW = 5;
 
 const TherapistWallets: React.FC = () => {
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(100);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isWithdrawLoading, setIsWithdrawLoading] = useState<boolean>(false);
   const [currentPageTransactions, setCurrentPageTransactions] = useState<number>(1);
@@ -183,7 +184,7 @@ const TherapistWallets: React.FC = () => {
   };
 
   const totalPagesTransactions = walletData ? Math.ceil(walletData.transactions.length / ITEMS_PER_PAGE) : 0;
-  const totalPagesWithdrawals = Math.ceil(withdrawals.length / ITEMS_PER_PAGE);
+  const totalPagesWithdrawals = Math.ceil(withdrawals.length / ITEMS_PER_PAGE_WITHDRAW);
   const paginatedTransactions = walletData
     ? walletData.transactions.slice(
         (currentPageTransactions - 1) * ITEMS_PER_PAGE,
@@ -191,8 +192,8 @@ const TherapistWallets: React.FC = () => {
       )
     : [];
   const paginatedWithdrawals = withdrawals.slice(
-    (currentPageWithdrawals - 1) * ITEMS_PER_PAGE,
-    currentPageWithdrawals * ITEMS_PER_PAGE
+    (currentPageWithdrawals - 1) * ITEMS_PER_PAGE_WITHDRAW,
+    currentPageWithdrawals * ITEMS_PER_PAGE_WITHDRAW
   );
 
   const handlePageChangeTransactions = (page: number) => {
