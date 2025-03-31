@@ -7,30 +7,23 @@ import { motion } from "framer-motion";
 
 const { Title, Paragraph } = Typography;
 
-// Định nghĩa interface cho câu trả lời
-interface Answer {
-  answerId: string;
-  questionId: string;
-  answerContent: string;
-  score: number;
-}
-
-// Định nghĩa interface cho câu hỏi
-interface Question {
-  questionId: string;
+// Define interfaces based on the API response
+interface Quiz {
   quizId: string;
-  questionContent: string;
-  status: number;
-  answers: Answer[];
+  name: string;
+  description: string;
+  category: CategoryObject | null;
+  questions: string[];
+  questionCount?: number;
+  estimatedTime?: string;
 }
 
-// Định nghĩa interface cho Category
 interface CategoryObject {
   categoryId: string;
   name: string;
   description: string;
   status: number;
-  quizzes: any[];
+  quizzes: (string | null)[];
   createdBy: string;
   updatedBy: string;
   createdAt: string;
@@ -39,23 +32,7 @@ interface CategoryObject {
   updatedUser: string | null;
 }
 
-// Cập nhật interface Quiz để bao gồm trường questions
-interface Quiz {
-  quizId: string;
-  title?: string;
-  name?: string;
-  description: string;
-  questionCount?: number;
-  category?: string | CategoryObject;
-  categoryId?: string;
-  difficulty?: "easy" | "medium" | "hard";
-  estimatedTime?: string;
-  quizStatus?: number;
-  questions?: Question[];
-}
-
-const API_URL =
-  "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Quiz/Get_All_Quiz";
+const API_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Quiz/Get_All_Quiz";
 
 const QuizPage: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -70,42 +47,38 @@ const QuizPage: React.FC = () => {
   const fetchQuizzes = async () => {
     try {
       const response = await axios.get<Quiz[]>(API_URL);
-      
-      // Cập nhật dữ liệu quiz với các trường cần thiết
-      const enhancedQuizzes = response.data.map((quiz) => ({
-        ...quiz,
-        title: quiz.name || quiz.title, // Đảm bảo title được thiết lập từ name nếu không có
-        category: quiz.category || ["Relationship", "Communication", "Compatibility", "Values"][Math.floor(Math.random() * 4)],
-        difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)] as "easy" | "medium" | "hard",
-        estimatedTime: `${Math.floor(Math.random() * 20) + 5} phút`,
-        // Tính toán số câu hỏi thực tế từ mảng questions nếu có
-        questionCount: quiz.questions ? quiz.questions.length : undefined
-      }));
-      
+      // Process the API data to include question count and estimated time
+      const enhancedQuizzes = response.data.map((quiz) => {
+        const questionCount = quiz.questions?.length || 0;
+        const totalSeconds = questionCount * 30;
+        const minutes = Math.round(totalSeconds / 60); // Round to nearest minute
+        const estimatedTime = `${minutes} minutes`;
+
+        return {
+          ...quiz,
+          questionCount,
+          estimatedTime,
+        };
+      });
       setQuizzes(enhancedQuizzes);
     } catch (error) {
-      message.error("Lỗi khi lấy danh sách quiz!");
+      message.error("Error fetching quiz list!");
       console.error("Error fetching quizzes:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Extract category display name from category object or string
-  const getCategoryDisplayName = (category: string | CategoryObject | undefined): string => {
-    if (!category) return "Uncategorized";
-    if (typeof category === "string") return category;
-    return category.name || "Uncategorized";
+  // Extract category display name with fallback
+  const getCategoryDisplayName = (category: CategoryObject | null | undefined): string => {
+    return category?.name || "Uncategorized";
   };
 
-  // Extract unique categories and ensure they are strings
+  // Extract unique categories
   const uniqueCategories = Array.from(
-    new Set(
-      quizzes.map((quiz) => getCategoryDisplayName(quiz.category))
-    )
+    new Set(quizzes.map((quiz) => getCategoryDisplayName(quiz.category)))
   );
 
-  // Ensure categories are properly formatted as strings
   const categories = ["all", ...uniqueCategories];
 
   // Filter quizzes by category
@@ -113,20 +86,6 @@ const QuizPage: React.FC = () => {
     activeCategory === "all"
       ? quizzes
       : quizzes.filter((quiz) => getCategoryDisplayName(quiz.category) === activeCategory);
-
-  // Get difficulty badge color
-  const getDifficultyColor = (difficulty?: string) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "hard":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   return (
     <div className="max-w-[2000px] mx-auto px-4 py-8 min-h-screen bg-gradient-to-b from-indigo-50 to-white">
@@ -137,10 +96,10 @@ const QuizPage: React.FC = () => {
         className="text-center mb-10"
       >
         <Title level={2} className="!text-3xl md:!text-4xl font-bold text-indigo-700 mb-4">
-          Danh sách bài Quiz
+          Quiz List
         </Title>
         <Paragraph className="text-gray-600 max-w-xl mx-auto text-lg">
-          Hãy hoàn thành các bài quiz dưới đây để hiểu rõ hơn về bản thân và đối tác của bạn.
+          Complete the quizzes below to better understand yourself and your partner.
         </Paragraph>
       </motion.div>
 
@@ -157,10 +116,9 @@ const QuizPage: React.FC = () => {
             type={activeCategory === category ? "primary" : "default"}
             shape="round"
             onClick={() => setActiveCategory(category)}
-            className={`${activeCategory === category ? "bg-indigo-600 hover:bg-indigo-700" : "hover:border-indigo-600 hover:text-indigo-600"
-              } transition-colors duration-300 min-w-24`}
+            className={`${activeCategory === category ? "bg-indigo-600 hover:bg-indigo-700" : "hover:border-indigo-600 hover:text-indigo-600"} transition-colors duration-300 min-w-24`}
           >
-            {category === "all" ? "Tất cả" : category}
+            {category === "all" ? "All" : category}
           </Button>
         ))}
       </motion.div>
@@ -176,7 +134,7 @@ const QuizPage: React.FC = () => {
         </div>
       ) : filteredQuizzes.length === 0 ? (
         <Empty
-          description="Không có bài quiz nào"
+          description="No quizzes available"
           className="my-16"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
@@ -195,11 +153,7 @@ const QuizPage: React.FC = () => {
               key={`quiz-${quiz.quizId || index}`}
               variants={{
                 hidden: { opacity: 0, y: 50 },
-                visible: {
-                  opacity: 1,
-                  y: 0,
-                  transition: { delay: index * 0.1 }
-                }
+                visible: { opacity: 1, y: 0, transition: { delay: index * 0.1 } },
               }}
             >
               <Card
@@ -210,12 +164,12 @@ const QuizPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-900/70 group-hover:from-transparent group-hover:to-indigo-900/90 transition-all duration-300"></div>
                     <img
                       src={`https://i.pinimg.com/736x/37/4a/92/374a928711a6cf28b7d3a4b9014a7edd.jpg?relationship,couple,love,${index}`}
-                      alt={quiz.title || quiz.name}
+                      alt={quiz.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
                       <Title level={4} className="!text-white text-center m-0 group-hover:text-indigo-200 transition-colors duration-300">
-                        {quiz.title || quiz.name}
+                        {quiz.name}
                       </Title>
                     </div>
                   </div>
@@ -223,13 +177,6 @@ const QuizPage: React.FC = () => {
               >
                 <div className="p-4 flex flex-col flex-grow">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(quiz.difficulty)}`}>
-                      {quiz.difficulty === "easy"
-                        ? "Dễ"
-                        : quiz.difficulty === "medium"
-                          ? "Trung bình"
-                          : "Khó"}
-                    </span>
                     <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
                       {getCategoryDisplayName(quiz.category)}
                     </span>
@@ -239,14 +186,14 @@ const QuizPage: React.FC = () => {
                   </div>
 
                   <Paragraph className="text-gray-600 mb-4 flex-grow">
-                    {quiz.description || "Hãy thực hiện bài quiz này để khám phá thêm về mối quan hệ của bạn."}
+                    {quiz.description || "Take this quiz to explore more about your relationship."}
                   </Paragraph>
 
                   <div className="flex justify-between items-center mt-auto">
                     <div className="flex items-center">
                       <BarChartOutlined className="text-indigo-600 mr-1" />
                       <span className="text-sm text-gray-600">
-                        {quiz.questionCount || (quiz.questions ? quiz.questions.length : Math.floor(Math.random() * 15) + 5)} câu hỏi
+                        {quiz.questionCount} questions
                       </span>
                     </div>
                     <Button
@@ -255,7 +202,7 @@ const QuizPage: React.FC = () => {
                       onClick={() => navigate(`/home/quiz/${quiz.quizId}`)}
                     >
                       <span className="flex items-center">
-                        <CheckCircleOutlined className="mr-1" /> Bắt đầu
+                        <CheckCircleOutlined className="mr-1" /> Start
                       </span>
                     </Button>
                   </div>
