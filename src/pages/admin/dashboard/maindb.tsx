@@ -18,7 +18,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardHome from "../dashboard/index";
 import WithDraw from "../withdraw/index";
 import SalesReport from "../sales-report";
-import Settings from "../setting";
 import QuizManage from "../quiz-manage";
 import AnswerManage from "../answer-manage";
 import BookingManage from "../booking-manage";
@@ -73,8 +72,6 @@ const Dashboard: React.FC = () => {
                 return <CommissionManage />;
             case "feedback":
                 return <Feedback />;
-            case "settings":
-                return <Settings />;
             default:
                 return <DashboardHome />;
         }
