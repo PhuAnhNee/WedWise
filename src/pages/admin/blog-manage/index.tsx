@@ -75,7 +75,7 @@ const BlogManage: React.FC = () => {
         try {
             const response = await axios.get<Blog>(`${API_BASE_URL}/Blog/Get_Blog_By_Id?id=${id}`);
             const blogData = response.data;
-            setSelectedBlog(blogData); // Lưu blog vào state
+            setSelectedBlog(blogData);
             form.setFieldsValue({
                 title: blogData.title,
                 content: blogData.content,
@@ -291,7 +291,7 @@ const BlogManage: React.FC = () => {
                 { value: 'First.Name', title: 'First Name' },
                 { value: 'Email', title: 'Email' },
             ],
-            ai_request: (request: AIRequest, respondWith: AIRespondWith) =>
+            ai_request: (_request: AIRequest, respondWith: AIRespondWith) =>
                 respondWith.string(() => Promise.reject('See docs to implement AI Assistant')),
             content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
         }
@@ -360,7 +360,7 @@ const BlogManage: React.FC = () => {
                         <Form.Item label="Blog Body" rules={[{ required: true, message: "Please enter the blog body!" }]}>
                             <Editor
                                 apiKey={tinyMCEConfig.apiKey}
-                                onInit={(evt, editor) => (editorRef.current = editor)}
+                                onInit={(_, editor) => (editorRef.current = editor)}
                                 initialValue=""
                                 init={tinyMCEConfig.init}
                             />
@@ -384,6 +384,7 @@ const BlogManage: React.FC = () => {
                     </Form>
                 </Modal>
 
+                {/* Update Blog Modal */}
                 {/* Update Blog Modal */}
                 <Modal
                     title={<Title level={4}><EditOutlined className="mr-2" /> Update Blog</Title>}
@@ -409,7 +410,7 @@ const BlogManage: React.FC = () => {
                             <Form.Item label="Blog Body" rules={[{ required: true, message: "Please enter the blog body!" }]}>
                                 <Editor
                                     apiKey={tinyMCEConfig.apiKey}
-                                    onInit={(evt, editor) => {
+                                    onInit={(_, editor) => {
                                         editorRef.current = editor;
                                         if (selectedBlog.body) {
                                             editor.setContent(selectedBlog.body);
