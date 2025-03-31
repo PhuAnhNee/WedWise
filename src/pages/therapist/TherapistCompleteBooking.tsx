@@ -283,8 +283,6 @@ const TherapistCompleteBooking = () => {
               </div>
             ))}
           </div>
-
-          {/* Pagination Controls */}
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={handlePreviousPage}
