@@ -92,10 +92,11 @@ const BlogDetail: React.FC = () => {
                 <span>Last updated on {formatDate(blog.updatedAt)}</span>
               </div>
 
-              {/* Blog Body */}
-              <div className="prose max-w-none text-gray-700 leading-relaxed">
-                <p>{blog.body}</p>
-              </div>
+              {/* Blog Body - Using dangerouslySetInnerHTML to render HTML content */}
+              <div 
+                className="prose max-w-none text-gray-700 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: blog.body }}
+              />
 
               {/* Back Button */}
               <div className="mt-8">
