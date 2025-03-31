@@ -84,9 +84,7 @@ const TherapistDashboard = () => {
 
   const walletApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/GetWallet";
   const bookingApi = `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Get_Booking_By_Therapist_Id?id=${therapistId}`;
-  // Using the new therapist-specific feedback API
   const feedbackApi = `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Feedback/Get_Feedback_By_TherapistId?id=${therapistId}`;
-
   const authService = AuthService;
 
   useEffect(() => {
@@ -137,15 +135,11 @@ const TherapistDashboard = () => {
 
     fetchData();
   }, [therapistId]);
-
-  // Calculate total revenue (positive amounts only)
   const totalRevenue = walletData?.transactions
     ? walletData.transactions
         .filter((transaction) => transaction.amount > 0)
         .reduce((sum, transaction) => sum + transaction.amount, 0)
     : 0;
-
-  // Calculate total withdrawals (negative amounts only, absolute value)
   const totalWithdrawals = walletData?.transactions
     ? Math.abs(
         walletData.transactions
@@ -153,15 +147,11 @@ const TherapistDashboard = () => {
           .reduce((sum, transaction) => sum + transaction.amount, 0)
       )
     : 0;
-
-  // Calculate number of withdrawals
   const withdrawalCount = walletData?.transactions
     ? walletData.transactions.filter((transaction) => transaction.amount < 0).length
     : 0;
 
   const totalBookings = bookingDataApi.length;
-  
-  // Calculate average rating directly from the therapist-specific feedback
   const averageRating =
     feedbackData.length > 0
       ? feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0) / feedbackData.length
@@ -170,7 +160,7 @@ const TherapistDashboard = () => {
   const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length;
 
   const revenueChange = "+5%";
-  const withdrawalChange = "-2%"; // Example change for withdrawals
+  const withdrawalChange = "-2%"; 
   const bookingsChange = "+3%";
   const ratingChange = "+1%";
   const pendingChange = "+0%";
@@ -197,7 +187,7 @@ const TherapistDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Revenue</p>
-              <p className="text-xl font-semibold">${totalRevenue.toFixed(2)}</p>
+              <p className="text-xl font-semibold">{totalRevenue.toFixed(2)} VND</p>
             </div>
             <div className="bg-purple-100 p-2 rounded-full">
               <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +202,7 @@ const TherapistDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Withdrawals</p>
-              <p className="text-xl font-semibold">${totalWithdrawals.toFixed(2)}</p>
+              <p className="text-xl font-semibold">{totalWithdrawals.toFixed(2)} VND</p>
             </div>
             <div className="bg-red-100 p-2 rounded-full">
               <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -359,7 +349,7 @@ const TherapistDashboard = () => {
   function calculateRevenueByDay() {
     return (
       walletData?.transactions
-        ?.filter((transaction) => transaction.amount > 0) // Only include revenue (positive amounts)
+        ?.filter((transaction) => transaction.amount > 0)
         .reduce((acc: { day: string; revenue: number }[], transaction: Transaction) => {
           const date = new Date(transaction.createdAt);
           const day = date.toLocaleString("en-US", { weekday: "short" });
@@ -381,7 +371,7 @@ const TherapistDashboard = () => {
   function calculateRevenueByMonth() {
     return (
       walletData?.transactions
-        ?.filter((transaction) => transaction.amount > 0) // Only include revenue (positive amounts)
+        ?.filter((transaction) => transaction.amount > 0) 
         .reduce((acc: { month: string; revenue: number }[], transaction: Transaction) => {
           const date = new Date(transaction.createdAt);
           const month = date.toLocaleString("en-US", { month: "short" });
@@ -399,7 +389,7 @@ const TherapistDashboard = () => {
   function calculateRevenueByQuarter() {
     return (
       walletData?.transactions
-        ?.filter((transaction) => transaction.amount > 0) // Only include revenue (positive amounts)
+        ?.filter((transaction) => transaction.amount > 0) 
         .reduce((acc: { quarter: string; revenue: number }[], transaction: Transaction) => {
           const date = new Date(transaction.createdAt);
           const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
@@ -415,7 +405,6 @@ const TherapistDashboard = () => {
   }
 
   function calculateReviewData() {
-    // Now directly using the therapist-specific feedback data
     return (
       feedbackData
         ?.reduce((acc: { name: string; value: number }[], feedback: Feedback) => {

@@ -1,4 +1,4 @@
-import { useState } from "react"; // Removed unused useRef
+import { useState } from "react"; 
 import { Card, Avatar, Button, Form, Input, Switch } from "antd";
 import { EditOutlined, SaveOutlined, UserOutlined, DollarOutlined, LinkOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -128,7 +128,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
             <Input
               size="large"
               type="number"
-              prefix="$"
+              prefix=""
               style={{ borderColor: "#d9d9d9", borderRadius: "8px" }}
               placeholder="Enter consultation fee"
             />
@@ -195,7 +195,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
               <DollarOutlined style={{ fontSize: "24px", marginRight: "12px", color: "#595959" }} />
               <div>
                 <p className="text-gray-500 text-base">Consultation Fee</p>
-                <p className="text-gray-900 text-xl font-medium">${profile?.consultationFee}</p>
+                <p className="text-gray-900 text-xl font-medium">{profile?.consultationFee} VND</p>
               </div>
             </div>
 

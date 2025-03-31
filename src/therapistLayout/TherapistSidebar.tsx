@@ -74,13 +74,11 @@ const TherapistSidebar = ({
 
   return (
     <>
-      {/* Desktop Sidebar - Collapsible */}
       <aside
         className={`fixed top-0 left-0 h-full z-10 bg-gradient-to-br from-blue-700 via-blue-500 to-cyan-400 text-white shadow-xl transition-all duration-300 ease-in-out ${
           isSidebarExpanded ? "w-64" : "w-16"
         } hidden lg:block`}
       >
-        {/* Toggle button */}
         <button
           onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
           className="absolute -right-3 top-16 bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-blue-100 hover:shadow-lg transition-all duration-200"
@@ -88,7 +86,7 @@ const TherapistSidebar = ({
           {isSidebarExpanded ? "◀" : "▶"}
         </button>
         <div className="flex flex-col h-full justify-between">
-          {/* Header */}
+
           <div
             className={`p-5 border-b border-blue-300/50 flex items-center ${
               isSidebarExpanded ? "justify-start" : "justify-center"
@@ -99,7 +97,7 @@ const TherapistSidebar = ({
               <span className="text-xl font-semibold ml-3 tracking-wide text-white">Therapist</span>
             )}
           </div>
-          {/* Navigation */}
+          
           <nav className="px-3 py-6 flex flex-col space-y-2">
             {navItems.map((item) => (
               <Link
@@ -130,7 +128,7 @@ const TherapistSidebar = ({
               </Link>
             ))}
           </nav>
-          {/* User section & Logout */}
+          
           <div className="p-4 border-t border-blue-300/50">
             {isSidebarExpanded ? (
               <>
@@ -192,14 +190,14 @@ const TherapistSidebar = ({
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
+      
       <aside
         className={`fixed top-0 left-0 w-64 h-full z-20 bg-gradient-to-br from-blue-700 via-blue-500 to-cyan-400 text-white shadow-xl transition-transform duration-300 ease-in-out ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:hidden`}
       >
         <div className="flex flex-col h-full justify-between">
-          {/* Header */}
+          
           <div className="p-5 border-b border-blue-300/50 flex items-center justify-between">
             <h1 className="text-xl font-semibold flex items-center tracking-wide text-white">
               <SettingOutlined className="mr-2 text-2xl" />
@@ -212,7 +210,7 @@ const TherapistSidebar = ({
               ✕
             </button>
           </div>
-          {/* Navigation */}
+          
           <nav className="p-4 flex flex-col space-y-2">
             {navItems.map((item) => (
               <Link
@@ -240,7 +238,7 @@ const TherapistSidebar = ({
               </Link>
             ))}
           </nav>
-          {/* User section & Logout */}
+          
           <div className="p-4 border-t border-blue-300/50">
             <div className="mb-4 p-3 bg-blue-600/30 rounded-lg shadow-inner flex items-center">
               <Avatar

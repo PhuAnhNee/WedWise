@@ -1,7 +1,7 @@
 import { useState } from "react";
 import TherapistAllBookings from "./TherapistAllBookings.tsx";
 import TherapistBookingList from "./TherapistBookingList.tsx";
-import TherapistPendingBooking from "./TherapistPendingBookingPage.tsx"; // Sửa tên file nếu cần
+import TherapistPendingBooking from "./TherapistPendingBookingPage.tsx"; 
 import TherapistCompleteBooking from "./TherapistCompleteBooking.tsx";
 
 const TherapistBookingDashboard = () => {
@@ -10,13 +10,13 @@ const TherapistBookingDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "all":
-        return <TherapistAllBookings />; // Hiển thị tất cả bookings
+        return <TherapistAllBookings />; 
       case "ongoing":
-        return <TherapistBookingList />; // Hiển thị bookings status 1
+        return <TherapistBookingList />; 
       case "pendingFeedback":
-        return <TherapistPendingBooking />; // Hiển thị bookings status 3
+        return <TherapistPendingBooking />; 
       case "completed":
-        return <TherapistCompleteBooking />; // Hiển thị bookings status 4
+        return <TherapistCompleteBooking />; 
       default:
         return <TherapistAllBookings />;
     }
@@ -28,8 +28,6 @@ const TherapistBookingDashboard = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">
           Therapist Booking Dashboard
         </h2>
-
-        {/* Tab Bar */}
         <div className="flex border-b mb-6">
           {[
             { id: "all", label: "All Bookings" },
@@ -51,7 +49,7 @@ const TherapistBookingDashboard = () => {
           ))}
         </div>
 
-        {/* Content */}
+        
         {renderContent()}
       </div>
     </div>
