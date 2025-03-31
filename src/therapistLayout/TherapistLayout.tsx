@@ -8,7 +8,6 @@ const TherapistLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-sky-50">
-      {/* Mobile toggle button - only visible on mobile */}
       <div className="lg:hidden fixed top-4 left-4 z-20">
         <button
           onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -17,24 +16,18 @@ const TherapistLayout = () => {
           {isMobileSidebarOpen ? "✕" : "☰"}
         </button>
       </div>
-
-      {/* Sidebar backdrop for mobile */}
       {isMobileSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
-
-      {/* Sidebar component */}
       <TherapistSidebar 
         isSidebarExpanded={isSidebarExpanded}
         setIsSidebarExpanded={setIsSidebarExpanded}
         isMobileSidebarOpen={isMobileSidebarOpen} 
         setIsMobileSidebarOpen={setIsMobileSidebarOpen} 
       />
-
-      {/* Main content - adjusts based on sidebar width */}
       <main className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'lg:ml-64' : 'lg:ml-16'} p-6`}>
         
           <Outlet />

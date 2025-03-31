@@ -67,7 +67,7 @@ const Profile = () => {
 
   const fetchCertificate = async () => {
     if (!therapistId) {
-      console.log("No therapistId available");
+    
       return;
     }
     try {
