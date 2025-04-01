@@ -23,7 +23,7 @@ interface SlotListProps {
   isDateInPast: (date: Date) => boolean;
   isSlotTimeInPast: (date: Date, slotId: number) => boolean;
   openConfirmModal: () => void;
-  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void; // Added
+  handleUpdateStatus: (scheduleItem: Schedule, status: number) => void; 
 }
 
 const SlotList: React.FC<SlotListProps> = ({
@@ -82,9 +82,9 @@ const SlotList: React.FC<SlotListProps> = ({
               </div>
               {isScheduled ? (
                 <span className="text-sm font-medium">
-                  {status === 0 && "Lịch trống"}
-                  {status === 1 && "Được đặt"}
-                  {status === 2 && "Lịch bận"}
+                  {status === 0 && "Available"}
+                  {status === 1 && "Booked"}
+                  {status === 2 && "Busy"}
                 </span>
               ) : (
                 <input
@@ -105,13 +105,13 @@ const SlotList: React.FC<SlotListProps> = ({
             onClick={openConfirmModal}
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
           >
-            Tạo lịch trống
+            Create Available Schedule
           </button>
         </div>
       )}
       {isDateInPast(new Date(selectedDate)) && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 p-3 rounded-lg mt-4">
-          <p>Không thể tạo lịch cho ngày trong quá khứ!</p>
+          <p>Cannot create schedule for past dates!</p>
         </div>
       )}
     </div>
