@@ -45,11 +45,14 @@ const Navbar: React.FC = () => {
 
   const userMenu = (
     <Menu className="rounded-lg shadow-lg border border-gray-100">
-      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900 px-4 py-2">
+      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
         <Link to="/home/profile">Profile</Link>
       </Menu.Item>
+      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
+        <Link to="/home/quizresult">Quiz results</Link>
+      </Menu.Item>
       <Menu.Divider />
-      <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600 px-4 py-2">
+      <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600">
         Logout
       </Menu.Item>
     </Menu>
@@ -64,7 +67,7 @@ const Navbar: React.FC = () => {
 
   return (
     <header className="bg-gradient-to-r from-indigo-600 to-white-500 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-6 py-3">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <motion.h1
@@ -91,7 +94,7 @@ const Navbar: React.FC = () => {
           </button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
               <motion.div
                 key={link.to}
@@ -109,12 +112,12 @@ const Navbar: React.FC = () => {
           </nav>
 
           {/* User Actions */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-4">
             {/* Wallet */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               onClick={() => navigate("/home/wallet")}
-              className="flex items-center space-x-2 cursor-pointer bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-gray-900 hover:bg-white/30 transition-all duration-200"
+              className="flex items-center space-x-2 cursor-pointer bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-gray-900 hover:bg-white/30 transition-all duration-200"
             >
               <FaWallet className="text-xl text-gray-900" />
               <span className="font-medium">{walletBalance.toLocaleString()} VND</span>
@@ -147,7 +150,7 @@ const Navbar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden mt-4 pb-4 space-y-4"
+            className="md:hidden mt-4 pb-4"
           >
             <nav className="flex flex-col space-y-3">
               {navLinks.map((link) => (
@@ -161,17 +164,17 @@ const Navbar: React.FC = () => {
                 </Link>
               ))}
             </nav>
-
-            {/* Wallet (Mobile) */}
-            <div
-              onClick={() => {
-                navigate("/home/wallet");
-                setIsMobileMenuOpen(false);
-              }}
-              className="flex items-center space-x-2 cursor-pointer bg-white/20 rounded-full px-4 py-2 text-gray-900 hover:bg-white/30"
-            >
-              <FaWallet className="text-xl text-gray-900" />
-              <span className="font-medium">{walletBalance.toLocaleString()} VND</span>
+            <div className="mt-4 space-y-3">
+              <div
+                onClick={() => {
+                  navigate("/home/wallet");
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center space-x-2 cursor-pointer bg-white/20 rounded-full px-4 py-2 text-gray-900 hover:bg-white/30"
+              >
+                <FaWallet className="text-xl text-gray-900" />
+                <span className="font-medium">${walletBalance.toLocaleString()}</span>
+              </div>
             </div>
           </motion.div>
         )}
