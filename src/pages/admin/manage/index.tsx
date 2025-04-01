@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios, { AxiosError } from 'axios';
-import { Table, Modal, Input, Button, Form, message } from 'antd';
+import { Table, Modal, Input, Button, Form, message, Select } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 
 interface Category {
@@ -52,12 +52,17 @@ const CategoryManagement: React.FC = () => {
         setSelectedCategory(null);
         setIsModalOpen(true);
         form.resetFields();
+        form.setFieldsValue({ status: 1 }); // Default status: Active
     };
 
     const handleEditCategory = (category: Category) => {
         setSelectedCategory(category);
         setIsModalOpen(true);
-        form.setFieldsValue({ name: category.name, description: category.description });
+        form.setFieldsValue({
+            name: category.name,
+            description: category.description,
+            status: category.status
+        });
     };
 
     const handleSubmit = async () => {
@@ -68,13 +73,13 @@ const CategoryManagement: React.FC = () => {
             const payload = {
                 name: values.name,
                 description: values.description || '',
+                status: values.status || 1
             };
 
             if (selectedCategory) {
                 const updatePayload = {
                     categoryId: selectedCategory.categoryId,
-                    ...payload,
-                    status: selectedCategory.status
+                    ...payload
                 };
                 const response = await axios.post(`${API_BASE_URL}/Update_Category`, updatePayload, { headers });
                 if (response.status === 200) {
@@ -99,22 +104,6 @@ const CategoryManagement: React.FC = () => {
         }
     };
 
-    //   const handleDeleteCategory = async (categoryId: string) => {
-    //     try {
-    //       const headers = getHeaders();
-    //       // Note: Your API doesn't seem to have a DELETE endpoint based on previous info.
-    //       // Uncomment and adjust the URL/method if you have a delete endpoint:
-    //       // await axios.delete(`${API_BASE_URL}/Delete_Category/${categoryId}`, { headers });
-    //       setCategories(categories.filter((cat) => cat.categoryId !== categoryId));
-    //       message.success('Category deleted successfully!');
-    //     } catch (error) {
-    //       const err = error as AxiosError<{ message?: string }>;
-    //       console.error('Error deleting category:', err.response?.data || err.message);
-    //       message.error(err.response?.data?.message || 'Failed to delete category!');
-    //       await fetchCategories(); // Refresh in case of failure to keep UI in sync
-    //     }
-    //   };
-
     useEffect(() => {
         fetchCategories();
     }, []);
@@ -122,6 +111,12 @@ const CategoryManagement: React.FC = () => {
     const columns = [
         { title: 'Category Name', dataIndex: 'name', key: 'name' },
         { title: 'Description', dataIndex: 'description', key: 'description' },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status: number) => status === 1 ? 'Active' : 'Inactive'
+        },
         {
             title: 'Actions',
             key: 'actions',
@@ -131,17 +126,6 @@ const CategoryManagement: React.FC = () => {
                     <Button icon={<EditOutlined />} onClick={() => handleEditCategory(record)}>
                         Edit
                     </Button>
-                    {/* Uncomment this if you have a DELETE endpoint */}
-                    {/* <Popconfirm
-            title="Are you sure you want to delete this category?"
-            onConfirm={() => handleDeleteCategory(record.categoryId)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button icon={<DeleteOutlined />} danger>
-              Delete
-            </Button>
-          </Popconfirm> */}
                 </div>
             ),
         },
@@ -182,6 +166,16 @@ const CategoryManagement: React.FC = () => {
                     </Form.Item>
                     <Form.Item name="description" label="Description">
                         <Input placeholder="Enter category description..." />
+                    </Form.Item>
+                    <Form.Item
+                        name="status"
+                        label="Status"
+                        rules={[{ required: true, message: 'Please select status' }]}
+                    >
+                        <Select placeholder="Select status">
+                            <Select.Option value={1}>Active</Select.Option>
+                            <Select.Option value={2}>Inactive</Select.Option>
+                        </Select>
                     </Form.Item>
                 </Form>
             </Modal>
