@@ -45,6 +45,26 @@ interface Blog {
     updatedUser: null | string;
 }
 
+interface WalletResponse {
+    wallet: {
+        walletId: string;
+        userId: string;
+        balance: number;
+        user: null | string;
+    };
+    transactions: {
+        transactionId: string;
+        amount: number;
+        description: string;
+        createdBy: string;
+        updatedBy: string;
+        createdAt: string;
+        updatedAt: string;
+        createdUser: null | string;
+        updatedUser: null | string;
+    }[];
+}
+
 interface LineChartDataItem {
     name: string;
     value: number;
@@ -63,6 +83,7 @@ const Dashboard = () => {
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [allWithdrawals, setAllWithdrawals] = useState<Withdrawal[]>([]);
     const [blogs, setBlogs] = useState<Blog[]>([]);
+    const [walletBalance, setWalletBalance] = useState<number>(0);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -71,7 +92,7 @@ const Dashboard = () => {
     const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
     const [lineChartData, setLineChartData] = useState<LineChartDataItem[]>([]);
     const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
-    const [selectedRole, setSelectedRole] = useState<number | null>(null); // Bộ lọc role
+    const [selectedRole, setSelectedRole] = useState<number | null>(null);
     const pageSize = 10;
     const withdrawalsPageSize = 10;
 
@@ -87,7 +108,7 @@ const Dashboard = () => {
                 headers: getHeaders(),
             });
             setUsers(response.data);
-            setFilteredUsers(response.data); // Ban đầu hiển thị tất cả
+            setFilteredUsers(response.data);
             generatePieChartData(response.data);
         } catch (error) {
             const err = error as AxiosError;
@@ -123,6 +144,22 @@ const Dashboard = () => {
         } catch (error) {
             const err = error as AxiosError;
             console.error("Error fetching blogs:", err.response?.data || err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchWallet = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get<WalletResponse>(`${API_BASE_URL}/Auth/GetWallet`, {
+                headers: getHeaders(),
+            });
+            const balance = response.data.wallet.balance;
+            setWalletBalance(balance);
+        } catch (error) {
+            const err = error as AxiosError;
+            console.error("Error fetching wallet:", err.response?.data || err.message);
         } finally {
             setLoading(false);
         }
@@ -249,21 +286,21 @@ const Dashboard = () => {
         }
     };
 
-    // Hàm lọc người dùng theo role
     const filterUsersByRole = (role: number | null) => {
         setSelectedRole(role);
         if (role === null) {
-            setFilteredUsers(users); // Hiển thị tất cả
+            setFilteredUsers(users);
         } else {
             setFilteredUsers(users.filter((user) => user.role === role));
         }
-        setCurrentPage(1); // Reset về trang đầu khi lọc
+        setCurrentPage(1);
     };
 
     useEffect(() => {
         fetchUsers();
         fetchAllWithdrawals();
         fetchBlogs();
+        fetchWallet();
     }, []);
 
     useEffect(() => {
@@ -281,6 +318,7 @@ const Dashboard = () => {
         { title: "Active Users", value: users.filter((u) => u.isActive).length.toString(), icon: Users, color: "from-cyan-500 to-teal-600", percentage: "+4.3%" },
         { title: "Blogs", value: blogs.length.toString(), icon: BookOpen, color: "from-emerald-500 to-green-600", percentage: "+12.5%" },
         { title: "Withdrawals", value: allWithdrawals.length.toString(), icon: ShoppingCart, color: "from-amber-500 to-orange-600", percentage: "+0%" },
+        { title: "Total Wallet Balance", value: `${walletBalance.toLocaleString("vi-VN")} ₫`, icon: ShoppingCart, color: "from-blue-500 to-indigo-600", percentage: "+0%" },
     ];
 
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -296,7 +334,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                     {cardsData.map((card, index) => (
                         <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden">
                             <div className="p-5">
@@ -304,7 +342,7 @@ const Dashboard = () => {
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">{card.title}</p>
                                         <p className="text-2xl font-bold text-gray-800 mt-1">
-                                            {loading && (card.title === "Total Users" || card.title === "Active Users" || card.title === "Withdrawals" || card.title === "Blogs") ? (
+                                            {loading && (card.title === "Total Users" || card.title === "Active Users" || card.title === "Withdrawals" || card.title === "Blogs" || card.title === "Total Wallet Balance") ? (
                                                 <Spin size="small" />
                                             ) : (
                                                 card.value
@@ -349,7 +387,7 @@ const Dashboard = () => {
                                     <XAxis dataKey="name" tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
                                     <YAxis tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
                                     <Tooltip
-                                        formatter={(value) => [`$${value}`, "Amount"]}
+                                        formatter={(value) => [`${value.toLocaleString("vi-VN")} ₫`, "Amount"]}
                                         contentStyle={{
                                             backgroundColor: "#fff",
                                             border: "none",
@@ -426,7 +464,7 @@ const Dashboard = () => {
                         <Select
                             style={{ width: 200 }}
                             placeholder="Filter by Role"
-                            value={selectedRole === null ? "all" : selectedRole} // Sử dụng selectedRole làm giá trị hiện tại
+                            value={selectedRole === null ? "all" : selectedRole}
                             onChange={(value) => filterUsersByRole(value === "all" ? null : Number(value))}
                         >
                             <Select.Option value="all">All Roles</Select.Option>
@@ -462,8 +500,7 @@ const Dashboard = () => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span
-                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                                            }`}
+                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                                                     >
                                                         {user.isActive ? "Active" : "Inactive"}
                                                     </span>
@@ -513,7 +550,7 @@ const Dashboard = () => {
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Withdraw ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"> питанняStatus</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                         </tr>
@@ -522,7 +559,7 @@ const Dashboard = () => {
                                         {paginatedWithdrawals.map((withdrawal) => (
                                             <tr key={withdrawal.id}>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.id}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${withdrawal.money.toLocaleString()}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{withdrawal.money.toLocaleString("vi-VN")} ₫</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{getStatusDisplay(withdrawal.status)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatDate(withdrawal.updatedAt)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -531,16 +568,14 @@ const Dashboard = () => {
                                                             <button
                                                                 onClick={() => updateWithdrawalStatus(withdrawal.id, 1)}
                                                                 disabled={updatingWithdrawal === withdrawal.id}
-                                                                className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""
-                                                                    }`}
+                                                                className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""}`}
                                                             >
                                                                 {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : "Accept"}
                                                             </button>
                                                             <button
                                                                 onClick={() => updateWithdrawalStatus(withdrawal.id, 2)}
                                                                 disabled={updatingWithdrawal === withdrawal.id}
-                                                                className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""
-                                                                    }`}
+                                                                className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""}`}
                                                             >
                                                                 {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : "Reject"}
                                                             </button>
