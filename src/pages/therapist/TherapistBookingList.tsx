@@ -175,13 +175,20 @@ const TherapistBookingList = () => {
   const handleCancelBooking = async (bookingId: string) => {
     try {
       const response = await fetch(
-        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Cancel_Booking?id=${bookingId}`,
+        `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Cancel_Booking`,
         {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            bookingId: bookingId,
+            isReturn: true
+          })
         }
       );
-
+  
       if (response.ok) {
         toast.success('Booking cancelled successfully!');
         const updatedBookings = bookings.filter((booking) => booking.bookingId !== bookingId);
@@ -268,8 +275,6 @@ const TherapistBookingList = () => {
               </div>
             ))}
           </div>
-
-          {/* Pagination Controls */}
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={handlePreviousPage}

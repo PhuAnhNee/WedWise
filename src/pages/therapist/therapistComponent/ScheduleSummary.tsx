@@ -58,7 +58,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
   return (
     <div className="mt-10 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
       <h3 className="text-2xl font-bold text-gray-800 mb-6">
-        Lịch trống ngày {format(selectedDate, "dd/MM/yyyy")}
+        Available Schedule for {format(selectedDate, "dd/MM/yyyy")}
       </h3>
       <ul className="space-y-4">
         {schedulesForSelectedDate.map((schedule) => {
@@ -75,7 +75,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
               <div className="flex-1">
                 <span className="text-lg font-semibold text-gray-900">Slot {schedule.slot}: </span>
                 <span className="text-lg font-medium text-gray-700">
-                  {matchingSlot?.time || "Không có thông tin"}
+                  {matchingSlot?.time || "No information"}
                 </span>
               </div>
               <select
@@ -86,9 +86,9 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
                 }`}
                 disabled={schedule.status === 1 || isPastSlot}
               >
-                <option value={0}>Lịch trống</option>
-                <option value={1}>Được đặt</option>
-                <option value={2}>Lịch bận</option>
+                {schedule.status === 1 && <option value={1}>Booked</option>}
+                <option value={0}>Available</option>
+                <option value={2}>Busy</option>
               </select>
             </li>
           );
