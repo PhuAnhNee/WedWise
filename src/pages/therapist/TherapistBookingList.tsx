@@ -64,30 +64,30 @@ const TherapistBookingList = () => {
     return slotData ? slotData.time : 'Unknown';
   };
 
-  // Function to check if the current time is within the booking's time slot
+  
   const isWithinTimeSlot = (scheduleDate: string, slot: number) => {
     if (!scheduleDate || !slot) return false;
 
     const now = new Date();
     const bookingDate = new Date(scheduleDate);
 
-    // Get the time slot (e.g., "13:30 - 15:00")
+    
     const slotTime = getSlotTime(slot);
     if (slotTime === 'Unknown') return false;
 
-    // Split the time slot into start and end times
+    
     const [startTime, endTime] = slotTime.split(' - ');
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Create Date objects for the start and end of the time slot
+    
     const slotStart = new Date(bookingDate);
     slotStart.setHours(startHour, startMinute, 0, 0);
 
     const slotEnd = new Date(bookingDate);
     slotEnd.setHours(endHour, endMinute, 0, 0);
 
-    // Check if the current time is within the slot
+    
     return now >= slotStart && now <= slotEnd;
   };
 
@@ -149,7 +149,7 @@ const TherapistBookingList = () => {
   }, [therapistId, token, users]);
 
   const handleStartConsultation = async (bookingId: string, scheduleDate: string, slot: number) => {
-    // Check if the current time is within the time slot
+    
     if (!isWithinTimeSlot(scheduleDate, slot)) {
       toast.error('Cannot start consultation outside the scheduled time slot!');
       return;
@@ -184,7 +184,7 @@ const TherapistBookingList = () => {
   };
 
   const handleEndConsultation = async (bookingId: string, scheduleDate: string, slot: number) => {
-    // Check if the current time is within the time slot
+    
     if (!isWithinTimeSlot(scheduleDate, slot)) {
       toast.error('Cannot end consultation outside the scheduled time slot!');
       return;
