@@ -64,6 +64,33 @@ const TherapistBookingList = () => {
     return slotData ? slotData.time : 'Unknown';
   };
 
+  
+  const isWithinTimeSlot = (scheduleDate: string, slot: number) => {
+    if (!scheduleDate || !slot) return false;
+
+    const now = new Date();
+    const bookingDate = new Date(scheduleDate);
+
+    
+    const slotTime = getSlotTime(slot);
+    if (slotTime === 'Unknown') return false;
+
+    
+    const [startTime, endTime] = slotTime.split(' - ');
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    
+    const slotStart = new Date(bookingDate);
+    slotStart.setHours(startHour, startMinute, 0, 0);
+
+    const slotEnd = new Date(bookingDate);
+    slotEnd.setHours(endHour, endMinute, 0, 0);
+
+    
+    return now >= slotStart && now <= slotEnd;
+  };
+
   const fetchUsers = async () => {
     try {
       const response = await fetch(
@@ -121,7 +148,13 @@ const TherapistBookingList = () => {
     fetchBookings();
   }, [therapistId, token, users]);
 
-  const handleStartConsultation = async (bookingId: string) => {
+  const handleStartConsultation = async (bookingId: string, scheduleDate: string, slot: number) => {
+    
+    if (!isWithinTimeSlot(scheduleDate, slot)) {
+      toast.error('Cannot start consultation outside the scheduled time slot!');
+      return;
+    }
+
     try {
       const response = await fetch(
         `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Therapist/Get_Therapist_By_Id?id=${therapistId}`,
@@ -150,7 +183,13 @@ const TherapistBookingList = () => {
     }
   };
 
-  const handleEndConsultation = async (bookingId: string) => {
+  const handleEndConsultation = async (bookingId: string, scheduleDate: string, slot: number) => {
+    
+    if (!isWithinTimeSlot(scheduleDate, slot)) {
+      toast.error('Cannot end consultation outside the scheduled time slot!');
+      return;
+    }
+
     try {
       const response = await fetch(
         `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Finish_Booking/?id=${bookingId}`,
@@ -229,51 +268,65 @@ const TherapistBookingList = () => {
       ) : (
         <div>
           <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-            {currentBookings.map((booking) => (
-              <div
-                key={booking.bookingId}
-                className="border border-gray-200 p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out"
-              >
-                <h3 className="text-lg font-bold text-blue-700 mb-3">Booking ID: {booking.bookingId}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 text-base">
-                  <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
-                  <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
-                  <p><span className="font-medium">Fee:</span> {booking.fee !== null && booking.fee !== undefined ? `${booking.fee.toLocaleString('en-US')} VND` : 'Free'}</p>
-                  <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
-                  <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
-                  {booking.meetUrl && (
-                    <p>
-                      <span className="font-medium">Link:</span>{' '}
-                      <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                        Join meeting
-                      </a>
-                    </p>
-                  )}
+            {currentBookings.map((booking) => {
+              const canStartOrEnd = isWithinTimeSlot(booking.scheduleDate || '', booking.slot || 0);
+
+              return (
+                <div
+                  key={booking.bookingId}
+                  className="border border-gray-200 p-5 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200 ease-in-out"
+                >
+                  <h3 className="text-lg font-bold text-blue-700 mb-3">Booking ID: {booking.bookingId}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 text-base">
+                    <p><span className="font-medium">User:</span> {booking.userName || 'Name not found'}</p>
+                    <p><span className="font-medium">Status:</span> {statusMap[booking.status] || "Unknown"}</p>
+                    <p><span className="font-medium">Fee:</span> {booking.fee !== null && booking.fee !== undefined ? `${booking.fee.toLocaleString('en-US')} VND` : 'Free'}</p>
+                    <p><span className="font-medium">Date:</span> {booking.scheduleDate ? new Date(booking.scheduleDate).toLocaleDateString() : 'No info'}</p>
+                    <p><span className="font-medium">Time Slot:</span> {getSlotTime(booking.slot || 0)}</p>
+                    {booking.meetUrl && (
+                      <p>
+                        <span className="font-medium">Link:</span>{' '}
+                        <a href={booking.meetUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                          Join meeting
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex mt-4 justify-between">
+                    <button
+                      onClick={() => handleStartConsultation(booking.bookingId, booking.scheduleDate || '', booking.slot || 0)}
+                      disabled={!canStartOrEnd}
+                      className={`text-white px-4 py-2 rounded transition-colors ${
+                        !canStartOrEnd
+                          ? 'bg-gray-300 cursor-not-allowed'
+                          : booking.isOngoing
+                          ? 'bg-blue-500 animate-blink'
+                          : 'bg-blue-500 hover:bg-blue-600'
+                      }`}
+                    >
+                      {booking.isOngoing ? 'Ongoing Consultation' : 'Start Consultation'}
+                    </button>
+                    <button
+                      onClick={() => handleEndConsultation(booking.bookingId, booking.scheduleDate || '', booking.slot || 0)}
+                      disabled={!canStartOrEnd}
+                      className={`text-white px-4 py-2 rounded transition-colors ${
+                        !canStartOrEnd
+                          ? 'bg-gray-300 cursor-not-allowed'
+                          : 'bg-green-500 hover:bg-green-600'
+                      }`}
+                    >
+                      End Consultation
+                    </button>
+                    <button
+                      onClick={() => handleCancelBooking(booking.bookingId)}
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                    >
+                      Cancel Booking
+                    </button>
+                  </div>
                 </div>
-                <div className="flex mt-4 justify-between">
-                  <button
-                    onClick={() => handleStartConsultation(booking.bookingId)}
-                    className={`text-white px-4 py-2 rounded transition-colors ${
-                      booking.isOngoing ? 'bg-blue-500 animate-blink' : 'bg-blue-500 hover:bg-blue-600'
-                    }`}
-                  >
-                    {booking.isOngoing ? 'Ongoing Consultation' : 'Start Consultation'}
-                  </button>
-                  <button
-                    onClick={() => handleEndConsultation(booking.bookingId)}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-                  >
-                    End Consultation
-                  </button>
-                  <button
-                    onClick={() => handleCancelBooking(booking.bookingId)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-                  >
-                    Cancel Booking
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="flex justify-between items-center mt-4">
             <button
