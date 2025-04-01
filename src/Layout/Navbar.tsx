@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaSearch, FaUserCircle, FaWallet } from "react-icons/fa";
+import { FaUserCircle, FaWallet } from "react-icons/fa";
 import { Dropdown, Menu } from "antd";
 import AuthService from "../pages/service/AuthService";
 import axios from "axios";
@@ -45,14 +45,11 @@ const Navbar: React.FC = () => {
 
   const userMenu = (
     <Menu className="rounded-lg shadow-lg border border-gray-100">
-      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
+      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900 px-4 py-2">
         <Link to="/home/profile">Profile</Link>
       </Menu.Item>
-      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
-        <Link to="/home/quizresult">Quiz results</Link>
-      </Menu.Item>
       <Menu.Divider />
-      <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600">
+      <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600 px-4 py-2">
         Logout
       </Menu.Item>
     </Menu>
@@ -61,14 +58,13 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { to: "/home", label: "Home" },
     { to: "/home/quizzes", label: "Quizzes" },
-    { to: "/help", label: "Help" },
     { to: "/home/therapist", label: "Find a Therapist" },
     { to: "/home/my-booking", label: "My Booking" },
   ];
 
   return (
     <header className="bg-gradient-to-r from-indigo-600 to-white-500 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-6 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <motion.h1
@@ -95,7 +91,7 @@ const Navbar: React.FC = () => {
           </button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <motion.div
                 key={link.to}
@@ -113,26 +109,12 @@ const Navbar: React.FC = () => {
           </nav>
 
           {/* User Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Search Bar */}
-            <motion.div
-              className="relative"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <input
-                type="text"
-                placeholder="Search..."
-                className="rounded-full px-4 py-2 pl-10 bg-white/90 backdrop-blur-sm border-none focus:ring-2 focus:ring-indigo-300 focus:outline-none text-gray-900 placeholder-gray-500"
-              />
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
-            </motion.div>
-
+          <div className="hidden md:flex items-center space-x-6">
             {/* Wallet */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               onClick={() => navigate("/home/wallet")}
-              className="flex items-center space-x-2 cursor-pointer bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-gray-900 hover:bg-white/30 transition-all duration-200"
+              className="flex items-center space-x-2 cursor-pointer bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-gray-900 hover:bg-white/30 transition-all duration-200"
             >
               <FaWallet className="text-xl text-gray-900" />
               <span className="font-medium">{walletBalance.toLocaleString()} VND</span>
@@ -165,7 +147,7 @@ const Navbar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden mt-4 pb-4"
+            className="md:hidden mt-4 pb-4 space-y-4"
           >
             <nav className="flex flex-col space-y-3">
               {navLinks.map((link) => (
@@ -179,25 +161,17 @@ const Navbar: React.FC = () => {
                 </Link>
               ))}
             </nav>
-            <div className="mt-4 space-y-3">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full rounded-full px-4 py-2 pl-10 bg-white/90 border-none focus:ring-2 focus:ring-indigo-300 focus:outline-none text-gray-900 placeholder-gray-500"
-                />
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" />
-              </div>
-              <div
-                onClick={() => {
-                  navigate("/home/wallet");
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center space-x-2 cursor-pointer bg-white/20 rounded-full px-4 py-2 text-gray-900 hover:bg-white/30"
-              >
-                <FaWallet className="text-xl text-gray-900" />
-                <span className="font-medium">${walletBalance.toLocaleString()}</span>
-              </div>
+
+            {/* Wallet (Mobile) */}
+            <div
+              onClick={() => {
+                navigate("/home/wallet");
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center space-x-2 cursor-pointer bg-white/20 rounded-full px-4 py-2 text-gray-900 hover:bg-white/30"
+            >
+              <FaWallet className="text-xl text-gray-900" />
+              <span className="font-medium">{walletBalance.toLocaleString()} VND</span>
             </div>
           </motion.div>
         )}
