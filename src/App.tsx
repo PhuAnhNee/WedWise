@@ -33,10 +33,10 @@ import TherapistProfile from "./pages/therapist/TherapistProfile";
 import TherapistCalendar from "./pages/therapist/TherapistCalendar";
 import TherapistLayout from "./therapistLayout/TherapistLayout";
 import Wallet from "./pages/member/Wallet";
-import TherapistBookingList from "./pages/therapist/TherapistBookingList";
 import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPage";
 import TherapistCompleteBooking from "./pages/therapist/TherapistCompleteBooking";
 import TherapistWallets from "./pages/therapist/TherapistWallet";
+import TherapistBookingDashboard from "./pages/therapist/TherapistBookingDashboard";
 import BlogDetail from "./pages/member/BlogDetail";
 import QuizResult from "./pages/member/QuizResult";
 const App: React.FC = () => {
@@ -77,7 +77,7 @@ const App: React.FC = () => {
         <Route path="/therapist" element={<TherapistLayout />}>
           <Route index element={<TherapistDashboard />} />
           <Route path="profile" element={<TherapistProfile />} />
-          <Route path="booking-list" element={<TherapistBookingList />} />
+          <Route path="booking-list" element={<TherapistBookingDashboard />} />
           <Route path="calendar" element={<TherapistCalendar />} />
           <Route path="pending-booking" element={<TherapistPendingBooking />} />
           <Route path="therapist-wallets" element={<TherapistWallets />} />

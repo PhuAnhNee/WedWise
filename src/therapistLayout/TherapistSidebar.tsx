@@ -6,12 +6,9 @@ import {
   UserOutlined,
   CalendarOutlined,
   FileTextOutlined,
-  HourglassOutlined,
   WalletOutlined,
-  CheckCircleOutlined,
   LogoutOutlined,
   SettingOutlined,
- 
 } from "@ant-design/icons";
 import { Avatar, Button } from "antd";
 import axios from "axios";
@@ -37,7 +34,6 @@ const TherapistSidebar = ({
 }: TherapistSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState("");
   const [therapistProfile, setTherapistProfile] = useState<TherapistProfile | null>(null);
 
   const handleLogout = () => {
@@ -71,21 +67,18 @@ const TherapistSidebar = ({
     { path: "/therapist", label: "DashBoard", icon: <DashboardOutlined /> },
     { path: "/therapist/profile", label: "Profile", icon: <UserOutlined /> },
     { path: "/therapist/calendar", label: "Schedule", icon: <CalendarOutlined /> },
+    { path: "/therapist/booking-list", label: "Booking List", icon: <FileTextOutlined /> },
     { path: "/therapist/therapist-wallets", label: "Wallet", icon: <WalletOutlined /> },
-    { path: "/therapist/booking-list", label: "Booking", icon: <FileTextOutlined /> },
-    { path: "/therapist/pending-booking", label: "On-Going Booking ", icon: <HourglassOutlined /> },
-    { path: "/therapist/complete-booking", label: "Complete Booking", icon: <CheckCircleOutlined /> },
+    
   ];
 
   return (
     <>
-      {/* Desktop Sidebar - Collapsible */}
       <aside
         className={`fixed top-0 left-0 h-full z-10 bg-gradient-to-br from-blue-700 via-blue-500 to-cyan-400 text-white shadow-xl transition-all duration-300 ease-in-out ${
           isSidebarExpanded ? "w-64" : "w-16"
         } hidden lg:block`}
       >
-        {/* Toggle button */}
         <button
           onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
           className="absolute -right-3 top-16 bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-blue-100 hover:shadow-lg transition-all duration-200"
@@ -93,7 +86,7 @@ const TherapistSidebar = ({
           {isSidebarExpanded ? "◀" : "▶"}
         </button>
         <div className="flex flex-col h-full justify-between">
-          {/* Header */}
+
           <div
             className={`p-5 border-b border-blue-300/50 flex items-center ${
               isSidebarExpanded ? "justify-start" : "justify-center"
@@ -104,14 +97,12 @@ const TherapistSidebar = ({
               <span className="text-xl font-semibold ml-3 tracking-wide text-white">Therapist</span>
             )}
           </div>
-          {/* Navigation */}
+          
           <nav className="px-3 py-6 flex flex-col space-y-2">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                onMouseEnter={() => setIsHovered(item.path)}
-                onMouseLeave={() => setIsHovered("")}
                 className={`flex items-center rounded-lg p-3 transition-all duration-200 ${
                   location.pathname === item.path
                     ? "bg-white shadow-inner"
@@ -121,11 +112,7 @@ const TherapistSidebar = ({
                 <span
                   className={`text-xl ${
                     !isSidebarExpanded && "mx-auto"
-                  } ${
-                    isHovered === item.path || location.pathname === item.path
-                      ? "text-black transform scale-110 transition-transform duration-200"
-                      : "text-white"
-                  }`}
+                  } ${location.pathname === item.path ? "text-black" : "text-white"}`}
                 >
                   {item.icon}
                 </span>
@@ -141,7 +128,7 @@ const TherapistSidebar = ({
               </Link>
             ))}
           </nav>
-          {/* User section & Logout */}
+          
           <div className="p-4 border-t border-blue-300/50">
             {isSidebarExpanded ? (
               <>
@@ -175,7 +162,7 @@ const TherapistSidebar = ({
                   icon={<LogoutOutlined />}
                   className="w-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 >
-                  {isSidebarExpanded && "Log out"}
+                  Log out
                 </Button>
               </>
             ) : (
@@ -203,14 +190,14 @@ const TherapistSidebar = ({
         </div>
       </aside>
 
-      {/* Mobile Sidebar - Full width or hidden */}
+      
       <aside
         className={`fixed top-0 left-0 w-64 h-full z-20 bg-gradient-to-br from-blue-700 via-blue-500 to-cyan-400 text-white shadow-xl transition-transform duration-300 ease-in-out ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:hidden`}
       >
         <div className="flex flex-col h-full justify-between">
-          {/* Header */}
+          
           <div className="p-5 border-b border-blue-300/50 flex items-center justify-between">
             <h1 className="text-xl font-semibold flex items-center tracking-wide text-white">
               <SettingOutlined className="mr-2 text-2xl" />
@@ -223,9 +210,9 @@ const TherapistSidebar = ({
               ✕
             </button>
           </div>
-          {/* Navigation */}
+          
           <nav className="p-4 flex flex-col space-y-2">
-            {navItems.map((item: typeof navItems[number]) => (
+            {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -237,11 +224,7 @@ const TherapistSidebar = ({
                 onClick={() => setIsMobileSidebarOpen(false)}
               >
                 <span
-                  className={`mr-3 text-xl ${
-                    isHovered === item.path || location.pathname === item.path
-                      ? "text-black transform scale-110 transition-transform duration-200"
-                      : "text-white"
-                  }`}
+                  className={`mr-3 text-xl ${location.pathname === item.path ? "text-black" : "text-white"}`}
                 >
                   {item.icon}
                 </span>
@@ -255,7 +238,7 @@ const TherapistSidebar = ({
               </Link>
             ))}
           </nav>
-          {/* User section & Logout */}
+          
           <div className="p-4 border-t border-blue-300/50">
             <div className="mb-4 p-3 bg-blue-600/30 rounded-lg shadow-inner flex items-center">
               <Avatar

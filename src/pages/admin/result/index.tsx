@@ -4,12 +4,13 @@ import { Table, Modal, Input, Button, Form, message, Popconfirm, InputNumber, Se
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 
 interface QuizResult {
-    quizResultId?: string; // Optional for create, required for update/delete
-    quizId: string; // Used internally, not displayed
-    score?: number; // Restricted to 25, 50, 75, 100
+    quizResultId?: string;
+    quizId: string;
+    score?: number;
     level: number;
-    title: string; // Selected from category names
+    title: string;
     description: string;
+    status: number; // 0 = Active, 1 = Inactive
 }
 
 interface Quiz {
@@ -27,7 +28,7 @@ interface Category {
     status: number;
 }
 
-const QuizResult: React.FC = () => {
+const QuizResultComponent: React.FC = () => {
     const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -41,27 +42,36 @@ const QuizResult: React.FC = () => {
     const CATEGORY_API_URL = 'https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Category';
 
     const getHeaders = () => {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) {
-            message.error('Unauthorized: Please log in again.');
-            throw new Error('No access token found');
+        try {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                throw new Error('No access token found');
+            }
+            return {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+            };
+        } catch (error) {
+            message.error('Authentication error: Please log in again');
+            throw error;
         }
-        return {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-            'Accept': '*/*',
-        };
     };
 
     const fetchQuizResults = async () => {
         try {
             setLoading(true);
-            const response = await axios.get<QuizResult[]>(`${API_BASE_URL}/Get_All_Quiz_Result`, { headers: getHeaders() });
+            const response = await axios.get<QuizResult[]>(`${API_BASE_URL}/Get_All_Quiz_Result`, {
+                headers: getHeaders(),
+                timeout: 10000
+            });
             const validQuizResults = response.data.filter((result) => result.quizResultId && typeof result.quizResultId === 'string');
             setQuizResults(validQuizResults);
+            return validQuizResults;
         } catch (error) {
             console.error('Error fetching quiz results:', error);
             message.error('Failed to load quiz results!');
+            return [];
         } finally {
             setLoading(false);
         }
@@ -69,7 +79,10 @@ const QuizResult: React.FC = () => {
 
     const fetchQuizzes = async () => {
         try {
-            const response = await axios.get<Quiz[]>(`${QUIZ_API_URL}/Get_All_Quiz`, { headers: getHeaders() });
+            const response = await axios.get<Quiz[]>(`${QUIZ_API_URL}/Get_All_Quiz`, {
+                headers: getHeaders(),
+                timeout: 10000
+            });
             const validQuizzes = response.data.filter((quiz) => quiz.quizId && typeof quiz.quizId === 'string');
             setQuizzes(validQuizzes);
         } catch (error) {
@@ -80,12 +93,33 @@ const QuizResult: React.FC = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await axios.get<Category[]>(`${CATEGORY_API_URL}/Get_All_Categories`, { headers: getHeaders() });
+            const response = await axios.get<Category[]>(`${CATEGORY_API_URL}/Get_All_Categories`, {
+                headers: getHeaders(),
+                timeout: 10000
+            });
             const validCategories = response.data.filter((cat) => cat.categoryId && typeof cat.categoryId === 'string');
             setCategories(validCategories);
         } catch (error) {
             console.error('Error fetching categories:', error);
             message.error('Failed to load categories!');
+        }
+    };
+
+    const validatePayload = (data: QuizResult) => {
+        if (!data.quizId || typeof data.quizId !== 'string') {
+            throw new Error('Invalid quiz ID');
+        }
+        if (data.score && ![25, 50, 75, 100].includes(data.score)) {
+            throw new Error('Invalid score value');
+        }
+        if (!data.title) {
+            throw new Error('Title is required');
+        }
+        if (typeof data.level !== 'number') {
+            throw new Error('Invalid level value');
+        }
+        if (typeof data.status !== 'number' || ![0, 1].includes(data.status)) {
+            throw new Error('Invalid status value');
         }
     };
 
@@ -105,11 +139,12 @@ const QuizResult: React.FC = () => {
         setSelectedQuizResult(quizResult);
         setIsModalOpen(true);
         form.setFieldsValue({
-            quizId: quizResult.quizId, // Will match a quiz ID, displays name in Select
+            quizId: quizResult.quizId,
             score: quizResult.score,
             level: quizResult.level,
-            title: quizResult.title, // Matches a category name
+            title: quizResult.title,
             description: quizResult.description,
+            status: quizResult.status
         });
     };
 
@@ -120,36 +155,76 @@ const QuizResult: React.FC = () => {
             const headers = getHeaders();
 
             const payload: QuizResult = {
-                quizId: values.quizId, // Selected quiz ID from dropdown
+                quizId: selectedQuizResult ? selectedQuizResult.quizId : values.quizId, // Keep original quizId when editing
                 score: values.score,
                 level: values.level,
-                title: values.title, // Selected category name
+                title: values.title,
                 description: values.description || '',
+                status: values.status || 0 // 0 = Active by default
             };
 
+            validatePayload(payload);
+
             if (selectedQuizResult) {
+                // Update case
                 const updatePayload = {
                     quizResultId: selectedQuizResult.quizResultId,
-                    ...payload,
+                    ...payload
                 };
-                const response = await axios.post(`${API_BASE_URL}/Update_Quiz_Result`, updatePayload, { headers });
-                if (response.status === 200) {
+                const response = await axios.post(
+                    `${API_BASE_URL}/Update_Quiz_Result`,
+                    updatePayload,
+                    { headers, timeout: 10000 }
+                );
+
+                if (response.status >= 200 && response.status < 300) {
                     message.success('Quiz result updated successfully!');
+                    const updatedResults = [
+                        updatePayload,
+                        ...quizResults.filter(result => result.quizResultId !== selectedQuizResult.quizResultId)
+                    ];
+                    setQuizResults(updatedResults);
+                    await fetchQuizResults();
+                } else {
+                    throw new Error(`Unexpected status code: ${response.status}`);
                 }
             } else {
-                const response = await axios.post(`${API_BASE_URL}/Create_Quiz_Result`, [payload], { headers }); // API expects an array
-                if (response.status === 200 || response.status === 201) {
+                // Create case
+                const response = await axios.post(
+                    `${API_BASE_URL}/Create_Quiz_Result`,
+                    [payload],
+                    { headers, timeout: 10000 }
+                );
+
+                if (response.status >= 200 && response.status < 300) {
                     message.success('New quiz result added successfully!');
+                    const newResult = {
+                        ...payload,
+                        quizResultId: response.data[0]?.quizResultId || Date.now().toString()
+                    };
+                    const updatedResults = [newResult, ...quizResults];
+                    setQuizResults(updatedResults);
+                    await fetchQuizResults();
                 }
             }
 
             setIsModalOpen(false);
             form.resetFields();
-            await fetchQuizResults();
         } catch (error) {
-            const err = error as AxiosError<{ message?: string }>;
+            const err = error as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;
+            if (err.response) {
+                const errorData = err.response.data;
+                const errorMessage = errorData?.message ||
+                    (errorData?.errors ? Object.values(errorData.errors)[0][0] :
+                        'Failed to process quiz result');
+                message.error(errorMessage);
+            } else if (err.request) {
+                message.error('Network error: Unable to reach the server');
+            } else {
+                message.error(error instanceof Error ? error.message : 'An unexpected error occurred');
+            }
             console.error('Error details:', err.response?.data || err.message);
-            message.error(err.response?.data?.message || 'Please check your input!');
+            await fetchQuizResults();
         } finally {
             setLoading(false);
         }
@@ -162,9 +237,9 @@ const QuizResult: React.FC = () => {
             const response = await axios.post(
                 `${API_BASE_URL}/Delete_Quiz_Result?id=${quizResultId}`,
                 null,
-                { headers }
+                { headers, timeout: 10000 }
             );
-            if (response.status === 200) {
+            if (response.status >= 200 && response.status < 300) {
                 message.success('Quiz result deleted successfully!');
                 setQuizResults(quizResults.filter((result) => result.quizResultId !== quizResultId));
             }
@@ -172,7 +247,7 @@ const QuizResult: React.FC = () => {
             const err = error as AxiosError<{ message?: string }>;
             console.error('Error deleting quiz result:', err.response?.data || err.message);
             message.error(err.response?.data?.message || 'Failed to delete quiz result!');
-            await fetchQuizResults(); // Refresh in case of failure
+            await fetchQuizResults();
         } finally {
             setLoading(false);
         }
@@ -180,16 +255,26 @@ const QuizResult: React.FC = () => {
 
     useEffect(() => {
         fetchQuizResults();
-        fetchQuizzes(); // Fetch quizzes on mount
-        fetchCategories(); // Fetch categories on mount
+        fetchQuizzes();
+        fetchCategories();
     }, []);
 
     const columns = [
-        { title: 'Quiz Name', key: 'quizName', render: (_: unknown, record: QuizResult) => quizzes.find(q => q.quizId === record.quizId)?.name || 'Unknown' },
+        {
+            title: 'Quiz Name',
+            key: 'quizName',
+            render: (_: unknown, record: QuizResult) => quizzes.find(q => q.quizId === record.quizId)?.name || 'Unknown'
+        },
         { title: 'Title', dataIndex: 'title', key: 'title' },
         { title: 'Score', dataIndex: 'score', key: 'score' },
         { title: 'Level', dataIndex: 'level', key: 'level' },
         { title: 'Description', dataIndex: 'description', key: 'description' },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status: number) => status === 0 ? 'Active' : 'Inactive' // 0 = Active, 1 = Inactive
+        },
         {
             title: 'Actions',
             key: 'actions',
@@ -247,7 +332,10 @@ const QuizResult: React.FC = () => {
                         label="Quiz Name"
                         rules={[{ required: true, message: 'Please select a quiz' }]}
                     >
-                        <Select placeholder="Select a quiz">
+                        <Select
+                            placeholder="Select a quiz"
+                            disabled={!!selectedQuizResult} // Disable when editing
+                        >
                             {quizzes.map((quiz) => (
                                 <Select.Option key={quiz.quizId} value={quiz.quizId}>
                                     {quiz.name}
@@ -291,10 +379,20 @@ const QuizResult: React.FC = () => {
                     <Form.Item name="description" label="Description">
                         <Input placeholder="Enter description..." />
                     </Form.Item>
+                    <Form.Item
+                        name="status"
+                        label="Status"
+                        rules={[{ required: true, message: 'Please select a status' }]}
+                    >
+                        <Select placeholder="Select status">
+                            <Select.Option value={0}>Active</Select.Option>    {/* 0 = Active */}
+                            <Select.Option value={1}>Inactive</Select.Option>  {/* 1 = Inactive */}
+                        </Select>
+                    </Form.Item>
                 </Form>
             </Modal>
         </div>
     );
 };
 
-export default QuizResult;
+export default QuizResultComponent;

@@ -3,9 +3,9 @@ import {
     LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
 } from "recharts";
-import { Users, ShoppingCart, BookOpen } from "lucide-react"; // Removed Eye
+import { Users, ShoppingCart, BookOpen } from "lucide-react";
 import axios, { AxiosError } from "axios";
-import { Spin, Modal, Pagination } from "antd";
+import { Spin, Modal, Pagination, Select } from "antd";
 
 const API_BASE_URL = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api";
 
@@ -14,6 +14,7 @@ interface User {
     fullName: string;
     isActive: boolean;
     email: string;
+    role: number; // 1 = Admin, 2 = Member, 3 = Therapist
     bookings: string[];
 }
 
@@ -58,36 +59,35 @@ const COLORS = ["#8b5cf6", "#3b82f6", "#06b6d4", "#10b981"];
 
 const Dashboard = () => {
     const [users, setUsers] = useState<User[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [allWithdrawals, setAllWithdrawals] = useState<Withdrawal[]>([]);
     const [blogs, setBlogs] = useState<Blog[]>([]);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    // const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
-    // const [blogModalVisible, setBlogModalVisible] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [withdrawalsPage, setWithdrawalsPage] = useState<number>(1);
-    // const [blogsPage, setBlogsPage] = useState<number>(1);
     const [updatingWithdrawal, setUpdatingWithdrawal] = useState<string | null>(null);
     const [lineChartData, setLineChartData] = useState<LineChartDataItem[]>([]);
     const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
+    const [selectedRole, setSelectedRole] = useState<number | null>(null); // Bộ lọc role
     const pageSize = 10;
     const withdrawalsPageSize = 10;
-    // const blogsPageSize = 5;
 
     const getHeaders = () => ({
         Authorization: `Bearer ${localStorage.getItem("accessToken") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOiJiMmZiNjNkNS0xMTdhLTQxY2ItOTA3ZS1iYjAyYWRhYWQyZWUiLCJOYW1lIjoiYWRtaW4iLCJFbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIlBob25lIjoiMTIzNDU2NzgiLCJSb2xlIjoiQURNSU4iLCJBdmF0YXIiOiJodHRwczovL2ZpcmViYXNlc3RvcmFnZS5nb29nbGVhcGlzLmNvbS92MC9iL3N0dWRlbnQtNTFlNmEuYXBwc3BvdC5jb20vby9pbWFnZXMlMkY2Mzg3NjU5OTQzNjE1MTU1NDVfYXZhdGFyLmpwZz9hbHQ9bWVkaWEmdG9rZW49OWIzYjlhZGQtNzZkYy00NzI5LTg0ZmEtZTQ5YjI2NWRlZjEyIiwiZXhwIjoxNzQxODc5MjY0LCJpc3MiOiJQcmUtbWFyaXRhbCBDb3Vuc2VsaW5nIFBsYXRmb3JtIiwiYXVkIjoiUHJlLW1hcml0YWwgQ291bnNlbGluZyBQbGF0Zm9ybSJ9.D_zEEAqe9b3RFVemCidtMAEkK6Jztop9Dj-okpmu4IA"}`,
-        Accept: "*/*"
+        Accept: "*/*",
     });
 
     const fetchUsers = async () => {
         setLoading(true);
         try {
             const response = await axios.get<User[]>(`${API_BASE_URL}/Account/Get_All_Users`, {
-                headers: getHeaders()
+                headers: getHeaders(),
             });
             setUsers(response.data);
+            setFilteredUsers(response.data); // Ban đầu hiển thị tất cả
             generatePieChartData(response.data);
         } catch (error) {
             const err = error as AxiosError;
@@ -101,7 +101,7 @@ const Dashboard = () => {
         setLoading(true);
         try {
             const response = await axios.get<Withdrawal[]>(`${API_BASE_URL}/Withdraw/Get_All_Withdraws`, {
-                headers: getHeaders()
+                headers: getHeaders(),
             });
             setAllWithdrawals(response.data);
             generateLineChartData(response.data);
@@ -117,7 +117,7 @@ const Dashboard = () => {
         setLoading(true);
         try {
             const response = await axios.get<Blog[]>(`${API_BASE_URL}/Blog/Get_All_Blog`, {
-                headers: getHeaders()
+                headers: getHeaders(),
             });
             setBlogs(response.data);
         } catch (error) {
@@ -131,7 +131,7 @@ const Dashboard = () => {
     const generateLineChartData = (withdrawalData: Withdrawal[]) => {
         const withdrawalsByMonth = withdrawalData.reduce((acc: Record<string, number>, withdrawal) => {
             const date = new Date(withdrawal.createdAt);
-            const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+            const monthYear = `${date.toLocaleString("default", { month: "short" })} ${date.getFullYear()}`;
             if (!acc[monthYear]) {
                 acc[monthYear] = 0;
             }
@@ -141,13 +141,13 @@ const Dashboard = () => {
 
         const chartData = Object.entries(withdrawalsByMonth).map(([name, value]) => ({
             name,
-            value
+            value,
         }));
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         chartData.sort((a, b) => {
-            const monthA = a.name.split(' ')[0];
-            const monthB = b.name.split(' ')[0];
+            const monthA = a.name.split(" ")[0];
+            const monthB = b.name.split(" ")[0];
             return months.indexOf(monthA) - months.indexOf(monthB);
         });
 
@@ -167,15 +167,15 @@ const Dashboard = () => {
     };
 
     const generatePieChartData = (userData: User[]) => {
-        const activeUsers = userData.filter(user => user.isActive).length;
+        const activeUsers = userData.filter((user) => user.isActive).length;
         const inactiveUsers = userData.length - activeUsers;
-        const usersWithWithdrawals = new Set(allWithdrawals.map(withdrawal => withdrawal.customerId)).size;
+        const usersWithWithdrawals = new Set(allWithdrawals.map((withdrawal) => withdrawal.customerId)).size;
 
         const chartData = [
             { name: "Active Users", value: activeUsers },
             { name: "Inactive Users", value: inactiveUsers },
             { name: "Users with Withdrawals", value: usersWithWithdrawals },
-            { name: "Blog Articles", value: blogs.length }
+            { name: "Blog Articles", value: blogs.length },
         ];
         setPieChartData(chartData);
     };
@@ -184,7 +184,7 @@ const Dashboard = () => {
         setLoading(true);
         try {
             const response = await axios.get<Withdrawal[]>(`${API_BASE_URL}/Withdraw/Get_Withdraw_By_UserId?id=${user.userId}`, {
-                headers: getHeaders()
+                headers: getHeaders(),
             });
             setWithdrawals(response.data);
             setSelectedUser(user);
@@ -201,12 +201,16 @@ const Dashboard = () => {
     const updateWithdrawalStatus = async (withdrawalId: string, newStatus: number) => {
         setUpdatingWithdrawal(withdrawalId);
         try {
-            await axios.post(`${API_BASE_URL}/Withdraw/Update_Withdraw`, {
-                id: withdrawalId,
-                status: newStatus
-            }, {
-                headers: getHeaders()
-            });
+            await axios.post(
+                `${API_BASE_URL}/Withdraw/Update_Withdraw`,
+                {
+                    id: withdrawalId,
+                    status: newStatus,
+                },
+                {
+                    headers: getHeaders(),
+                }
+            );
             if (selectedUser) {
                 await fetchWithdrawals(selectedUser);
             }
@@ -220,25 +224,40 @@ const Dashboard = () => {
     };
 
     const formatDate = (dateString?: string) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return "N/A";
         const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
+        return date.toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
         });
     };
 
     const getStatusDisplay = (status: number) => {
         switch (status) {
-            case 0: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
-            case 1: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Accepted</span>;
-            case 2: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>;
-            default: return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Unknown</span>;
+            case 0:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
+            case 1:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Accepted</span>;
+            case 2:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>;
+            default:
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Unknown</span>;
         }
+    };
+
+    // Hàm lọc người dùng theo role
+    const filterUsersByRole = (role: number | null) => {
+        setSelectedRole(role);
+        if (role === null) {
+            setFilteredUsers(users); // Hiển thị tất cả
+        } else {
+            setFilteredUsers(users.filter((user) => user.role === role));
+        }
+        setCurrentPage(1); // Reset về trang đầu khi lọc
     };
 
     useEffect(() => {
@@ -257,27 +276,15 @@ const Dashboard = () => {
         fetchWithdrawals(user);
     };
 
-    // const handleBlogClick = (blog: Blog) => {
-    //     setSelectedBlog(blog);
-    //     setBlogModalVisible(true);
-    // };
-
     const cardsData = [
         { title: "Total Users", value: users.length.toString(), icon: Users, color: "from-violet-500 to-purple-600", percentage: "+0%" },
-        { title: "Active Users", value: users.filter(u => u.isActive).length.toString(), icon: Users, color: "from-cyan-500 to-teal-600", percentage: "+4.3%" },
+        { title: "Active Users", value: users.filter((u) => u.isActive).length.toString(), icon: Users, color: "from-cyan-500 to-teal-600", percentage: "+4.3%" },
         { title: "Blogs", value: blogs.length.toString(), icon: BookOpen, color: "from-emerald-500 to-green-600", percentage: "+12.5%" },
         { title: "Withdrawals", value: allWithdrawals.length.toString(), icon: ShoppingCart, color: "from-amber-500 to-orange-600", percentage: "+0%" },
     ];
 
-    const paginatedUsers = users.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
     const paginatedWithdrawals = withdrawals.slice((withdrawalsPage - 1) * withdrawalsPageSize, withdrawalsPage * withdrawalsPageSize);
-    // const paginatedBlogs = blogs.slice((blogsPage - 1) * blogsPageSize, blogsPage * blogsPageSize);
-
-    // const truncateText = (text: string, maxLength: number) => {
-    //     if (!text) return '';
-    //     if (text.length <= maxLength) return text;
-    //     return text.substr(0, maxLength) + '...';
-    // };
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
@@ -289,7 +296,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"> {/* Changed from lg:grid-cols-5 to lg:grid-cols-4 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {cardsData.map((card, index) => (
                         <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden">
                             <div className="p-5">
@@ -297,9 +304,11 @@ const Dashboard = () => {
                                     <div>
                                         <p className="text-sm font-medium text-gray-500">{card.title}</p>
                                         <p className="text-2xl font-bold text-gray-800 mt-1">
-                                            {loading && (card.title === "Total Users" || card.title === "Active Users" || card.title === "Withdrawals" || card.title === "Blogs")
-                                                ? <Spin size="small" />
-                                                : card.value}
+                                            {loading && (card.title === "Total Users" || card.title === "Active Users" || card.title === "Withdrawals" || card.title === "Blogs") ? (
+                                                <Spin size="small" />
+                                            ) : (
+                                                card.value
+                                            )}
                                         </p>
                                     </div>
                                     <div className={`bg-gradient-to-r ${card.color} p-3 rounded-lg`}>
@@ -337,15 +346,15 @@ const Dashboard = () => {
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" tick={{ fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} />
-                                    <YAxis tick={{ fill: '#6b7280' }} axisLine={{ stroke: '#e5e7eb' }} />
+                                    <XAxis dataKey="name" tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
+                                    <YAxis tick={{ fill: "#6b7280" }} axisLine={{ stroke: "#e5e7eb" }} />
                                     <Tooltip
                                         formatter={(value) => [`$${value}`, "Amount"]}
                                         contentStyle={{
-                                            backgroundColor: '#fff',
-                                            border: 'none',
-                                            borderRadius: '0.5rem',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                            backgroundColor: "#fff",
+                                            border: "none",
+                                            borderRadius: "0.5rem",
+                                            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                                         }}
                                     />
                                     <Line
@@ -353,8 +362,8 @@ const Dashboard = () => {
                                         dataKey="value"
                                         stroke="#8b5cf6"
                                         strokeWidth={3}
-                                        dot={{ stroke: '#8b5cf6', strokeWidth: 2, r: 4, fill: '#fff' }}
-                                        activeDot={{ stroke: '#8b5cf6', strokeWidth: 2, r: 6, fill: '#8b5cf6' }}
+                                        dot={{ stroke: "#8b5cf6", strokeWidth: 2, r: 4, fill: "#fff" }}
+                                        activeDot={{ stroke: "#8b5cf6", strokeWidth: 2, r: 6, fill: "#8b5cf6" }}
                                         fill="url(#colorSales)"
                                     />
                                 </LineChart>
@@ -394,10 +403,10 @@ const Dashboard = () => {
                                     <Tooltip
                                         formatter={(value, name) => [name === "Blog Articles" ? `${value} articles` : `${value} users`, name]}
                                         contentStyle={{
-                                            backgroundColor: '#fff',
-                                            border: 'none',
-                                            borderRadius: '0.5rem',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                            backgroundColor: "#fff",
+                                            border: "none",
+                                            borderRadius: "0.5rem",
+                                            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                                         }}
                                     />
                                     <Legend
@@ -411,9 +420,21 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-
                 <div className="bg-white p-6 rounded-xl shadow-md">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">User Management</h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-800">User Management</h3>
+                        <Select
+                            style={{ width: 200 }}
+                            placeholder="Filter by Role"
+                            value={selectedRole === null ? "all" : selectedRole} // Sử dụng selectedRole làm giá trị hiện tại
+                            onChange={(value) => filterUsersByRole(value === "all" ? null : Number(value))}
+                        >
+                            <Select.Option value="all">All Roles</Select.Option>
+                            <Select.Option value={1}>Admin</Select.Option>
+                            <Select.Option value={2}>Member</Select.Option>
+                            <Select.Option value={3}>Therapist</Select.Option>
+                        </Select>
+                    </div>
                     {loading && !selectedUser ? (
                         <div className="flex justify-center py-4">
                             <Spin size="large" />
@@ -426,6 +447,7 @@ const Dashboard = () => {
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                         </tr>
@@ -435,9 +457,15 @@ const Dashboard = () => {
                                             <tr key={user.userId}>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.fullName}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.email}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {user.role === 1 ? "Admin" : user.role === 2 ? "Member" : "Therapist"}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                        {user.isActive ? 'Active' : 'Inactive'}
+                                                    <span
+                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                                            }`}
+                                                    >
+                                                        {user.isActive ? "Active" : "Inactive"}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -456,7 +484,7 @@ const Dashboard = () => {
                             <div className="mt-4 flex justify-end">
                                 <Pagination
                                     current={currentPage}
-                                    total={users.length}
+                                    total={filteredUsers.length}
                                     pageSize={pageSize}
                                     onChange={(page) => setCurrentPage(page)}
                                     showSizeChanger={false}
@@ -503,16 +531,18 @@ const Dashboard = () => {
                                                             <button
                                                                 onClick={() => updateWithdrawalStatus(withdrawal.id, 1)}
                                                                 disabled={updatingWithdrawal === withdrawal.id}
-                                                                className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                className={`text-green-600 hover:text-green-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""
+                                                                    }`}
                                                             >
-                                                                {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : 'Accept'}
+                                                                {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : "Accept"}
                                                             </button>
                                                             <button
                                                                 onClick={() => updateWithdrawalStatus(withdrawal.id, 2)}
                                                                 disabled={updatingWithdrawal === withdrawal.id}
-                                                                className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                className={`text-red-600 hover:text-red-900 text-sm font-medium ${updatingWithdrawal === withdrawal.id ? "opacity-50 cursor-not-allowed" : ""
+                                                                    }`}
                                                             >
-                                                                {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : 'Reject'}
+                                                                {updatingWithdrawal === withdrawal.id ? <Spin size="small" /> : "Reject"}
                                                             </button>
                                                         </div>
                                                     )}
@@ -543,46 +573,6 @@ const Dashboard = () => {
                         </>
                     )}
                 </Modal>
-
-                {/* <Modal
-                    title={selectedBlog?.title}
-                    open={blogModalVisible}
-                    onCancel={() => setBlogModalVisible(false)}
-                    footer={null}
-                    width={800}
-                >
-                    {loading && selectedBlog ? (
-                        <div className="flex justify-center py-4">
-                            <Spin size="large" />
-                        </div>
-                    ) : (
-                        selectedBlog && (
-                            <div className="p-4">
-                                <div className="mb-6">
-                                    <img
-                                        src={selectedBlog.thumbnail || '/api/placeholder/800/400'}
-                                        alt={selectedBlog.title}
-                                        className="w-full h-64 object-cover rounded-lg"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.src = '/api/placeholder/800/400';
-                                        }}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    آذربایجان                                    <h4 className="text-xl font-semibold text-gray-800">{selectedBlog.title}</h4>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Created: {formatDate(selectedBlog.createdAt)} | Updated: {formatDate(selectedBlog.updatedAt)}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                        By: {selectedBlog.createdBy} {selectedBlog.updatedBy !== selectedBlog.createdBy ? `(Updated by: ${selectedBlog.updatedBy})` : ''}
-                                    </p>
-                                </div>
-                                <div className="prose max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: selectedBlog.content }} />
-                            </div>
-                        )
-                    )}
-                </Modal> */}
             </div>
         </div>
     );

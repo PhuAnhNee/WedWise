@@ -10,7 +10,7 @@ interface Specification {
   name: string;
   description: string;
   level: number;
-  therapists?: { therapistId: string }[]; // Thêm để kiểm tra therapist đã có specification chưa
+  therapists?: { therapistId: string }[];
 }
 
 interface SpecificationListProps {
@@ -20,13 +20,14 @@ interface SpecificationListProps {
 
 const SpecificationList = ({ therapistId, showNotification }: SpecificationListProps) => {
   const [specifications, setSpecifications] = useState<Specification[]>([]);
-  const [allSpecifications, setAllSpecifications] = useState<Specification[]>([]); // Danh sách tất cả specification từ API Get_All
+  const [allSpecifications, setAllSpecifications] = useState<Specification[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestLoading, setRequestLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1); 
+  const itemsPerPage = 4; 
 
-  // Lấy danh sách specification của therapist
   const fetchSpecifications = async () => {
     if (!therapistId) {
       showNotification("error", "Error", "Therapist ID not found");
@@ -54,7 +55,6 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
     }
   };
 
-  // Lấy tất cả specification với level
   const fetchAllSpecifications = async () => {
     try {
       const { data } = await axios.get<Specification[]>(
@@ -67,13 +67,11 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
     }
   };
 
-  // Lọc các specification chưa có trong danh sách của therapist
   const availableSpecifications = allSpecifications.filter((spec) => {
-    if (!spec.therapists) return true; // Nếu không có therapists, hiển thị specification
+    if (!spec.therapists) return true;
     return !spec.therapists.some((therapist) => therapist.therapistId === therapistId);
   });
 
-  // Gửi yêu cầu thêm specification
   const handleRequestNewSpecification = async () => {
     if (!therapistId) {
       showNotification("error", "Error", "Therapist ID not found");
@@ -110,9 +108,9 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
       );
 
       showNotification("success", "Success", "New specification requested successfully!");
-      await fetchSpecifications(); // Làm mới danh sách specification của therapist
-      setIsModalVisible(false); // Đóng modal
-      setSelectedSpecId(null); // Reset lựa chọn
+      await fetchSpecifications();
+      setIsModalVisible(false);
+      setSelectedSpecId(null);
     } catch (error) {
       console.error("Error requesting new specification:", error);
       showNotification("error", "Error", "Unable to request new specification");
@@ -130,6 +128,24 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
     fetchData();
   }, [therapistId]);
 
+ 
+  const totalPages = Math.ceil(specifications.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSpecifications = specifications.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-6">
@@ -144,15 +160,67 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
       {specifications.length === 0 ? (
         <p className="text-gray-500">No specializations found.</p>
       ) : (
-        <ul className="space-y-4">
-          {specifications.map((spec) => (
-            <li key={spec.specificationId} className="border-b pb-2">
-              <h3 className="text-md font-medium text-gray-700">{spec.name}</h3>
-              <p className="text-sm text-gray-500">{spec.description}</p>
-              <p className="text-sm text-gray-600">Level: {spec.level}</p>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <ul className="space-y-4">
+            {currentSpecifications.map((spec) => (
+              <li key={spec.specificationId} className="border-b pb-2">
+                <h3 className="text-md font-medium text-gray-700">{spec.name}</h3>
+                <p className="text-sm text-gray-500">{spec.description}</p>
+                <p className="text-sm text-gray-600">Level: {spec.level}</p>
+              </li>
+            ))}
+          </ul>
+
+          {/* Pagination Controls */}
+          {specifications.length > itemsPerPage && (
+            <div className="flex justify-between items-center mt-4">
+              <Button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                style={{
+                  backgroundColor: currentPage === 1 ? "#d3d3d3" : "#595959",
+                  borderColor: currentPage === 1 ? "#d3d3d3" : "#595959",
+                  color: "white",
+                  fontWeight: "bold",
+                }}
+              >
+                Previous
+              </Button>
+              <div className="flex space-x-2">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <Button
+                    key={page}
+                    onClick={() => handlePageClick(page)}
+                    style={{
+                      backgroundColor: currentPage === page ? "#595959" : "#e5e5e5",
+                      color: currentPage === page ? "white" : "black",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                style={{
+                  backgroundColor: currentPage === totalPages ? "#d3d3d3" : "#595959",
+                  borderColor: currentPage === totalPages ? "#d3d3d3" : "#595959",
+                  color: "white",
+                  fontWeight: "bold",
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+          {specifications.length > itemsPerPage && (
+            <p className="text-center mt-2 text-gray-600">
+              Page {currentPage} of {totalPages}
+            </p>
+          )}
+        </div>
       )}
       <div className="mt-4 text-center">
         <Button
@@ -169,8 +237,6 @@ const SpecificationList = ({ therapistId, showNotification }: SpecificationListP
           Request New Specification
         </Button>
       </div>
-
-      {/* Modal để hiển thị dropdown chọn specification */}
       <Modal
         title="Request New Specification"
         visible={isModalVisible}

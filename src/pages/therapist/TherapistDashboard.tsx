@@ -60,6 +60,8 @@ interface Booking {
 }
 
 interface Feedback {
+  userName: string;
+  avatarUrl: string;
   feedbackId: string;
   bookingId: string;
   rating: number;
@@ -82,8 +84,7 @@ const TherapistDashboard = () => {
 
   const walletApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Auth/GetWallet";
   const bookingApi = `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Booking/Get_Booking_By_Therapist_Id?id=${therapistId}`;
-  const feedbackApi = "https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Feedback/Get_All_Feedbacks";
-
+  const feedbackApi = `https://premaritalcounselingplatform-dhetaherhybqe8bg.southeastasia-01.azurewebsites.net/api/Feedback/Get_Feedback_By_TherapistId?id=${therapistId}`;
   const authService = AuthService;
 
   useEffect(() => {
@@ -134,9 +135,20 @@ const TherapistDashboard = () => {
 
     fetchData();
   }, [therapistId]);
-
   const totalRevenue = walletData?.transactions
-    ? walletData.transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
+    ? walletData.transactions
+        .filter((transaction) => transaction.amount > 0)
+        .reduce((sum, transaction) => sum + transaction.amount, 0)
+    : 0;
+  const totalWithdrawals = walletData?.transactions
+    ? Math.abs(
+        walletData.transactions
+          .filter((transaction) => transaction.amount < 0)
+          .reduce((sum, transaction) => sum + transaction.amount, 0)
+      )
+    : 0;
+  const withdrawalCount = walletData?.transactions
+    ? walletData.transactions.filter((transaction) => transaction.amount < 0).length
     : 0;
 
   const totalBookings = bookingDataApi.length;
@@ -144,9 +156,11 @@ const TherapistDashboard = () => {
     feedbackData.length > 0
       ? feedbackData.reduce((sum, feedback) => sum + feedback.rating, 0) / feedbackData.length
       : 0;
+      
   const pendingBookings = bookingDataApi.filter((booking) => booking.status !== 4).length;
 
   const revenueChange = "+5%";
+  const withdrawalChange = "-2%"; 
   const bookingsChange = "+3%";
   const ratingChange = "+1%";
   const pendingChange = "+0%";
@@ -173,7 +187,7 @@ const TherapistDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Revenue</p>
-              <p className="text-xl font-semibold">${totalRevenue.toFixed(2)}</p>
+              <p className="text-xl font-semibold">{totalRevenue.toFixed(2)} VND</p>
             </div>
             <div className="bg-purple-100 p-2 rounded-full">
               <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +196,36 @@ const TherapistDashboard = () => {
             </div>
           </div>
           <p className="text-green-500 text-sm mt-2">{revenueChange} from last month</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Total Withdrawals</p>
+              <p className="text-xl font-semibold">{totalWithdrawals.toFixed(2)} VND</p>
+            </div>
+            <div className="bg-red-100 p-2 rounded-full">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-red-500 text-sm mt-2">{withdrawalChange} from last month</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Number of Withdrawals</p>
+              <p className="text-xl font-semibold">{withdrawalCount}</p>
+            </div>
+            <div className="bg-orange-100 p-2 rounded-full">
+              <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-orange-500 text-sm mt-2">{pendingChange} from last month</p>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
@@ -303,89 +347,99 @@ const TherapistDashboard = () => {
   );
 
   function calculateRevenueByDay() {
-    return walletData?.transactions
-      ?.reduce((acc: { day: string; revenue: number }[], transaction: Transaction) => {
-        const date = new Date(transaction.createdAt);
-        const day = date.toLocaleString("en-US", { weekday: "short" });
-        const existing = acc.find((item) => item.day === day);
-        if (existing) {
-          existing.revenue += transaction.amount;
-        } else {
-          acc.push({ day, revenue: transaction.amount });
-        }
-        return acc;
-      }, [])
-      .sort((a: { day: string }, b: { day: string }) => {
-        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        return days.indexOf(a.day) - days.indexOf(b.day);
-      }) || [];
+    return (
+      walletData?.transactions
+        ?.filter((transaction) => transaction.amount > 0)
+        .reduce((acc: { day: string; revenue: number }[], transaction: Transaction) => {
+          const date = new Date(transaction.createdAt);
+          const day = date.toLocaleString("en-US", { weekday: "short" });
+          const existing = acc.find((item) => item.day === day);
+          if (existing) {
+            existing.revenue += transaction.amount;
+          } else {
+            acc.push({ day, revenue: transaction.amount });
+          }
+          return acc;
+        }, [])
+        .sort((a: { day: string }, b: { day: string }) => {
+          const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          return days.indexOf(a.day) - days.indexOf(b.day);
+        }) || []
+    );
   }
 
   function calculateRevenueByMonth() {
-    return walletData?.transactions
-      ?.reduce((acc: { month: string; revenue: number }[], transaction: Transaction) => {
-        const date = new Date(transaction.createdAt);
-        const month = date.toLocaleString("en-US", { month: "short" });
-        const existing = acc.find((item) => item.month === month);
-        if (existing) {
-          existing.revenue += transaction.amount;
-        } else {
-          acc.push({ month, revenue: transaction.amount });
-        }
-        return acc;
-      }, []) || [];
+    return (
+      walletData?.transactions
+        ?.filter((transaction) => transaction.amount > 0) 
+        .reduce((acc: { month: string; revenue: number }[], transaction: Transaction) => {
+          const date = new Date(transaction.createdAt);
+          const month = date.toLocaleString("en-US", { month: "short" });
+          const existing = acc.find((item) => item.month === month);
+          if (existing) {
+            existing.revenue += transaction.amount;
+          } else {
+            acc.push({ month, revenue: transaction.amount });
+          }
+          return acc;
+        }, []) || []
+    );
   }
 
   function calculateRevenueByQuarter() {
-    return walletData?.transactions
-      ?.reduce((acc: { quarter: string; revenue: number }[], transaction: Transaction) => {
-        const date = new Date(transaction.createdAt);
-        const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
-        const existing = acc.find((item) => item.quarter === quarter);
-        if (existing) {
-          existing.revenue += transaction.amount;
-        } else {
-          acc.push({ quarter, revenue: transaction.amount });
-        }
-        return acc;
-      }, []) || [];
+    return (
+      walletData?.transactions
+        ?.filter((transaction) => transaction.amount > 0) 
+        .reduce((acc: { quarter: string; revenue: number }[], transaction: Transaction) => {
+          const date = new Date(transaction.createdAt);
+          const quarter = `Q${Math.ceil((date.getMonth() + 1) / 3)}`;
+          const existing = acc.find((item) => item.quarter === quarter);
+          if (existing) {
+            existing.revenue += transaction.amount;
+          } else {
+            acc.push({ quarter, revenue: transaction.amount });
+          }
+          return acc;
+        }, []) || []
+    );
   }
 
   function calculateReviewData() {
-    return feedbackData
-      ?.filter((feedback) =>
-        bookingDataApi.some((booking) => booking.bookingId === feedback.bookingId)
-      )
-      ?.reduce((acc: { name: string; value: number }[], feedback: Feedback) => {
-        const rating = `${feedback.rating} Star${feedback.rating > 1 ? "s" : ""}`;
-        const existing = acc.find((item) => item.name === rating);
-        if (existing) {
-          existing.value += 1;
-        } else {
-          acc.push({ name: rating, value: 1 });
-        }
-        return acc;
-      }, [])
-      ?.sort((a: { name: string }, b: { name: string }) => b.name.localeCompare(a.name)) || [];
+    return (
+      feedbackData
+        ?.reduce((acc: { name: string; value: number }[], feedback: Feedback) => {
+          const rating = `${feedback.rating} Star${feedback.rating > 1 ? "s" : ""}`;
+          const existing = acc.find((item) => item.name === rating);
+          if (existing) {
+            existing.value += 1;
+          } else {
+            acc.push({ name: rating, value: 1 });
+          }
+          return acc;
+        }, [])
+        ?.sort((a: { name: string }, b: { name: string }) => b.name.localeCompare(a.name)) || []
+    );
   }
 
   function calculateBookingsByDay() {
-    return bookingDataApi
-      ?.reduce((acc: { day: string; bookings: number }[], booking: Booking) => {
-        const date = new Date(booking.schedule.date);
-        const day = date.toLocaleString("en-US", { weekday: "short" });
-        const existing = acc.find((item) => item.day === day);
-        if (existing) {
-          existing.bookings += 1;
-        } else {
-          acc.push({ day, bookings: 1 });
-        }
-        return acc;
-      }, [])
-      ?.sort((a: { day: string }, b: { day: string }) => {
-        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        return days.indexOf(a.day) - days.indexOf(b.day);
-      }) || [];
+    return (
+      bookingDataApi
+        ?.reduce((acc: { day: string; bookings: number }[], booking: Booking) => {
+          const date = new Date(booking.schedule.date);
+          const day = date.toLocaleString("en-US", { weekday: "short" });
+          const existing = acc.find((item) => item.day === day);
+          if (existing) {
+            existing.bookings += 1;
+          } else {
+            acc.push({ day, bookings: 1 });
+          }
+          return acc;
+        }, [])
+        ?.sort((a: { day: string }, b: { day: string }) => {
+          const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          return days.indexOf(a.day) - days.indexOf(b.day);
+        }) || []
+    );
   }
 };
 
