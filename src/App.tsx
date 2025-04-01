@@ -38,6 +38,7 @@ import TherapistPendingBooking from "./pages/therapist/TherapistPendingBookingPa
 import TherapistCompleteBooking from "./pages/therapist/TherapistCompleteBooking";
 import TherapistWallets from "./pages/therapist/TherapistWallet";
 import BlogDetail from "./pages/member/BlogDetail";
+import QuizResult from "./pages/member/QuizResult";
 const App: React.FC = () => {
   return (
     <Router>
@@ -70,6 +71,7 @@ const App: React.FC = () => {
           <Route path="quiz/:quizId" element={<QuizDetail />} />
           <Route path="wallet" element={<Wallet />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="quizresult" element={<QuizResult />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/therapist" element={<TherapistLayout />}>
