@@ -276,6 +276,29 @@ const handleCancelBooking = async () => {
     setSelectedBooking(null);
   }
 };
+// Thêm hàm này trong component MyBooking
+const getMeetingStatus = (booking: Booking) => {
+  if (!booking.schedule || !booking.schedule.date || !booking.schedule.slot) {
+    return "Không có thông tin";
+  }
+
+  const slotStartTime = getSlotStartTimeBySlot(booking.schedule.slot);
+  if (!slotStartTime) {
+    return "Không có thông tin";
+  }
+
+  const currentTime = new Date();
+  const slotEndTime = new Date(slotStartTime);
+  slotEndTime.setHours(slotEndTime.getHours() + 1, slotEndTime.getMinutes() + 30); // Cuộc hẹn kéo dài 1h30
+
+  if (currentTime < slotStartTime) {
+    return "Chưa đến giờ";
+  } else if (currentTime >= slotStartTime && currentTime <= slotEndTime) {
+    return "Đúng giờ";
+  } else {
+    return "Cuộc hẹn đã kết thúc";
+  }
+};
 
   // Handle submitting feedback
   const handleSubmitFeedback = async (values: any) => {
@@ -535,18 +558,29 @@ const handleCancelBooking = async () => {
 
               {/* Add meet URL if available */}
               {selectedBooking.therapist && selectedBooking.therapist.meetUrl && (
-                <p>
-                  <span className="font-medium">Link cuộc hẹn:</span>
-                  <a
-                    href={selectedBooking.therapist.meetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline ml-1"
-                  >
-                    Tham gia cuộc hẹn
-                  </a>
-                </p>
-              )}
+      <p>
+        <span className="font-medium">Link cuộc hẹn:</span>{" "}
+        {(() => {
+          const status = getMeetingStatus(selectedBooking);
+          if (status === "Đúng giờ") {
+            return (
+              <a
+                href={selectedBooking.therapist.meetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline ml-1"
+              >
+                Tham gia cuộc hẹn
+              </a>
+            );
+          } else if (status === "Chưa đến giờ") {
+            return <span className="text-gray-500 ml-1">Chưa đến giờ</span>;
+          } else {
+            return <span className="text-gray-500 ml-1">Cuộc hẹn đã kết thúc</span>;
+          }
+        })()}
+      </p>
+    )}
 
               {selectedBooking.notes && (
                 <div className="mt-4">

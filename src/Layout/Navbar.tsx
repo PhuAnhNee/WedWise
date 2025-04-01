@@ -48,6 +48,9 @@ const Navbar: React.FC = () => {
       <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
         <Link to="/home/profile">Profile</Link>
       </Menu.Item>
+      <Menu.Item key="profile" className="hover:bg-indigo-50 text-gray-900">
+        <Link to="/home/quizresult">Quiz results</Link>
+      </Menu.Item>
       <Menu.Divider />
       <Menu.Item key="logout" onClick={handleLogout} className="hover:bg-red-50 text-red-600">
         Logout
