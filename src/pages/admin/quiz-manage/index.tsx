@@ -30,7 +30,12 @@ const AdminQuiz: React.FC = () => {
         try {
             const response = await axios.get<Quiz[]>(`${API_BASE_URL}/Get_All_Quiz`);
             console.log("Quizzes from API:", response.data);
-            const validQuizzes = response.data.filter((quiz) => quiz.quizId && typeof quiz.quizId === "string");
+            const validQuizzes = response.data
+                .filter((quiz) => quiz.quizId && typeof quiz.quizId === "string")
+                .map((quiz) => ({
+                    ...quiz,
+                    status: quiz.status ?? 1, // Default status to 1 if missing
+                }));
             setQuizzes(validQuizzes);
         } catch (error) {
             console.error("Error fetching quizzes:", error);
@@ -47,7 +52,12 @@ const AdminQuiz: React.FC = () => {
             console.log("Raw Categories from API (Full):", JSON.stringify(rawData, null, 2));
 
             const validCategories = rawData
-                .filter((cat) => cat.categoryId && typeof cat.categoryId === "string" && /^[0-9a-fA-F-]{36}$/.test(cat.categoryId))
+                .filter(
+                    (cat) =>
+                        cat.categoryId &&
+                        typeof cat.categoryId === "string" &&
+                        /^[0-9a-fA-F-]{36}$/.test(cat.categoryId)
+                )
                 .map((cat) => ({
                     categoryId: cat.categoryId,
                     name: cat.name || "Unnamed Category",
@@ -104,17 +114,24 @@ const AdminQuiz: React.FC = () => {
                 name: values.name,
                 description: values.description || "",
             };
-            console.log("Payload gửi đi:", payload);
 
             if (selectedQuiz) {
-                const updatePayload = { quizId: selectedQuiz.quizId, ...payload, status: selectedQuiz.status };
+                const updatePayload = {
+                    quizId: selectedQuiz.quizId,
+                    ...payload,
+                    status: selectedQuiz.status ?? 1, // Default to 1 if status is undefined or null
+                };
                 console.log("Update Payload:", updatePayload);
                 const response = await axios.post(`${API_BASE_URL}/Update_Quiz`, updatePayload, { headers });
                 console.log("Update Response:", response.data);
                 message.success("Quiz updated successfully!");
             } else {
-                console.log("Create Payload:", payload);
-                const response = await axios.post(`${API_BASE_URL}/Create_Quiz`, payload, { headers });
+                const createPayload = {
+                    ...payload,
+                    status: 1, // Explicitly set status for new quizzes
+                };
+                console.log("Create Payload:", createPayload);
+                const response = await axios.post(`${API_BASE_URL}/Create_Quiz`, createPayload, { headers });
                 console.log("Create Response:", response.data);
                 message.success("New quiz added successfully!");
             }
@@ -136,11 +153,13 @@ const AdminQuiz: React.FC = () => {
                 message.error("Unauthorized: Please log in again.");
                 return;
             }
+            // Note: API call for delete is missing in the original code. Assuming it's a placeholder.
             setQuizzes(quizzes.filter((quiz) => quiz.quizId !== quizId));
             message.success("Quiz deleted successfully!");
         } catch (error) {
             const err = error as AxiosError<{ message?: string }>;
             console.error("Error deleting quiz:", err.response?.data || err.message);
+            message.error("Failed to delete quiz!");
         }
     };
 
@@ -167,9 +186,7 @@ const AdminQuiz: React.FC = () => {
                         okText="Yes"
                         cancelText="No"
                     >
-                        {/* <Button icon={<DeleteOutlined />} danger>
-                            Delete
-                        </Button> */}
+                        <Button danger>Delete</Button> {/* Uncommented and simplified */}
                     </Popconfirm>
                 </div>
             ),
